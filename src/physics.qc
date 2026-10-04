@@ -13,6 +13,7 @@ var float autocvar_bv_wind_y = 0;
 vector bv_step_position, bv_step_velocity, bv_step_spin;
 vector bv_landing;
 float bv_flight_time, bv_apex;
+float bv_predict_net, bv_predict_under_net;
 
 void(vector position, vector velocity, vector spin, float dt) BV_Integrate =
 {
@@ -93,6 +94,8 @@ void(vector position, vector velocity, vector spin) BV_Predict =
     local vector old;
     duration = 0;
     bv_apex = position_z;
+    bv_predict_net = FALSE;
+    bv_predict_under_net = FALSE;
     while (duration < 8)
     {
         old = position;
@@ -100,8 +103,15 @@ void(vector position, vector velocity, vector spin) BV_Predict =
         position = bv_step_position;
         velocity = bv_step_velocity;
         spin = bv_step_spin;
+        if (old_x * position_x < 0)
+        {
+            fraction = fabs(old_x) / (fabs(old_x) + fabs(position_x));
+            if (old_z + (position_z - old_z) * fraction < 43 - BV_RADIUS)
+                bv_predict_under_net = TRUE;
+        }
         if (BV_NetSweep(old, position))
         {
+            bv_predict_net = TRUE;
             position = bv_net_position;
             position_x = position_x + (old_x - position_x) * 0.001;
             velocity_x = -velocity_x * 0.22;

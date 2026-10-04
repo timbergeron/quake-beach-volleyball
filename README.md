@@ -63,11 +63,20 @@ you to look upward and track the ball. Hold Shift while preparing to change
 that direction for a cut or wrist-away shot. Spin controls the subsequent curve
 separately from the launch direction.
 
-Release when the ball reaches your hands. A brief contact window helps catch
-balls moving between server frames; it still requires physical reach. Preparing
+Release when the ball reaches your hands. The reticle and timing cue turn green
+when the ball is within physical reach, using the same obstruction checks as
+contact. A brief contact window helps catch balls moving between server frames;
+it still requires physical reach. Preparing
 early improves contact quality, and a moving set loses some precision. Power
 fills over 0.75 seconds. The gold ring previews the landing location for a
 balanced contact; actual contact height and footing can change the outcome.
+The HUD predicts range, apex height, and target/in/out/net outcomes. Its overhead
+court shows you in white, the ball in gold, and the predicted landing as an
+outlined green or orange marker. Spin labels use L/R for sidespin and TOP/BACK
+for vertical spin. Recent contact quality and landing feedback remain visible
+for three seconds, including across automatic training feeds. The HUD uses an
+original bitmap font when the engine supports CSQC font loading, with the normal
+Quake font as a fallback.
 
 Start with a serve: press R, move along the baseline, aim, and hold LMB to toss.
 Release after roughly 0.35–0.7 seconds for a standing serve. Try small changes
@@ -123,10 +132,12 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 46 assertions inside the actual QC VM, captures the court and HUD through
-SDL's offscreen renderer, and performs a standing serve through the normal
-input, toss, release, collision, flight, scoring, and HUD update paths. Audio
-uses SDL's dummy device. Use `--skip-visual` for dedicated-only checks. Logs,
+It runs 59 assertions inside the actual QC VM, captures the court and compact
+help/HUD through SDL's offscreen renderer, and performs standing serves from
+both baselines through the normal input, toss, release, collision, flight,
+scoring, and HUD update paths. It also verifies that timing and landing cues
+reach the client HUD. Audio uses SDL's dummy device. Use `--skip-visual` for
+dedicated-only checks. Logs,
 screenshots, and executable/progs hashes are written to `artifacts/`.
 
 The separate launcher isolates configs. A manual installation uses the usual

@@ -9,6 +9,9 @@
 .float bv_last_speed, bv_aim_locked, bv_last_result, bv_last_pitch;
 .float bv_preview_next;
 .float bv_contact_side;
+.float bv_preview_result, bv_preview_range, bv_preview_height;
+.float bv_feedback_at, bv_feedback_age, bv_in_reach, bv_feed_delay;
+.vector bv_preview_landing;
 .vector bv_aim;
 .entity bv_marker;
 .string bv_message;
@@ -41,6 +44,19 @@ float(vector position) BV_OnTarget =
            (y <= 26 || fabs(y - 92) <= 26);
 };
 
+float(vector position, float side, float net, float under) BV_LandingResult =
+{
+    if (under) return BV_RESULT_UNDER;
+    if (!BV_InCourt(position)) return BV_RESULT_OUT;
+    if (position_x * side >= 0)
+    {
+        if (net) return BV_RESULT_NET;
+        return BV_RESULT_OWN;
+    }
+    if (BV_OnTarget(position)) return BV_RESULT_TARGET;
+    return BV_RESULT_IN;
+};
+
 void(vector position) BV_FinishRally =
 {
     bv_ball_state = BV_DEAD;
@@ -50,39 +66,73 @@ void(vector position) BV_FinishRally =
     if (bv_last_player != world)
     {
         bv_last_player.bv_attempts = bv_last_player.bv_attempts + 1;
-        if (bv_under_net)
+        bv_last_player.bv_feedback_at = time;
+        bv_last_player.bv_last_result = BV_LandingResult(position,
+            bv_last_player.bv_contact_side, bv_net_touched, bv_under_net);
+        if (bv_last_player.bv_last_result == BV_RESULT_UNDER)
         {
             bv_last_player.bv_message = "UNDER NET";
-            bv_last_player.bv_last_result = 6;
         }
-        else if (!BV_InCourt(position))
+        else if (bv_last_player.bv_last_result == BV_RESULT_OUT)
         {
             bv_last_player.bv_message = "OUT - reduce power or change arc";
-            bv_last_player.bv_last_result = 3;
         }
-        else if (position_x * bv_last_player.bv_contact_side >= 0)
+        else if (bv_last_player.bv_last_result == BV_RESULT_OWN ||
+                 bv_last_player.bv_last_result == BV_RESULT_NET)
         {
             if (bv_net_touched)
                 bv_last_player.bv_message = "NET - give the ball more clearance";
             else
                 bv_last_player.bv_message = "OWN COURT - prepare the next contact";
-            bv_last_player.bv_last_result = 4;
         }
-        else if (BV_OnTarget(position))
+        else if (bv_last_player.bv_last_result == BV_RESULT_TARGET)
         {
             bv_last_player.bv_targets = bv_last_player.bv_targets + 1;
             bv_last_player.bv_message = "TARGET HIT";
-            bv_last_player.bv_last_result = 1;
             sound(bv_ball, 1, "beach/target.wav", 0.7, 1);
         }
         else
         {
             bv_last_player.bv_message = "IN - try placing the next shot on a target";
-            bv_last_player.bv_last_result = 2;
         }
     }
     if (bv_feeder != world && bv_feeder.bv_mode > 0)
         bv_next_feed = time + 1.35;
+};
+
+vector bv_hand_position;
+float bv_hand_radius;
+
+void(entity player, vector ball) BV_ContactZone =
+{
+    local float height;
+    height = 20;
+    bv_hand_radius = 25 + BV_RADIUS;
+    if (player.bv_action == 2) height = 45;
+    if (player.bv_serve_contact ||
+        (player.bv_action == 1 && ball_z > player.origin_z + 36))
+    {
+        height = 53;
+        bv_hand_radius = 30 + BV_RADIUS;
+    }
+    if (player.bv_dive_until > time)
+    {
+        height = 2;
+        bv_hand_radius = 32 + BV_RADIUS;
+    }
+    bv_hand_position = player.origin + BV_Heading(player.v_angle_y) * 17 +
+                       '0 0 1' * height;
+};
+
+/* The timing cue and actual contact share both reach and obstruction checks. */
+float(entity player, vector point) BV_Reachable =
+{
+    if (vlen(point - bv_hand_position) > bv_hand_radius) return FALSE;
+    traceline(bv_hand_position, point, TRUE, player);
+    return trace_fraction == 1 &&
+           !(bv_hand_position_x * point_x < 0 &&
+             fabs(point_y) < BV_HALF_WIDTH &&
+             point_z < BV_NET_HEIGHT + BV_RADIUS);
 };
 
 /* Release arms a short contact window. A fast ball crossing the hands
@@ -91,43 +141,19 @@ void(vector position) BV_FinishRally =
 float(vector start, vector finish) BV_TryContacts =
 {
     local entity player;
-    local vector hand, closest, heading;
-    local float reach, height;
+    local vector closest;
     player = find(world, classname, "player");
     while (player != world)
     {
         if (player.bv_isplayer && player.bv_armed_until >= time &&
             player.bv_armed_until > 0 && time - player.bv_last_contact > 0.22)
         {
-            heading = BV_Heading(player.v_angle_y);
-            height = 20;
-            reach = 25;
-            if (player.bv_action == 2) height = 45;
-            if (player.bv_serve_contact ||
-                (player.bv_action == 1 && start_z > player.origin_z + 36))
+            BV_ContactZone(player, start);
+            closest = BV_ClosestPoint(start, finish, bv_hand_position);
+            if (BV_Reachable(player, closest))
             {
-                height = 53;
-                reach = 30;
-            }
-            if (player.bv_dive_until > time)
-            {
-                height = 2;
-                reach = 32;
-            }
-            hand = player.origin + heading * 17 + '0 0 1' * height;
-            closest = BV_ClosestPoint(start, finish, hand);
-            if (vlen(closest - hand) <= reach + BV_RADIUS)
-            {
-                /* Prevent reaching through the mesh or a solid obstacle. */
-                traceline(hand, closest, TRUE, player);
-                if (trace_fraction == 1 &&
-                    !(hand_x * closest_x < 0 &&
-                      fabs(closest_y) < BV_HALF_WIDTH &&
-                      closest_z < BV_NET_HEIGHT + BV_RADIUS))
-                {
-                    BV_Contact(player, closest);
-                    return TRUE;
-                }
+                BV_Contact(player, closest);
+                return TRUE;
             }
         }
         player = find(player, classname, "player");

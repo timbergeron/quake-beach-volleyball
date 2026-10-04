@@ -22,6 +22,59 @@ const float BV_SPIKE = 3;
 const float BV_ROLL = 4;
 const float BV_SERVE = 5;
 
+const float BV_RESULT_TARGET = 1;
+const float BV_RESULT_IN = 2;
+const float BV_RESULT_OUT = 3;
+const float BV_RESULT_OWN = 4;
+const float BV_RESULT_MISS = 5;
+const float BV_RESULT_UNDER = 6;
+const float BV_RESULT_NET = 7;
+
+/* Custom stats are shared by the server and HUD. Vector stats occupy three
+ * consecutive slots; keep the player and preview vectors separate.
+ */
+const float BV_STAT_ARC = 32;
+const float BV_STAT_SIDE = 33;
+const float BV_STAT_CHARGE = 34;
+const float BV_STAT_KIND = 35;
+const float BV_STAT_STATE = 36;
+const float BV_STAT_SPEED = 37;
+const float BV_STAT_QUALITY = 38;
+const float BV_STAT_TARGETS = 39;
+const float BV_STAT_ATTEMPTS = 40;
+const float BV_STAT_MODE = 41;
+const float BV_STAT_TOP = 42;
+const float BV_STAT_AIM_LOCKED = 43;
+const float BV_STAT_RESULT = 45;
+const float BV_STAT_BALL = 48;
+const float BV_STAT_PLAYER = 51;
+const float BV_STAT_PREVIEW = 54;
+const float BV_STAT_PREVIEW_RESULT = 57;
+const float BV_STAT_PREVIEW_RANGE = 58;
+const float BV_STAT_PREVIEW_HEIGHT = 59;
+const float BV_STAT_FEEDBACK_AGE = 60;
+const float BV_STAT_REACH = 61;
+const float BV_STAT_FEED_DELAY = 62;
+
+float(float value) BV_Round =
+{
+    return floor(value + 0.5);
+};
+
+/* QSS-M's ftos can expose every binary-float digit. Build the fraction from
+ * integers so all HUD distances and speeds have exactly one decimal place.
+ */
+string(float value) BV_Decimal =
+{
+    local float rounded, whole;
+    local string sign;
+    sign = "";
+    if (value < 0) sign = "-";
+    rounded = BV_Round(fabs(value) * 10);
+    whole = floor(rounded / 10);
+    return strcat(sign, ftos(whole), ".", ftos(rounded - whole * 10));
+};
+
 float(float value, float low, float high) BV_Clamp =
 {
     if (value < low) return low;

@@ -9,6 +9,8 @@ import re
 import struct
 from pathlib import Path
 
+from hud_font import pixels as font_pixels
+
 
 def pak_entry(pak, name):
     with Path(pak).open("rb") as stream:
@@ -43,8 +45,9 @@ def palette_from(base):
     raise ValueError("a Quake id1 palette is required to build the assets")
 
 
-def nearest(palette, color):
-    return min(range(224), key=lambda i: sum((a - b) ** 2
+def nearest(palette, color, fullbright=False):
+    indices = range(224, 255) if fullbright else range(224)
+    return min(indices, key=lambda i: sum((a - b) ** 2
                for a, b in zip(palette[i], color)))
 
 
@@ -94,7 +97,7 @@ def brush(mins, maxs, material, scale=1):
 
 def court_map(wad):
     lines = ['{', '"classname" "worldspawn"', '"message" "Beach / Practice"',
-             f'"wad" "{wad.as_posix()}"', '"_sunlight" "220"',
+             f'"wad" "{wad.name}"', '"_sunlight" "220"',
              '"_sunlight_color" "1 0.94 0.82"', '"_sun_mangle" "35 -50 0"',
              '"_minlight" "35"', '"_minlight_color" "0.65 0.78 1"',
              '"_sky" "bv_beach"']
@@ -214,8 +217,11 @@ def marker_model(path, palette):
     for i in range(24):
         a, b = i * 2, ((i + 1) % 24) * 2
         triangles.extend(((a, a + 1, b), (a + 1, b + 1, b)))
-    skin = bytes([nearest(palette, (245, 190, 60))] * 64)
-    write_mdl(path, vertices, [(0, 0)] * len(vertices), triangles, skin, (8, 8))
+    skin = bytearray([nearest(palette, (245, 190, 60), fullbright=True)] * 64)
+    # Quake flood-fills an alias skin's top-left background colour. An entirely
+    # solid skin turns black; reserve the corner and sample the gold interior.
+    skin[0] = 255
+    write_mdl(path, vertices, [(3, 3)] * len(vertices), triangles, skin, (8, 8))
 
 
 def write_sound(path, kind, duration, loop=False):
@@ -275,6 +281,32 @@ def external_textures(game):
     for name, color in (("bv_line", (24, 95, 162)), ("bv_tape", (235, 235, 224)),
                         ("bv_pole", (210, 181, 126)), ("#bv_sea", (24, 124, 164))):
         write_tga(destination / f"{name}.tga", 64, 64, [(*color, 255)] * 4096)
+    # Painted practice boxes blend into sand rather than looking like slabs.
+    pixels = []
+    for y in range(64):
+        for x in range(64):
+            grain = rng.randrange(-5, 6)
+            color = (213 + grain, 193 + grain, 146 + grain)
+            border = x < 3 or y < 3 or x > 60 or y > 60
+            cross = (abs(x - 32) < 2 and abs(y - 32) < 9) or \
+                    (abs(y - 32) < 2 and abs(x - 32) < 9)
+            if border or cross:
+                color = (43 + grain, 134 + grain, 145 + grain)
+            pixels.append((*color, 255))
+    write_tga(destination / "bv_target.tga", 64, 64, pixels)
+    for name, base in (("bv_pole", (210, 181, 126)), ("bv_wood", (135, 102, 65)),
+                       ("bv_tape", (235, 235, 224))):
+        pixels = []
+        for y in range(64):
+            for x in range(64):
+                grain = round(4 * math.sin(x * 0.9 + 0.4 * math.sin(y * 0.1)))
+                if name == "bv_tape":
+                    grain = -5 if x % 4 == 0 or y % 4 == 0 else 0
+                pixels.append((*[c + grain for c in base], 255))
+        write_tga(destination / f"{name}.tga", 64, 64, pixels)
+    pixels = [(32, 37, 40, 255 if x % 16 < 2 or y % 16 < 2 else 0)
+              for y in range(64) for x in range(64)]
+    write_tga(destination / "{bv_net.tga", 64, 64, pixels)
     write_tga(destination / "sky_beach_back.tga", 128, 128,
               [(87, 160, 215, 255)] * 16384)
     clouds = [(22, 38, 11, 5), (85, 24, 18, 6), (72, 85, 13, 4),
@@ -366,5 +398,6 @@ def generate(base, build, game):
     marker_model(game / "progs/bv_marker.mdl", palette)
     external_textures(game)
     daylight_skybox(game)
+    write_tga(game / "gfx/bv_hud.tga", 128, 128, font_pixels())
     for kind, duration in (("hit", 0.18), ("net", 0.2), ("target", 0.3), ("ocean", 4)):
         write_sound(game / f"sound/beach/{kind}.wav", kind, duration, kind == "ocean")

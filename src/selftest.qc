@@ -28,6 +28,8 @@ void() BV_RunSelfTests =
     saved_time = time;
     saved_drag = autocvar_bv_drag;
     saved_magnus = autocvar_bv_magnus;
+    BV_Assert("hud-decimal-no-float-tail", BV_Decimal(7.8) == "7.8");
+    BV_Assert("hud-decimal-carries-correctly", BV_Decimal(0.99) == "1.0");
     time = 10;
     player = spawn();
     self = player;
@@ -104,6 +106,15 @@ void() BV_RunSelfTests =
     BV_Assert("target-region", BV_OnTarget('208 92 3.4'));
     BV_Assert("between-targets", !BV_OnTarget('144 40 3.4'));
 
+    BV_Predict('-30 0 60', '700 0 0', '0 0 0');
+    BV_Assert("preview-reports-net", bv_predict_net &&
+        BV_LandingResult(bv_landing, -1, bv_predict_net, bv_predict_under_net) == BV_RESULT_NET);
+    BV_Predict('-10 0 20', '500 0 0', '0 0 0');
+    BV_Assert("preview-reports-under-net", bv_predict_under_net &&
+        BV_LandingResult(bv_landing, -1, bv_predict_net, bv_predict_under_net) == BV_RESULT_UNDER);
+    BV_Predict('-600 0 100', '200 0 180', '0 0 0');
+    BV_Assert("preview-fault-flags-reset", !bv_predict_net && !bv_predict_under_net);
+
     player.v_angle = '0 15 0';
     BV_BeginPreparation(player, 1);
     aim_direction = player.bv_aim;
@@ -136,6 +147,24 @@ void() BV_RunSelfTests =
     PlayerPreThink();
     BV_Assert("expired-release-is-miss", player.bv_armed_until == 0);
 
+    player.bv_serve_contact = FALSE;
+    setorigin(player, '-18 0 24');
+    BV_ContactZone(player, '8 0 50');
+    BV_Assert("timing-cue-cannot-reach-through-net", !BV_Reachable(player, '8 0 50'));
+    BV_ContactZone(player, '-6 0 50');
+    BV_Assert("timing-cue-valid-near-ball", BV_Reachable(player, '-6 0 50'));
+    setorigin(player, '-288 0 24');
+    player.bv_preparing = 1;
+    player.bv_last_contact = -1;
+    bv_ball_state = BV_LIVE;
+    setorigin(bv_ball, '-265 0 44');
+    PlayerPostThink();
+    BV_Assert("timing-cue-sent-for-reachable-ball", player.bv_in_reach);
+    setorigin(bv_ball, '150 0 44');
+    PlayerPostThink();
+    BV_Assert("timing-cue-clears-for-distant-ball", !player.bv_in_reach);
+    player.bv_preparing = 0;
+
     player.button2 = 1;
     player.bv_previous_jump = 0;
     player.flags = player.flags | FL_ONGROUND;
@@ -148,9 +177,11 @@ void() BV_RunSelfTests =
     player.button2 = 0;
     player.button7 = 1;
     player.bv_previous_dive = 0;
+    frametime = 0.016;
     PlayerPreThink();
     BV_Assert("dive-and-recovery", player.bv_dive_until > time &&
-              player.bv_dive_ready > player.bv_dive_until && player.view_ofs_z == 5);
+              player.bv_dive_ready > player.bv_dive_until &&
+              player.view_ofs_z > 5 && player.view_ofs_z < 27);
     player.button7 = 0;
     player.bv_dive_until = 0;
     player.bv_armed_until = 0;
@@ -232,6 +263,9 @@ void() BV_RunSelfTests =
     BV_FinishRally('208 92 3.4');
     BV_Assert("target-scoring", player.bv_targets == 1 &&
               player.bv_last_result == 1 && bv_next_feed > time);
+    BV_Feed(player);
+    BV_Assert("feedback-persists-through-next-feed", player.bv_last_result == BV_RESULT_TARGET);
+    bv_last_player = player;
     BV_FinishRally('280 0 3.4');
     BV_Assert("out-scoring", player.bv_last_result == 3);
     bv_under_net = TRUE;
@@ -242,6 +276,22 @@ void() BV_RunSelfTests =
     setorigin(player, '50 0 24');
     BV_FinishRally('208 92 3.4');
     BV_Assert("scoring-uses-contact-side", player.bv_last_result == 1);
+    bv_net_touched = TRUE;
+    BV_FinishRally('-80 0 3.4');
+    BV_Assert("net-fault-distinct-from-own-court", player.bv_last_result == BV_RESULT_NET);
+    BV_ReadyServe(player);
+    BV_Assert("opposite-baseline-faces-court", player.origin_x == 288 &&
+        player.v_angle_y == 180 && player.bv_last_result == 0);
+    BV_BeginPreparation(player, 1);
+    player.bv_charge = 0.48;
+    player.bv_arc = 0.35;
+    player.bv_topspin = 0.35;
+    player.flags = player.flags | FL_ONGROUND;
+    player.bv_preview_next = 0;
+    BV_UpdatePreview(player);
+    BV_Assert("opposite-side-serve-preview", player.bv_preview_landing_x < 0 &&
+        (player.bv_preview_result == BV_RESULT_TARGET || player.bv_preview_result == BV_RESULT_IN) &&
+        player.bv_preview_range > 8 && player.bv_preview_height > 2);
     self = player;
     ClientDisconnect();
     remove(player);

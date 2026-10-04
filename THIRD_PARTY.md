@@ -15,8 +15,8 @@ This project is licensed under GPL-2.0-or-later. A copy of the license is in
   [ericw-tools](https://github.com/ericwa/ericw-tools) are external build tools.
   Their binaries are not bundled here.
 
-The court, textures, skybox, ball and marker models, and contact sounds are
-generated from this project's Python source. No Quake PAK files, stock models,
+The court, textures, skybox, ball and marker models, bitmap HUD font, and contact
+sounds are generated from this project's Python source. No Quake PAK files, stock models,
 or stock textures are distributed. A local Quake installation supplies the
 palette during the build and the base player model during play.
 

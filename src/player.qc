@@ -102,6 +102,7 @@ void(entity player, vector contact) BV_Contact =
     player.bv_aim_locked = FALSE;
     player.bv_kind = bv_shot_kind;
     player.bv_quality = quality;
+    player.bv_feedback_at = time;
     player.bv_contact_side = 1;
     if (player.origin_x <= 0) player.bv_contact_side = -1;
     player.bv_last_result = 0;
@@ -129,6 +130,8 @@ void(entity player) BV_ReadyServe =
     player.bv_aim_locked = 0;
     player.bv_charge = 0;
     player.bv_last_result = 0;
+    player.bv_feedback_at = -100;
+    player.bv_preview_result = 0;
     if (fabs(player.origin_x) < BV_HALF_LENGTH + 20)
     {
         position = player.origin;
@@ -137,6 +140,10 @@ void(entity player) BV_ReadyServe =
         position_z = 24;
         setorigin(player, position);
         player.velocity = '0 0 0';
+        player.v_angle_y = 0;
+        if (position_x > 0) player.v_angle_y = 180;
+        player.angles_y = player.v_angle_y;
+        player.fixangle = TRUE;
     }
     player.bv_message = "SERVE - choose position; hold LMB, release to strike";
 };
@@ -186,7 +193,7 @@ void(entity player) BV_Feed =
     player.bv_preparing = 0;
     player.bv_aim_locked = 0;
     player.bv_charge = 0;
-    player.bv_last_result = 0;
+    player.bv_preview_result = 0;
 };
 
 void(entity player, float action) BV_BeginPreparation =
@@ -219,7 +226,8 @@ void(entity player) BV_Release =
 
 void(entity player) BV_UpdatePreview =
 {
-    local vector contact;
+    local vector contact, distance;
+    local float side;
     if (player.bv_preparing || player.bv_armed_until > time)
     {
         if (time < player.bv_preview_next) return;
@@ -231,6 +239,15 @@ void(entity player) BV_UpdatePreview =
             contact_z = player.origin_z + 53;
         BV_BuildShot(player, contact);
         BV_Predict(contact, bv_shot_velocity, bv_shot_spin);
+        player.bv_preview_landing = bv_landing;
+        distance = bv_landing - contact;
+        distance_z = 0;
+        player.bv_preview_range = vlen(distance) / 32;
+        player.bv_preview_height = bv_apex / 32;
+        side = 1;
+        if (player.origin_x <= 0) side = -1;
+        player.bv_preview_result = BV_LandingResult(bv_landing, side,
+            bv_predict_net, bv_predict_under_net);
         setorigin(player.bv_marker, bv_landing + '0 0 -2.5');
         /* The marker is a training overlay; its projected alias shadow would
          * otherwise cover this thin ring just above the playing surface.
@@ -239,12 +256,16 @@ void(entity player) BV_UpdatePreview =
         /* setmodel restores modelindex after hiding it between shots. */
         setmodel(player.bv_marker, "progs/bv_marker.mdl");
     }
-    else player.bv_marker.modelindex = 0;
+    else
+    {
+        player.bv_marker.modelindex = 0;
+        player.bv_preview_result = 0;
+    }
 };
 
 void() PlayerPreThink =
 {
-    local float action, pulse, speed;
+    local float action, pulse, speed, eye_height;
     local vector heading, horizontal;
     if (!self.bv_isplayer) return;
     if (cvar("bv_playtest")) BV_PlayTestInput();
@@ -272,6 +293,9 @@ void() PlayerPreThink =
         {
             setorigin(self, '-70 0 24');
             self.velocity = '0 0 0';
+            self.angles = '0 0 0';
+            self.v_angle = '0 0 0';
+            self.fixangle = TRUE;
         }
         BV_Feed(self);
     }
@@ -303,7 +327,8 @@ void() PlayerPreThink =
         self.bv_serve_contact = 0;
         self.bv_aim_locked = 0;
         self.bv_message = "MISS - release when the ball is within reach";
-        self.bv_last_result = 5;
+        self.bv_last_result = BV_RESULT_MISS;
+        self.bv_feedback_at = time;
     }
 
     if (self.button2 && !self.bv_previous_jump &&
@@ -326,8 +351,11 @@ void() PlayerPreThink =
         self.bv_dive_ready = time + 1.15;
     }
     self.bv_previous_dive = self.button7;
-    self.view_ofs = '0 0 27';
-    if (self.bv_dive_until > time) self.view_ofs = '0 0 5';
+    eye_height = 27;
+    if (self.bv_dive_until > time) eye_height = 5;
+    /* Ease the camera into a dive and back up without changing hand reach. */
+    self.view_ofs_z = self.view_ofs_z + BV_Clamp(eye_height - self.view_ofs_z,
+        -120 * frametime, 120 * frametime);
     horizontal = self.velocity;
     horizontal_z = 0;
     speed = 185;
@@ -350,6 +378,18 @@ void() PlayerPostThink =
     position_y = BV_Clamp(position_y, -750, 750);
     if (position != self.origin) setorigin(self, position);
     self.bv_state = bv_ball_state;
+    self.bv_feedback_age = BV_Clamp(time - self.bv_feedback_at, 0, 100);
+    self.bv_feed_delay = 0;
+    if (bv_feeder == self && bv_next_feed > time)
+        self.bv_feed_delay = bv_next_feed - time;
+    self.bv_in_reach = FALSE;
+    if (bv_ball_state == BV_LIVE &&
+        (self.bv_preparing || self.bv_armed_until > time) &&
+        time - self.bv_last_contact > 0.22)
+    {
+        BV_ContactZone(self, bv_ball.origin);
+        self.bv_in_reach = BV_Reachable(self, bv_ball.origin);
+    }
     BV_UpdatePreview(self);
     if (cvar("bv_playtest")) BV_PlayTestObserve();
 };
@@ -386,6 +426,13 @@ void() PutClientInServer =
     setmodel(self.bv_marker, "progs/bv_marker.mdl");
     self.bv_marker.modelindex = 0;
     if (bv_ball_state == BV_IDLE) BV_ReadyServe(self);
+    /* Compact screenshot fixture exercises the widest spin labels and help. */
+    if (cvar("bv_visualtest") == 2)
+    {
+        self.bv_arc = 1;
+        self.bv_sidespin = -1;
+        self.bv_topspin = -1;
+    }
 };
 
 void() ClientConnect = {};

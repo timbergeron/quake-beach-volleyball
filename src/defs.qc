@@ -181,6 +181,9 @@ void(vector position, string sample, float volume, float attenuation) ambientsou
 string(string first, string second, ...) strcat = #115;
 
 #ifdef CSQC
+float drawfont;
+float(__variant builtin) checkbuiltin = #0;
+float(string name, string atlas, string sizes, float slot) loadfont = #357;
 float(vector position, vector size, vector color, float alpha, float flags) drawfill = #323;
 float(vector position, string text, vector size, vector color, float alpha, float flags) drawstring = #326;
 float(float slot) getstatf = #331;

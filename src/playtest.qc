@@ -15,6 +15,7 @@ void() BV_PlayTestInput =
         self.bv_arc = 0.35;
         self.bv_sidespin = 0;
         self.bv_topspin = 0.35;
+        if (cvar("bv_playtest") == 2) setorigin(self, '50 0 24');
     }
     self.button0 = 0;
     self.button3 = 0;
