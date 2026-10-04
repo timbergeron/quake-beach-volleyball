@@ -7,6 +7,7 @@ const float BV_NET_HEIGHT = 77.76;
 const float BV_HALF_LENGTH = 256;
 const float BV_HALF_WIDTH = 128;
 const float BV_STEP = 0.008333333;
+const float BV_MAX_FLIGHT = 8;
 const float BV_PI = 3.141592654;
 const float BV_EF_FULLBRIGHT = 512;
 const float BV_EF_NOSHADOW = 4096;

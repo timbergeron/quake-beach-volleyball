@@ -92,7 +92,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                     shutil.copyfile(images[0], artifacts / "compact-help.tga")
     else:
         completed = re.search(r"BEACH DONE pass=(\d+) fail=(\d+)", result.stdout)
-        if not completed or int(completed[2]) or int(completed[1]) < 59:
+        if not completed or int(completed[2]) or int(completed[1]) < 77:
             errors.append("missing or failed gameplay completion marker")
     if errors:
         raise RuntimeError(f"{name}: {', '.join(errors)}\n{result.stdout[-6000:]}")

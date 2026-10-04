@@ -133,7 +133,7 @@ def court_map(wad):
     # actual ball/net collision rather than relying on alpha texture holes.
     lines.extend(['{', '"classname" "func_illusionary"'])
     lines.append(brush((-0.65, -128, 43), (0.65, 128, 77.76), "{bv_net"))
-    lines.append(brush((-1, -144, 76), (1, 144, 79), "bv_tape"))
+    lines.append(brush((-1, -144, 74.76), (1, 144, 77.76), "bv_tape"))
     lines.append("}")
     lines.extend(['{', '"classname" "info_player_start"',
                   '"origin" "-288 0 32"', '"angle" "0"', '}',

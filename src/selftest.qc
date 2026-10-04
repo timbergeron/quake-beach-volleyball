@@ -2,6 +2,7 @@
 // Copyright (C) 2026 timbergeron
 /* Runs inside the actual QSS-M QC VM via +set bv_selftest 1. */
 float bv_test_pass, bv_test_fail;
+void(entity player) BV_RunBugTests;
 
 void(string name, float condition) BV_Assert =
 {
@@ -250,11 +251,11 @@ void() BV_RunSelfTests =
     BV_Assert("serve-toss", bv_ball_state == BV_LIVE && bv_ball.velocity_z == 140 &&
               player.bv_serve_contact);
     player.bv_mode = 1;
-    BV_Feed(player);
+    BV_Feed(player, FALSE);
     BV_Assert("receive-feeder", bv_ball_state == BV_LIVE && bv_ball.origin_x > 0 &&
               bv_ball.velocity_x < 0);
     player.bv_mode = 2;
-    BV_Feed(player);
+    BV_Feed(player, FALSE);
     BV_Assert("setting-feeder", bv_ball.origin_z == 195);
     player.bv_preparing = 0;
     player.bv_armed_until = 0;
@@ -263,7 +264,7 @@ void() BV_RunSelfTests =
     BV_FinishRally('208 92 3.4');
     BV_Assert("target-scoring", player.bv_targets == 1 &&
               player.bv_last_result == 1 && bv_next_feed > time);
-    BV_Feed(player);
+    BV_Feed(player, FALSE);
     BV_Assert("feedback-persists-through-next-feed", player.bv_last_result == BV_RESULT_TARGET);
     bv_last_player = player;
     BV_FinishRally('280 0 3.4');
@@ -292,6 +293,7 @@ void() BV_RunSelfTests =
     BV_Assert("opposite-side-serve-preview", player.bv_preview_landing_x < 0 &&
         (player.bv_preview_result == BV_RESULT_TARGET || player.bv_preview_result == BV_RESULT_IN) &&
         player.bv_preview_range > 8 && player.bv_preview_height > 2);
+    BV_RunBugTests(player);
     self = player;
     ClientDisconnect();
     remove(player);

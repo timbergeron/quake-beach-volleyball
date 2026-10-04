@@ -85,7 +85,11 @@ send the ball long. A jump raises your attack contact point.
 
 Drills automatically feed another ball shortly after landing. Setting feeds
 drop near you; attack mode moves you near the net. You can also set to yourself
-and then attack. Targets are painted on both courts. The HUD shows shot speed
+and then attack. You can hold a shot early while waiting for an automatic feed;
+the feed preserves your preparation and aim. R and manual feeds clear the old
+contact window. A flight that lasts longer than eight seconds expires so a ball
+caught on the tape cannot stall practice. Expired flights count as misses.
+Targets are painted on both courts. The HUD shows shot speed
 in metres per second and reports target hits, in/out, misses, and under-net
 faults. Consecutive self contacts are allowed for practice.
 
@@ -113,8 +117,11 @@ Generated files are ignored by Git; all source is in this directory.
 
 The court uses 32 units per metre: 16×8 metres, a 2.43-metre net, and a
 21.25-centimetre ball. Ball integration runs at 120 Hz with retained fractional
-time. Ground and net crossings are swept, so a fast shot cannot skip the net
-between updates. Prediction and live play share the same integrator.
+time. Ground and net collisions are swept; the net uses separate mesh and tape
+volumes expanded by the ball radius, including vertical and overlapping contacts.
+Hand contacts are checked before the first obstacle, and under-net faults are
+limited to crossings within the net's width before the ball lands. Prediction
+and live play share the same integrator and net response.
 
 The console exposes `bv_gravity`, `bv_drag`, `bv_magnus`, `bv_spin_decay`,
 `bv_wind_x`, and `bv_wind_y`. Wind values use units/second; 32 is 1 m/s.
@@ -132,13 +139,17 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 59 assertions inside the actual QC VM, captures the court and compact
+It runs 77 assertions inside the actual QC VM, captures the court and compact
 help/HUD through SDL's offscreen renderer, and performs standing serves from
 both baselines through the normal input, toss, release, collision, flight,
 scoring, and HUD update paths. It also verifies that timing and landing cues
 reach the client HUD. Audio uses SDL's dummy device. Use `--skip-visual` for
 dedicated-only checks. Logs,
 screenshots, and executable/progs hashes are written to `artifacts/`.
+
+Run `python3 -m unittest -v test_launcher` for three launcher regressions covering
+installation switches, broken links, and preservation of regular runtime files.
+The launcher refreshes its managed links when the installation or engine changes.
 
 The separate launcher isolates configs. A manual installation uses the usual
 engine config behavior and applies the bindings in `beach.cfg`.

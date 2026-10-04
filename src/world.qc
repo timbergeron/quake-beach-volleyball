@@ -68,6 +68,7 @@ void() worldspawn =
     bv_feeder = world;
     bv_tests_ran = FALSE;
     bv_accumulator = 0;
+    bv_live_time = 0;
     ambientsound('0 480 32', "beach/ocean.wav", 0.18, 0);
 };
 

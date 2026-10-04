@@ -94,6 +94,7 @@ void(entity player, vector contact) BV_Contact =
     bv_ball.velocity = launch_velocity;
     bv_ball_spin = bv_shot_spin * quality;
     bv_ball_state = BV_LIVE;
+    bv_live_time = 0;
     bv_last_player = player;
     bv_holder = world;
     player.bv_last_contact = time;
@@ -116,6 +117,7 @@ void(entity player) BV_ReadyServe =
     local vector position;
     bv_holder = player;
     bv_ball_state = BV_HELD;
+    bv_live_time = 0;
     bv_ball.velocity = '0 0 0';
     bv_ball_spin = '0 0 0';
     bv_last_player = world;
@@ -132,6 +134,11 @@ void(entity player) BV_ReadyServe =
     player.bv_last_result = 0;
     player.bv_feedback_at = -100;
     player.bv_preview_result = 0;
+    player.bv_preview_next = 0;
+    player.bv_marker.modelindex = 0;
+    player.bv_dive_until = 0;
+    player.bv_last_contact = -1;
+    player.view_ofs = '0 0 27';
     if (fabs(player.origin_x) < BV_HALF_LENGTH + 20)
     {
         position = player.origin;
@@ -148,7 +155,7 @@ void(entity player) BV_ReadyServe =
     player.bv_message = "SERVE - choose position; hold LMB, release to strike";
 };
 
-void(entity player) BV_Feed =
+void(entity player, float automatic) BV_Feed =
 {
     local vector start, target, launch_velocity;
     local float side;
@@ -182,6 +189,7 @@ void(entity player) BV_Feed =
     bv_ball.velocity = launch_velocity;
     bv_ball_spin = '0 0 0';
     bv_ball_state = BV_LIVE;
+    bv_live_time = 0;
     bv_holder = world;
     bv_last_player = world;
     bv_feeder = player;
@@ -190,10 +198,16 @@ void(entity player) BV_Feed =
     bv_under_net = 0;
     player.bv_armed_until = 0;
     player.bv_serve_contact = 0;
-    player.bv_preparing = 0;
-    player.bv_aim_locked = 0;
-    player.bv_charge = 0;
+    player.bv_last_contact = -1;
+    if (!automatic || !player.bv_preparing)
+    {
+        player.bv_preparing = 0;
+        player.bv_aim_locked = 0;
+        player.bv_charge = 0;
+    }
     player.bv_preview_result = 0;
+    player.bv_preview_next = 0;
+    player.bv_marker.modelindex = 0;
 };
 
 void(entity player, float action) BV_BeginPreparation =
@@ -210,6 +224,7 @@ void(entity player, float action) BV_BeginPreparation =
     {
         player.bv_serve_contact = TRUE;
         bv_ball_state = BV_LIVE;
+        bv_live_time = 0;
         setorigin(bv_ball, player.origin + player.bv_aim * 22 + '0 0 43');
         bv_ball.velocity = '0 0 140';
         bv_holder = world;
@@ -246,8 +261,8 @@ void(entity player) BV_UpdatePreview =
         player.bv_preview_height = bv_apex / 32;
         side = 1;
         if (player.origin_x <= 0) side = -1;
-        player.bv_preview_result = BV_LandingResult(bv_landing, side,
-            bv_predict_net, bv_predict_under_net);
+        player.bv_preview_result = BV_AttemptResult(bv_landing, side,
+            bv_predict_net, bv_predict_under_net, bv_flight_time);
         setorigin(player.bv_marker, bv_landing + '0 0 -2.5');
         /* The marker is a training overlay; its projected alias shadow would
          * otherwise cover this thin ring just above the playing surface.
@@ -297,9 +312,9 @@ void() PlayerPreThink =
             self.v_angle = '0 0 0';
             self.fixangle = TRUE;
         }
-        BV_Feed(self);
+        BV_Feed(self, FALSE);
     }
-    if (pulse == 21) BV_Feed(self);
+    if (pulse == 21) BV_Feed(self, FALSE);
     self.bv_sidespin = BV_Clamp(self.bv_sidespin +
         (self.button5 - self.button4) * frametime * 1.6, -1, 1);
 

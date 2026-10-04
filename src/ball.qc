@@ -21,10 +21,11 @@
 entity bv_ball, bv_holder, bv_last_player, bv_feeder;
 vector bv_ball_spin;
 float bv_ball_state, bv_accumulator, bv_next_feed, bv_net_touched, bv_under_net;
+float bv_live_time;
 vector bv_ball_position;
 
 void(entity player, vector contact) BV_Contact;
-void(entity player) BV_Feed;
+void(entity player, float automatic) BV_Feed;
 
 float(vector position) BV_InCourt =
 {
@@ -57,6 +58,19 @@ float(vector position, float side, float net, float under) BV_LandingResult =
     return BV_RESULT_IN;
 };
 
+float(vector position, float side, float net, float under, float duration) BV_AttemptResult =
+{
+    /* Expiring in midair is a miss, even above an opponent target. Keep
+     * this classification shared by live scoring and the training preview.
+     */
+    if (duration >= BV_MAX_FLIGHT && !under)
+    {
+        if (net) return BV_RESULT_NET;
+        return BV_RESULT_OUT;
+    }
+    return BV_LandingResult(position, side, net, under);
+};
+
 void(vector position) BV_FinishRally =
 {
     bv_ball_state = BV_DEAD;
@@ -67,8 +81,8 @@ void(vector position) BV_FinishRally =
     {
         bv_last_player.bv_attempts = bv_last_player.bv_attempts + 1;
         bv_last_player.bv_feedback_at = time;
-        bv_last_player.bv_last_result = BV_LandingResult(position,
-            bv_last_player.bv_contact_side, bv_net_touched, bv_under_net);
+        bv_last_player.bv_last_result = BV_AttemptResult(position,
+            bv_last_player.bv_contact_side, bv_net_touched, bv_under_net, bv_live_time);
         if (bv_last_player.bv_last_result == BV_RESULT_UNDER)
         {
             bv_last_player.bv_message = "UNDER NET";
@@ -163,55 +177,77 @@ float(vector start, vector finish) BV_TryContacts =
 
 void(float dt) BV_BallStep =
 {
-    local vector old, position, launch_velocity, spin;
-    local float fraction;
+    local vector old, position, launch_velocity, spin, impact, normal;
+    local float fraction, event;
     if (bv_ball_state != BV_LIVE) return;
+    bv_live_time = bv_live_time + dt;
+    if (bv_live_time > BV_MAX_FLIGHT)
+    {
+        /* A ball balanced on the tape must not stall an automatic drill. */
+        BV_FinishRally(bv_ball.origin);
+        return;
+    }
     old = bv_ball.origin;
     BV_Integrate(old, bv_ball.velocity, bv_ball_spin, dt);
     position = bv_step_position;
     launch_velocity = bv_step_velocity;
     spin = bv_step_spin;
-    if (old_x * position_x < 0)
+    impact = position;
+    fraction = 1;
+    event = 0;
+    normal = '0 0 0';
+    if (position_z <= BV_RADIUS)
     {
-        fraction = fabs(old_x) / (fabs(old_x) + fabs(position_x));
-        if (old_z + (position_z - old_z) * fraction < 43 - BV_RADIUS)
-            bv_under_net = TRUE;
+        event = 1;
+        fraction = 0;
+        if (old_z != position_z)
+            fraction = BV_Clamp((old_z - BV_RADIUS) / (old_z - position_z), 0, 1);
+        impact = old + (position - old) * fraction;
+        impact_z = BV_RADIUS;
     }
-    if (BV_NetSweep(old, position))
+    if (BV_NetSweep(old, position) && bv_net_fraction < fraction)
     {
-        position = bv_net_position;
-        position_x = position_x + (old_x - position_x) * 0.001;
-        launch_velocity_x = -launch_velocity_x * 0.22;
-        launch_velocity_y = launch_velocity_y * 0.65;
-        launch_velocity_z = launch_velocity_z * 0.65;
+        event = 2;
+        fraction = bv_net_fraction;
+        impact = bv_net_position;
+        normal = bv_net_normal;
+    }
+    /* Point traces avoid Quake's fixed player-sized hulls. Include raised
+     * horizontal surfaces as well as post sides; the sand event is earlier
+     * than its point trace because it already accounts for the ball radius.
+     */
+    traceline(old, position, TRUE, bv_ball);
+    if (!trace_startsolid && trace_fraction < fraction)
+    {
+        event = 3;
+        impact = trace_endpos + trace_plane_normal * BV_RADIUS;
+        normal = trace_plane_normal;
+    }
+    /* A hand contact before an obstacle consumes the shot without recording
+     * a future net/floor event. Never search beyond the first obstacle.
+     */
+    if (BV_TryContacts(old, impact)) return;
+    if (BV_UnderNetSweep(old, impact)) bv_under_net = TRUE;
+    position = impact;
+    if (event == 1)
+    {
+        BV_FinishRally(position);
+        return;
+    }
+    if (event == 2)
+    {
+        position = position + normal * 0.01;
+        launch_velocity = BV_Reflect(launch_velocity, normal, 0.22, 0.65);
         spin = spin * 0.4;
         bv_net_touched = TRUE;
         sound(bv_ball, 1, "beach/net.wav", 0.7, 1);
     }
-    /* The BSP handles posts and surroundings; the playing surface gets an
-     * exact sphere-ground crossing below. Point hull avoids Quake's fixed
-     * player-sized tracebox hulls for this small ball.
-     */
-    traceline(old, position, TRUE, bv_ball);
-    if (trace_fraction < 1 && trace_plane_normal_z < 0.5)
+    if (event == 3)
     {
-        position = trace_endpos + trace_plane_normal * BV_RADIUS;
-        launch_velocity = launch_velocity - trace_plane_normal * (launch_velocity * trace_plane_normal) * 1.3;
+        position = position + normal * 0.01;
+        launch_velocity = BV_Reflect(launch_velocity, normal, 0.3, 1);
         spin = spin * 0.4;
     }
-    /* Contact only before the first floor crossing; a released shot cannot
-     * rescue a ball after it has already landed.
-     */
-    if (position_z <= BV_RADIUS)
-    {
-        fraction = BV_Clamp((old_z - BV_RADIUS) / (old_z - position_z), 0, 1);
-        position = old + (position - old) * fraction;
-        position_z = BV_RADIUS;
-        if (BV_TryContacts(old, position)) return;
-        BV_FinishRally(position);
-        return;
-    }
-    if (BV_TryContacts(old, position)) return;
     setorigin(bv_ball, position);
     bv_ball.velocity = launch_velocity;
     bv_ball_spin = spin;
@@ -240,7 +276,7 @@ void() BV_UpdateBall =
     if (bv_next_feed > 0 && time >= bv_next_feed && bv_feeder != world)
     {
         bv_next_feed = 0;
-        BV_Feed(bv_feeder);
+        BV_Feed(bv_feeder, TRUE);
     }
     bv_ball_position = bv_ball.origin;
 };
