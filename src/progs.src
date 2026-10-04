@@ -3,8 +3,10 @@ defs.qc
 shared.qc
 physics.qc
 ball.qc
+feel.qc
 player.qc
 selftest.qc
 regressions.qc
+feeltest.qc
 playtest.qc
 world.qc

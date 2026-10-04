@@ -56,6 +56,17 @@ const float BV_STAT_PREVIEW_HEIGHT = 59;
 const float BV_STAT_FEEDBACK_AGE = 60;
 const float BV_STAT_REACH = 61;
 const float BV_STAT_FEED_DELAY = 62;
+const float BV_STAT_DEPTH = 63;
+const float BV_STAT_CONTACT_NOTE = 64;
+const float BV_STAT_TIMING = 65;
+const float BV_STAT_SERVING = 66;
+
+const float BV_NOTE_CLEAN = 0;
+const float BV_NOTE_PREPARATION = 1;
+const float BV_NOTE_REACH = 2;
+const float BV_NOTE_FOOTING = 3;
+const float BV_NOTE_DIVE = 4;
+const float BV_NOTE_TIMING = 5;
 
 float(float value) BV_Round =
 {

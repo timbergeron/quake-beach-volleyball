@@ -4,9 +4,11 @@
  * through an actual toss, release, hand contact, flight, and landing.
  */
 .float bv_play_stage, bv_play_started, bv_play_finished, bv_play_capture;
+.float bv_play_contact_capture;
 
 void() BV_PlayTestInput =
 {
+    local float release_at;
     if (!self.bv_play_stage)
     {
         self.bv_play_stage = 1;
@@ -21,15 +23,22 @@ void() BV_PlayTestInput =
     self.button3 = 0;
     self.button2 = 0;
     self.button8 = 0;
+    release_at = 0.45;
+    if (cvar("bv_playtest") == 3) release_at = 0.55;
+    if (cvar("bv_playtest") == 4) release_at = 0.85;
     if (self.bv_play_stage == 1 &&
         time - self.bv_play_started >= 0.1 &&
-        time - self.bv_play_started < 0.45)
+        time - self.bv_play_started < release_at)
         self.button0 = 1;
 };
 
 void() BV_PlayTestObserve =
 {
-    if (self.bv_preparing && time - self.bv_play_started > 0.3 && !self.bv_play_capture)
+    local float capture_at, quality_ok, landed_ok;
+    capture_at = 0.3;
+    if (cvar("bv_playtest") == 3) capture_at = 0.52;
+    if (cvar("bv_playtest") == 4) capture_at = 0.77;
+    if (self.bv_preparing && time - self.bv_play_started > capture_at && !self.bv_play_capture)
     {
         self.bv_play_capture = TRUE;
         localcmd("con_notifytime 0\ncon_notifylines 0\nscr_fade 0\nscreenshot tga\n");
@@ -39,7 +48,23 @@ void() BV_PlayTestObserve =
         self.bv_play_stage = 2;
         dprint("BEACH PLAY PASS serve-contact\n");
         dprint("BEACH PLAY DETAIL charge=", ftos(self.bv_charge),
-               " speed=", ftos(self.bv_last_speed), "\n");
+               " speed=", ftos(self.bv_last_speed));
+        dprint(" quality=", ftos(self.bv_quality),
+               " timing=", ftos(self.bv_timing), "\n");
+        quality_ok = self.bv_quality > 0.8;
+        if (cvar("bv_playtest") == 3)
+        {
+            quality_ok = FALSE;
+            if (self.bv_quality > 0.9 && self.bv_timing > 0.9) quality_ok = TRUE;
+        }
+        if (cvar("bv_playtest") == 4)
+        {
+            quality_ok = FALSE;
+            if (self.bv_quality < 0.8 && self.bv_timing < 0.5 &&
+                self.bv_contact_note == BV_NOTE_TIMING) quality_ok = TRUE;
+        }
+        if (quality_ok) dprint("BEACH PLAY PASS serve-quality\n");
+        else dprint("BEACH PLAY FAIL serve-quality\n");
     }
     if (self.bv_play_stage == 2 && bv_ball_state == BV_DEAD)
     {
@@ -48,8 +73,18 @@ void() BV_PlayTestObserve =
             self.bv_play_finished = time;
             dprint("BEACH PLAY DETAIL landing x=", ftos(bv_ball.origin_x),
                    " y=", ftos(bv_ball.origin_y), "\n");
-            if (self.bv_last_result == 1 || self.bv_last_result == 2)
-                dprint("BEACH PLAY PASS serve-landed-in\n");
+            /* This FTEQCC build can lose the final store when assigning a
+             * logical chain to a local. Branches keep every test meaningful.
+             */
+            landed_ok = FALSE;
+            if (self.bv_last_result == BV_RESULT_TARGET || self.bv_last_result == BV_RESULT_IN)
+                landed_ok = TRUE;
+            if (cvar("bv_playtest") == 4)
+            {
+                if (!landed_ok) dprint("BEACH PLAY PASS late-serve-misses\n");
+                else dprint("BEACH PLAY FAIL late-serve-misses\n");
+            }
+            else if (landed_ok) dprint("BEACH PLAY PASS serve-landed-in\n");
             else
                 dprint("BEACH PLAY FAIL serve-landed-in result=", ftos(self.bv_last_result), "\n");
         }
@@ -59,6 +94,12 @@ void() BV_PlayTestObserve =
             dprint("BEACH PLAY DONE\n");
             localcmd("quit\n");
         }
+    }
+    if (self.bv_play_stage == 2 && time > self.bv_last_contact + 0.12 &&
+        !self.bv_play_contact_capture)
+    {
+        self.bv_play_contact_capture = TRUE;
+        localcmd("screenshot tga\n");
     }
     if (time - self.bv_play_started > 6 && self.bv_play_stage < 3)
     {

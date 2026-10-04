@@ -230,6 +230,12 @@ def write_sound(path, kind, duration, loop=False):
     rng = random.Random(128 + len(kind))
     samples = bytearray()
     filtered = 0
+    # Frequency, noise mix and decay distinguish cushioning from a firm strike.
+    contacts = {
+        "pass": (125, 0.35, 28), "set": (230, 0.12, 38),
+        "spike": (85, 0.65, 24), "roll": (180, 0.18, 34),
+        "serve": (105, 0.5, 25), "dig": (95, 0.7, 22),
+    }
     for i in range(count):
         t = i / rate
         noise = rng.uniform(-1, 1)
@@ -240,6 +246,11 @@ def write_sound(path, kind, duration, loop=False):
             value = math.sin(math.tau * 880 * t) * math.exp(-t * 15) * 0.18
         elif kind == "net":
             value = filtered * math.exp(-t * 22) * 0.7
+        elif kind in contacts:
+            frequency, roughness, decay = contacts[kind]
+            tone = math.sin(math.tau * (frequency - t * frequency * 0.7) * t)
+            value = (tone * (0.5 - roughness * 0.25) +
+                     filtered * roughness) * math.exp(-t * decay)
         else:
             value = (math.sin(math.tau * (150 - t * 170) * t) * 0.45 +
                      filtered * 0.45) * math.exp(-t * 28)
@@ -399,5 +410,7 @@ def generate(base, build, game):
     external_textures(game)
     daylight_skybox(game)
     write_tga(game / "gfx/bv_hud.tga", 128, 128, font_pixels())
-    for kind, duration in (("hit", 0.18), ("net", 0.2), ("target", 0.3), ("ocean", 4)):
+    for kind, duration in (("pass", 0.18), ("set", 0.13), ("spike", 0.2),
+                           ("roll", 0.15), ("serve", 0.2), ("dig", 0.22),
+                           ("net", 0.2), ("target", 0.3), ("ocean", 4)):
         write_sound(game / f"sound/beach/{kind}.wav", kind, duration, kind == "ocean")

@@ -3,6 +3,7 @@
 /* Runs inside the actual QSS-M QC VM via +set bv_selftest 1. */
 float bv_test_pass, bv_test_fail;
 void(entity player) BV_RunBugTests;
+void(entity player) BV_RunFeelTests;
 
 void(string name, float condition) BV_Assert =
 {
@@ -138,6 +139,7 @@ void() BV_RunSelfTests =
     player.bv_aim = '1 0 0';
     player.bv_action = 1;
     player.bv_last_contact = -1;
+    player.bv_serve_contact = FALSE;
     BV_Assert("swept-hand-contact", BV_TryContacts('-340 0 44', '-240 0 44'));
     BV_Assert("contact-consumes-release", player.bv_armed_until == 0);
     BV_Assert("no-double-contact", !BV_TryContacts('-340 0 44', '-240 0 44'));
@@ -284,16 +286,18 @@ void() BV_RunSelfTests =
     BV_Assert("opposite-baseline-faces-court", player.origin_x == 288 &&
         player.v_angle_y == 180 && player.bv_last_result == 0);
     BV_BeginPreparation(player, 1);
-    player.bv_charge = 0.48;
     player.bv_arc = 0.35;
     player.bv_topspin = 0.35;
     player.flags = player.flags | FL_ONGROUND;
     player.bv_preview_next = 0;
+    time = time + 0.35;
+    player.bv_charge = BV_Charge(player);
     BV_UpdatePreview(player);
     BV_Assert("opposite-side-serve-preview", player.bv_preview_landing_x < 0 &&
         (player.bv_preview_result == BV_RESULT_TARGET || player.bv_preview_result == BV_RESULT_IN) &&
         player.bv_preview_range > 8 && player.bv_preview_height > 2);
     BV_RunBugTests(player);
+    BV_RunFeelTests(player);
     self = player;
     ClientDisconnect();
     remove(player);

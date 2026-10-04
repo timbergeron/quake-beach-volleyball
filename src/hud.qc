@@ -2,6 +2,8 @@
 // Copyright (C) 2026 timbergeron
 float bv_hud_ready, bv_capture_done, bv_play_hud_reported;
 float bv_play_reach_reported, bv_play_preview_reported;
+float bv_play_timing_reported;
+float bv_play_quality_reported;
 
 void(float x, float y, string text, vector color, float alpha) BV_Label =
 {
@@ -42,6 +44,13 @@ string(float top) BV_TopLabel =
     return strcat("TOP ", ftos(BV_Round(top * 100)));
 };
 
+string(float depth) BV_DepthLabel =
+{
+    if (fabs(depth) < 0.005) return "DEPTH MID";
+    if (depth < 0) return strcat("DEPTH SHORT ", ftos(BV_Round(-depth * 100)));
+    return strcat("DEPTH DEEP ", ftos(BV_Round(depth * 100)));
+};
+
 string(float result) BV_ResultLabel =
 {
     if (result == BV_RESULT_TARGET) return "TARGET";
@@ -75,7 +84,7 @@ void(float x, float y, float slot, vector color, float outline) BV_MapPoint =
 void(vector virtual_size, float showscores) CSQC_DrawHud =
 {
     local float x, y, width, charge, arc, side, mode, state, top, preview;
-    local float result, age, alpha, reach, locked, compact, feed;
+    local float result, age, alpha, reach, locked, compact, feed, serving, timing, note;
     local vector color;
     local string label, instruction;
     charge = BV_Clamp(getstatf(BV_STAT_CHARGE), 0, 1);
@@ -88,15 +97,17 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     reach = getstatf(BV_STAT_REACH);
     locked = getstatf(BV_STAT_AIM_LOCKED);
     feed = getstatf(BV_STAT_FEED_DELAY);
+    serving = getstatf(BV_STAT_SERVING);
+    timing = getstatf(BV_STAT_TIMING);
     width = BV_Clamp(virtual_size_x - 24, 0, 500);
     compact = width < 460;
     x = (virtual_size_x - width) * 0.5;
-    y = virtual_size_y - 96;
-    BV_Box(x, y, width, 84, '0.025 0.055 0.07', 0.9);
+    y = virtual_size_y - 112;
+    BV_Box(x, y, width, 100, '0.025 0.055 0.07', 0.9);
     color = '0.25 0.9 0.95';
     if (locked) color = '1 0.8 0.35';
     if (reach) color = '0.4 1 0.75';
-    BV_Box(x, y, 2, 84, color, 1);
+    BV_Box(x, y, 2, 100, color, 1);
     label = "SERVE PRACTICE";
     if (mode == 1) label = "RECEIVE DRILL";
     if (mode == 2) label = "SETTING DRILL";
@@ -121,15 +132,21 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         BV_Text(x + 236, y + 26, BV_SideLabel(side), '0.9 0.97 1');
         BV_Text(x + 356, y + 26, BV_TopLabel(top), '0.9 0.97 1');
     }
-    BV_Box(x + 12, y + 40, width - 24, 4, '0.15 0.23 0.26', 1);
-    if (locked) BV_Box(x + 12, y + 40, (width - 24) * charge, 4, color, 1);
+    label = strcat(BV_DepthLabel(getstatf(BV_STAT_DEPTH)), " / F,V,B");
+    if (serving)
+        label = strcat(BV_DepthLabel(getstatf(BV_STAT_DEPTH)), " / TIMING ",
+            ftos(BV_Round(timing * 100)), "%");
+    BV_Text(x + 12, y + 42, label, '0.9 0.97 1');
+    BV_Box(x + 12, y + 56, width - 24, 4, '0.15 0.23 0.26', 1);
+    if (locked) BV_Box(x + 12, y + 56, (width - 24) * charge, 4, color, 1);
     label = "R READY SERVE / T FEED";
     if (state == BV_HELD) label = "HOLD LMB TO TOSS / RELEASE TO HIT";
     if (state == BV_LIVE) label = "HOLD A SHOT / TRACK THE BALL";
     if (state == BV_DEAD) label = "R SERVE / T FEED / 1-4 DRILLS";
     if (locked) label = "AIM STORED / SHIFT + LOOK TO ADJUST";
     if (reach) label = "RELEASE / BALL IN REACH";
-    BV_Text(x + 12, y + 54, label, color);
+    if (reach && serving && timing >= 0.9) label = "RELEASE / SERVE SWEET SPOT";
+    BV_Text(x + 12, y + 70, label, color);
     label = "WHEEL ARC / Q,E SIDE / Z TOP";
     color = '0.65 0.8 0.85';
     if (feed > 0) label = strcat("NEXT FEED ", BV_Decimal(feed), "S / T FEED NOW");
@@ -140,7 +157,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
             BV_Decimal(getstatf(BV_STAT_PREVIEW_HEIGHT)), "M");
         color = BV_ResultColor(preview);
     }
-    BV_Text(x + 12, y + 70, label, color);
+    BV_Text(x + 12, y + 86, label, color);
 
     BV_Box(12, 12, 200, 48, '0.025 0.055 0.07', 0.86);
     BV_Text(24, 22, "BEACH / SOLO PRACTICE", '0.95 1 1');
@@ -156,9 +173,16 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         instruction = strcat(BV_Decimal(getstatf(BV_STAT_SPEED)), " M/S");
         if (getstatf(BV_STAT_QUALITY) < 0.9)
         {
-            label = strcat("OFF BALANCE / ", BV_ShotName(getstatf(BV_STAT_KIND)));
+            label = strcat("REACH / ", BV_ShotName(getstatf(BV_STAT_KIND)));
+            if (getstatf(BV_STAT_QUALITY) < 0.7)
+                label = strcat("GLANCE / ", BV_ShotName(getstatf(BV_STAT_KIND)));
             color = '1 0.8 0.35';
-            instruction = "PREPARE EARLY / SET FROM STILL";
+            instruction = "PREPARE EARLY";
+            note = getstatf(BV_STAT_CONTACT_NOTE);
+            if (note == BV_NOTE_REACH) instruction = "MOVE YOUR HANDS UNDER THE BALL";
+            if (note == BV_NOTE_FOOTING) instruction = "GET INTO POSITION / PLANT FEET";
+            if (note == BV_NOTE_DIVE) instruction = "DIG SAVED / RECOVER YOUR FEET";
+            if (note == BV_NOTE_TIMING) instruction = "STRIKE NEAR THE TOSS APEX";
         }
         if (result)
         {
@@ -212,19 +236,20 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     {
         width = BV_Clamp(virtual_size_x - 24, 0, 344);
         x = (virtual_size_x - width) * 0.5;
-        y = virtual_size_y * 0.5 - 102;
-        BV_Box(x, y, width, 204, '0.025 0.055 0.07', 0.98);
+        y = virtual_size_y * 0.5 - 110;
+        BV_Box(x, y, width, 220, '0.025 0.055 0.07', 0.98);
         BV_Text(x + 12, y + 14, "BEACH / PRACTICE CONTROLS", '0.4 1 0.75');
         BV_Text(x + 12, y + 38, "LMB PASS/SPIKE / RMB SET/ROLL", '0.95 1 1');
         BV_Text(x + 12, y + 54, "HOLD TO CHARGE / RELEASE TO HIT", '0.95 1 1');
         BV_Text(x + 12, y + 70, "GREEN CUE: BALL WITHIN REACH", '0.4 1 0.75');
         BV_Text(x + 12, y + 86, "SHIFT + LOOK: CHANGE STORED AIM", '0.95 1 1');
         BV_Text(x + 12, y + 102, "WHEEL ARC / Q,E SIDE / Z TOP", '0.95 1 1');
-        BV_Text(x + 12, y + 118, "MMB RESET SPIN / SPACE JUMP", '0.95 1 1');
-        BV_Text(x + 12, y + 134, "CTRL DIVE / R SERVE / T FEED", '0.95 1 1');
-        BV_Text(x + 12, y + 150, "1 SERVE 2 RECEIVE 3 SET 4 ATTACK", '0.95 1 1');
-        BV_Text(x + 12, y + 166, "OUTLINED MAP DOT: LANDING PREVIEW", '0.65 0.8 0.85');
-        BV_Text(x + 12, y + 186, "H CLOSE / TAB HOLD FOR HELP", '0.65 0.8 0.85');
+        BV_Text(x + 12, y + 118, "F SHORT / V DEEP / B MID DEPTH", '0.95 1 1');
+        BV_Text(x + 12, y + 134, "MMB RESET SPIN / SPACE JUMP", '0.95 1 1');
+        BV_Text(x + 12, y + 150, "CTRL DIVE / R SERVE / T FEED", '0.95 1 1');
+        BV_Text(x + 12, y + 166, "1 SERVE 2 RECEIVE 3 SET 4 ATTACK", '0.95 1 1');
+        BV_Text(x + 12, y + 182, "OUTLINED MAP DOT: LANDING PREVIEW", '0.65 0.8 0.85');
+        BV_Text(x + 12, y + 202, "H CLOSE / TAB HOLD FOR HELP", '0.65 0.8 0.85');
     }
     if (!bv_hud_ready)
     {
@@ -264,6 +289,29 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     {
         bv_play_preview_reported = TRUE;
         dprint("BEACH PLAY HUD preview\n");
+    }
+    if (cvar("bv_playtest") && serving && timing > 0.9 && !bv_play_timing_reported)
+    {
+        bv_play_timing_reported = TRUE;
+        dprint("BEACH PLAY HUD timing\n");
+    }
+    if (cvar("bv_playtest") && getstatf(BV_STAT_KIND) == BV_SERVE && age < 0.5 &&
+        !bv_play_quality_reported)
+    {
+        if (cvar("bv_playtest") == 4)
+        {
+            if (getstatf(BV_STAT_QUALITY) < 0.8 &&
+                getstatf(BV_STAT_CONTACT_NOTE) == BV_NOTE_TIMING)
+            {
+                bv_play_quality_reported = TRUE;
+                dprint("BEACH PLAY HUD quality\n");
+            }
+        }
+        else if (getstatf(BV_STAT_QUALITY) > 0.8)
+        {
+            bv_play_quality_reported = TRUE;
+            dprint("BEACH PLAY HUD quality\n");
+        }
     }
 };
 

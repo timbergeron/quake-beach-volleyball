@@ -13,6 +13,8 @@ void(entity player) BV_TestReset =
     player.button7 = 0;
     player.bv_last_contact = -1;
     player.bv_dive_until = 0;
+    player.bv_footing = 1;
+    player.bv_depth = 0;
     BV_ReadyServe(player);
 };
 

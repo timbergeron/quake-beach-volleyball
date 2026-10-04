@@ -23,7 +23,12 @@ void() worldspawn =
     precache_model("progs/bv_ball.mdl");
     precache_model("progs/bv_marker.mdl");
     precache_model("progs/player.mdl");
-    precache_sound("beach/hit.wav");
+    precache_sound("beach/pass.wav");
+    precache_sound("beach/set.wav");
+    precache_sound("beach/spike.wav");
+    precache_sound("beach/roll.wav");
+    precache_sound("beach/serve.wav");
+    precache_sound("beach/dig.wav");
     precache_sound("beach/net.wav");
     precache_sound("beach/target.wav");
     precache_sound("beach/ocean.wav");
@@ -55,6 +60,10 @@ void() worldspawn =
     clientstat(BV_STAT_FEEDBACK_AGE, 2, bv_feedback_age);
     clientstat(BV_STAT_REACH, 2, bv_in_reach);
     clientstat(BV_STAT_FEED_DELAY, 2, bv_feed_delay);
+    clientstat(BV_STAT_DEPTH, 2, bv_depth);
+    clientstat(BV_STAT_CONTACT_NOTE, 2, bv_contact_note);
+    clientstat(BV_STAT_TIMING, 2, bv_timing);
+    clientstat(BV_STAT_SERVING, 2, bv_serve_contact);
     bv_ball = spawn();
     bv_ball.classname = "volleyball";
     bv_ball.movetype = MOVETYPE_NONE;

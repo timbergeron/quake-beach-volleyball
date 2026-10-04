@@ -4,13 +4,15 @@ A playable first-person QuakeC prototype for QSS-M. It includes a beach court,
 serve tosses, passes, sets, spikes, roll shots, continuous power and arc controls,
 sidespin and topspin/backspin, jumps, dives, landing previews, and repeatable
 training feeds. The design takes inspiration from Virtua Tennis's preparation
-and positioning controls.
+and positioning controls, described in Sega's
+[Dreamcast manual](https://www.dreamcast.es/descargas/manuales/Virtua_Tennis.pdf).
+The contact and flight code is an original QuakeC implementation.
 
 This version is a solo practice court. Opponent AI, competitive 2v2 matches,
 complete beach volleyball rules, and first-person hand animations are future
 work. Ball aerodynamics and contact assistance are tunable gameplay values.
 
-![The beach court and first-person shot preview](docs/court.png)
+![The beach court and first-person contact feedback](docs/court.png)
 
 ## Play the built version
 
@@ -49,6 +51,8 @@ PAKs through symlinks. It does not install files into your Quake directory.
 | Wheel up / down | Increase / decrease arc in 5% steps |
 | Hold Q / E | Adjust remembered sidespin left / right continuously |
 | Z | Cycle topspin/backspin; positive values dip, negative values lift |
+| F / V | Bias placement shorter / deeper in 10% steps |
+| B | Reset placement depth to neutral |
 | Middle mouse | Reset sidespin and restore moderate topspin |
 | Shift + mouse | Change shot direction while preparing |
 | Space | Jump; release between jumps |
@@ -66,22 +70,44 @@ separately from the launch direction.
 Release when the ball reaches your hands. The reticle and timing cue turn green
 when the ball is within physical reach, using the same obstruction checks as
 contact. A brief contact window helps catch balls moving between server frames;
-it still requires physical reach. Preparing
-early improves contact quality, and a moving set loses some precision. Power
-fills over 0.75 seconds. The gold ring previews the landing location for a
-balanced contact; actual contact height and footing can change the outcome.
+it still requires physical reach. Centred contacts give clean power and control;
+reaching toward the edge of your hands produces softer, glancing shots.
+Glances deflect toward the reach consistently. Fast incoming balls also carry
+a little momentum through a pass or set, especially when contact is stretched.
+Preparing early and planting your feet improves contact quality. Footing recovers
+over about a quarter-second after you stop; jump attacks retain takeoff footing,
+while dives provide an emergency save with reduced control.
+
+Normal shot power fills over 0.75 seconds. F/V changes placement depth separately
+from that power and the wheel arc. Short/deep attacks change launch angle while
+preserving arm speed, allowing a hard short cut. Passes, sets, rolls, and serves
+change forward travel; sets retain their selected vertical lift. B restores
+neutral depth. This is a placement bias, so movement, spin, net collisions,
+and contact quality still affect the actual landing.
+
+The gold ring previews a centred contact using your current preparation,
+footing, depth and serve timing; reaching for the ball can change the outcome.
 The HUD predicts range, apex height, and target/in/out/net outcomes. Its overhead
 court shows you in white, the ball in gold, and the predicted landing as an
 outlined green or orange marker. Spin labels use L/R for sidespin and TOP/BACK
-for vertical spin. Recent contact quality and landing feedback remain visible
+for vertical spin. CLEAN, REACH, and GLANCE feedback identifies contact quality
+and gives a cue about preparation, reaching, footing, digging, or serve timing.
+Recent contact quality and landing feedback remain visible
 for three seconds, including across automatic training feeds. The HUD uses an
 original bitmap font when the engine supports CSQC font loading, with the normal
 Quake font as a fallback.
 
 Start with a serve: press R, move along the baseline, aim, and hold LMB to toss.
-Release after roughly 0.35–0.7 seconds for a standing serve. Try small changes
-to charge and wheel arc to alternate short and deep placement. Full power can
-send the ball long. A jump raises your attack contact point.
+The serve gauge rises toward the toss apex and then falls; the sweet spot is
+around 0.45 seconds at default gravity. Release around 0.35–0.55 seconds for a
+standing serve, using the timing readout and SERVE SWEET SPOT cue. Early/late
+strikes lose power and control. Timing follows the configured gravity. Try F/V
+and wheel arc for short/deep serves; extra depth can send the ball long.
+A jump raises your attack contact point.
+
+Passes, sets, spikes, rolls, serves, and digs have distinct original contact
+sounds and a small camera pulse. Set `bv_contact_kick 0` in the console to
+disable the pulse, or use a value between 0 and 1 to reduce it.
 
 Drills automatically feed another ball shortly after landing. Setting feeds
 drop near you; attack mode moves you near the net. You can also set to yourself
@@ -139,11 +165,13 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 77 assertions inside the actual QC VM, captures the court and compact
+It runs 109 assertions inside the actual QC VM, captures the court and compact
 help/HUD through SDL's offscreen renderer, and performs standing serves from
 both baselines through the normal input, toss, release, collision, flight,
-scoring, and HUD update paths. It also verifies that timing and landing cues
-reach the client HUD. Audio uses SDL's dummy device. Use `--skip-visual` for
+scoring, and HUD update paths. Additional live serves check the sweet timing
+window and the weaker result of a late strike, with contact feedback captures.
+It also verifies that timing, contact grades, and landing cues reach the client HUD.
+Audio uses SDL's dummy device. Use `--skip-visual` for
 dedicated-only checks. Logs,
 screenshots, and executable/progs hashes are written to `artifacts/`.
 

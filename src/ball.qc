@@ -11,6 +11,7 @@
 .float bv_contact_side;
 .float bv_preview_result, bv_preview_range, bv_preview_height;
 .float bv_feedback_at, bv_feedback_age, bv_in_reach, bv_feed_delay;
+.float bv_depth, bv_footing, bv_contact_note, bv_timing;
 .vector bv_preview_landing;
 .vector bv_aim;
 .entity bv_marker;
@@ -123,11 +124,16 @@ void(entity player, vector ball) BV_ContactZone =
     height = 20;
     bv_hand_radius = 25 + BV_RADIUS;
     if (player.bv_action == 2) height = 45;
-    if (player.bv_serve_contact ||
-        (player.bv_action == 1 && ball_z > player.origin_z + 36))
+    if (player.bv_action == 1 && ball_z > player.origin_z + 36)
     {
         height = 53;
         bv_hand_radius = 30 + BV_RADIUS;
+    }
+    if (player.bv_serve_contact)
+    {
+        /* The extended serving hand meets the ball near the toss apex. */
+        height = 71;
+        bv_hand_radius = 23 + BV_RADIUS;
     }
     if (player.bv_dive_until > time)
     {

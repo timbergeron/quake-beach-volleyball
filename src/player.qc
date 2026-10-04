@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2026 timbergeron
-vector bv_shot_velocity, bv_shot_spin;
-float bv_shot_kind;
 void() BV_PlayTestInput;
 void() BV_PlayTestObserve;
 
@@ -25,8 +23,8 @@ void(entity player, vector contact) BV_BuildShot =
     if (player.bv_serve_contact)
     {
         bv_shot_kind = BV_SERVE;
-        speed = 220 + charge * 480;
-        angle = 7 + arc * 58 + BV_Clamp(-player.bv_last_pitch, -12, 12);
+        speed = 200 + charge * 300;
+        angle = 7 + arc * 32 + BV_Clamp(-player.bv_last_pitch, -12, 12);
     }
     else if (player.bv_action == 2 && !(player.flags & FL_ONGROUND) &&
              contact_z > BV_NET_HEIGHT)
@@ -49,7 +47,8 @@ void(entity player, vector contact) BV_BuildShot =
     {
         bv_shot_kind = BV_SPIKE;
         speed = 190 + charge * 530;
-        angle = -38 + arc * 93 + BV_Clamp(-player.bv_last_pitch, -12, 12);
+        angle = BV_Clamp(-38 + arc * 93 + player.bv_depth * 28 +
+            BV_Clamp(-player.bv_last_pitch, -12, 12), -75, 70);
     }
     else
     {
@@ -63,6 +62,14 @@ void(entity player, vector contact) BV_BuildShot =
         angle = angle * BV_PI / 180;
         launch_velocity = heading * (cos(angle) * speed);
         launch_velocity_z = sin(angle) * speed;
+    }
+    /* Depth changes travel independently of preparation/power. Attacks keep
+     * their arm speed and change angle; softer strokes retain their set arc.
+     */
+    if (bv_shot_kind != BV_SPIKE)
+    {
+        launch_velocity_x = launch_velocity_x * (1 + player.bv_depth * 0.5);
+        launch_velocity_y = launch_velocity_y * (1 + player.bv_depth * 0.5);
     }
     /* Sidespin bends the flight; cut/wrist direction is the stored heading.
      * Topspin rotates about the lateral axis and causes downward lift.
@@ -78,21 +85,12 @@ void(entity player, vector contact) BV_BuildShot =
 
 void(entity player, vector contact) BV_Contact =
 {
-    local float quality, preparation, lateral;
-    local vector launch_velocity;
-    BV_BuildShot(player, contact);
-    preparation = BV_Clamp((time - player.bv_prepare_started) / 0.25, 0, 1);
-    quality = 0.72 + preparation * 0.28;
-    lateral = vlen(contact - player.origin - '0 0 32');
-    if (lateral > 60) quality = quality * 0.86;
-    if (vlen(player.velocity) > 150 && bv_shot_kind == BV_SET)
-        quality = quality * 0.85;
-    launch_velocity = bv_shot_velocity * quality;
-    /* Off-balance contact loses control in a repeatable direction. */
-    launch_velocity = launch_velocity + player.velocity * (0.08 * (1 - preparation));
+    BV_ResolveContact(player, contact);
+    player.bv_timing = 0;
+    if (player.bv_serve_contact) player.bv_timing = BV_ServeTiming(player);
     setorigin(bv_ball, contact);
-    bv_ball.velocity = launch_velocity;
-    bv_ball_spin = bv_shot_spin * quality;
+    bv_ball.velocity = bv_contact_velocity;
+    bv_ball_spin = bv_contact_spin;
     bv_ball_state = BV_LIVE;
     bv_live_time = 0;
     bv_last_player = player;
@@ -102,14 +100,15 @@ void(entity player, vector contact) BV_Contact =
     player.bv_serve_contact = 0;
     player.bv_aim_locked = FALSE;
     player.bv_kind = bv_shot_kind;
-    player.bv_quality = quality;
+    player.bv_quality = bv_contact_quality;
+    player.bv_contact_note = bv_contact_reason;
     player.bv_feedback_at = time;
     player.bv_contact_side = 1;
     if (player.origin_x <= 0) player.bv_contact_side = -1;
     player.bv_last_result = 0;
-    player.bv_last_speed = vlen(launch_velocity) / 32;
+    player.bv_last_speed = vlen(bv_contact_velocity) / 32;
     player.bv_message = "CONTACT";
-    sound(bv_ball, 1, "beach/hit.wav", 0.6 + player.bv_charge * 0.35, 1);
+    BV_ContactFeedback(player);
 };
 
 void(entity player) BV_ReadyServe =
@@ -131,6 +130,7 @@ void(entity player) BV_ReadyServe =
     player.bv_serve_contact = 0;
     player.bv_aim_locked = 0;
     player.bv_charge = 0;
+    player.bv_timing = 0;
     player.bv_last_result = 0;
     player.bv_feedback_at = -100;
     player.bv_preview_result = 0;
@@ -139,6 +139,7 @@ void(entity player) BV_ReadyServe =
     player.bv_dive_until = 0;
     player.bv_last_contact = -1;
     player.view_ofs = '0 0 27';
+    player.punchangle = '0 0 0';
     if (fabs(player.origin_x) < BV_HALF_LENGTH + 20)
     {
         position = player.origin;
@@ -147,6 +148,7 @@ void(entity player) BV_ReadyServe =
         position_z = 24;
         setorigin(player, position);
         player.velocity = '0 0 0';
+        player.bv_footing = 1;
         player.v_angle_y = 0;
         if (position_x > 0) player.v_angle_y = 180;
         player.angles_y = player.v_angle_y;
@@ -199,6 +201,7 @@ void(entity player, float automatic) BV_Feed =
     player.bv_armed_until = 0;
     player.bv_serve_contact = 0;
     player.bv_last_contact = -1;
+    player.bv_timing = 0;
     if (!automatic || !player.bv_preparing)
     {
         player.bv_preparing = 0;
@@ -234,7 +237,7 @@ void(entity player, float action) BV_BeginPreparation =
 void(entity player) BV_Release =
 {
     if (!player.bv_preparing) return;
-    player.bv_charge = BV_Clamp((time - player.bv_prepare_started) / 0.75, 0, 1);
+    player.bv_charge = BV_Charge(player);
     player.bv_preparing = 0;
     player.bv_armed_until = time + 0.18;
 };
@@ -247,13 +250,10 @@ void(entity player) BV_UpdatePreview =
     {
         if (time < player.bv_preview_next) return;
         player.bv_preview_next = time + 0.08;
-        contact = player.origin + player.bv_aim * 18 + '0 0 32';
-        if (player.bv_action == 2) contact_z = player.origin_z + 45;
-        if (player.bv_serve_contact ||
-            (!(player.flags & FL_ONGROUND) && player.bv_action == 1))
-            contact_z = player.origin_z + 53;
-        BV_BuildShot(player, contact);
-        BV_Predict(contact, bv_shot_velocity, bv_shot_spin);
+        BV_ContactZone(player, bv_ball.origin);
+        contact = bv_hand_position;
+        BV_ResolveContact(player, contact);
+        BV_Predict(contact, bv_contact_velocity, bv_contact_spin);
         player.bv_preview_landing = bv_landing;
         distance = bv_landing - contact;
         distance_z = 0;
@@ -284,6 +284,7 @@ void() PlayerPreThink =
     local vector heading, horizontal;
     if (!self.bv_isplayer) return;
     if (cvar("bv_playtest")) BV_PlayTestInput();
+    BV_UpdateFooting(self);
     self.gravity = BV_Clamp(autocvar_bv_gravity, 100, 800) /
                    BV_Clamp(cvar("sv_gravity"), 1, 2000);
     pulse = self.impulse;
@@ -300,6 +301,9 @@ void() PlayerPreThink =
         self.bv_topspin = self.bv_topspin + 0.5;
         if (self.bv_topspin > 1) self.bv_topspin = -1;
     }
+    if (pulse == 40) self.bv_depth = BV_Clamp(self.bv_depth - 0.1, -1, 1);
+    if (pulse == 41) self.bv_depth = BV_Clamp(self.bv_depth + 0.1, -1, 1);
+    if (pulse == 42) self.bv_depth = 0;
     if (pulse == 20 || pulse == 30) BV_ReadyServe(self);
     if (pulse >= 31 && pulse <= 33)
     {
@@ -308,6 +312,7 @@ void() PlayerPreThink =
         {
             setorigin(self, '-70 0 24');
             self.velocity = '0 0 0';
+            self.bv_footing = 1;
             self.angles = '0 0 0';
             self.v_angle = '0 0 0';
             self.fixangle = TRUE;
@@ -324,7 +329,9 @@ void() PlayerPreThink =
     if (action && !self.bv_preparing) BV_BeginPreparation(self, action);
     if (self.bv_preparing)
     {
-        self.bv_charge = BV_Clamp((time - self.bv_prepare_started) / 0.75, 0, 1);
+        self.bv_charge = BV_Charge(self);
+        self.bv_timing = 0;
+        if (self.bv_serve_contact) self.bv_timing = BV_ServeTiming(self);
         if (self.button8)
         {
             self.bv_aim = BV_Heading(self.v_angle_y);
@@ -363,6 +370,7 @@ void() PlayerPreThink =
         self.velocity = heading * 250 + '0 0 55';
         self.flags = self.flags - (self.flags & FL_ONGROUND);
         self.bv_dive_until = time + 0.48;
+        self.bv_footing = 0;
         self.bv_dive_ready = time + 1.15;
     }
     self.bv_previous_dive = self.button7;
@@ -428,6 +436,7 @@ void() PutClientInServer =
     self.bv_topspin = 0.35;
     self.bv_contact_side = -1;
     self.bv_last_contact = -1;
+    self.bv_footing = 1;
     self.bv_message = "R SERVE | T FEED | 1-4 DRILLS | H HELP";
     setmodel(self, "progs/player.mdl");
     setsize(self, '-16 -16 -24', '16 16 32');
