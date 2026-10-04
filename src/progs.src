@@ -1,0 +1,9 @@
+../dist/beachvolley/progs.dat
+defs.qc
+shared.qc
+physics.qc
+ball.qc
+player.qc
+selftest.qc
+playtest.qc
+world.qc

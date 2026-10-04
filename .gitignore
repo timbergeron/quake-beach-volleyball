@@ -1,0 +1,8 @@
+dist/
+build/
+artifacts/
+.runtime/
+__pycache__/
+*.pyc
+*.pak
+.DS_Store
