@@ -15,8 +15,12 @@ This project is licensed under GPL-2.0-or-later. A copy of the license is in
   [ericw-tools](https://github.com/ericwa/ericw-tools) are external build tools.
   Their binaries are not bundled here.
 
-The court, textures, skybox, ball, shadow, marker, athlete and hand models, bitmap HUD font, and contact
-sounds are generated from this project's Python source. No Quake PAK files, stock models,
+The sand and sea artwork was supplied by the project maintainer as
+`Seamless Stylized Beach Sand Texture.png` and `Moody Retro Water Texture.png`.
+The prepared 1024×1024 TGA copies are in `resources/textures`; practice markings
+are generated over the supplied sand. The court, remaining textures, skybox,
+ball, shadow, marker, athlete and hand models, bitmap HUD font, and contact sounds
+are generated from this project's Python source. No Quake PAK files, stock models,
 or stock textures are distributed. A local Quake installation supplies the
 palette during the build.
 
@@ -26,6 +30,12 @@ and curved panel style take visual inspiration from the
 [Mikasa BV550C](https://mikasasports.com/shop/beach-volleyball/bv550c/).
 No Mikasa photography, logos, textures, or mesh data are included. The panel
 layout and BEACH wordmark are this project's own artwork.
+
+The net MD3 and 1024×1024 material atlas are original procedural assets generated
+by `net_assets.py`, under GPL-2.0-or-later. Dimensions and construction follow the
+[FIVB 2025–2028 beach volleyball rules](https://www.fivb.com/wp-content/uploads/2025/02/FIVB-BeachVolleyball_Rules2025_2028-EN-v01.pdf).
+No FIVB logos, photographs, textures, diagrams or mesh data are included. This
+project is independent and is not affiliated with FIVB.
 
 The controls take inspiration from Virtua Tennis. No Sega assets or code are
 used. This is an independent mod and is not affiliated with Sega or id Software.

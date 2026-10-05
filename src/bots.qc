@@ -137,7 +137,7 @@ float(vector contact, vector launch, vector spin, float side) BV_AttackScore =
     local vector position, flight_velocity;
     local float age, margin, candidate;
     BV_Predict(contact, launch, spin);
-    if (bv_predict_net || bv_predict_under_net || bv_flight_time >= 4 ||
+    if (bv_predict_net || bv_predict_under_net || bv_predict_antenna || bv_flight_time >= 4 ||
         bv_landing_x * side >= -BV_RADIUS ||
         fabs(bv_landing_x) > BV_HALF_LENGTH - 8 ||
         fabs(bv_landing_y) > BV_HALF_WIDTH - 8) return -10000;

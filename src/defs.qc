@@ -136,6 +136,7 @@ float MOVETYPE_NONE = 0;
 float MOVETYPE_WALK = 3;
 float MOVETYPE_STEP = 4;
 float MOVETYPE_PUSH = 7;
+float MOVETYPE_NOCLIP = 8;
 float SOLID_NOT = 0;
 float SOLID_TRIGGER = 1;
 float SOLID_BBOX = 2;

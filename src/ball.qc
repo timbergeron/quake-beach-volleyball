@@ -53,6 +53,7 @@ void() BV_MatchTestObserve;
 entity bv_ball, bv_holder, bv_last_player, bv_feeder;
 vector bv_ball_spin;
 float bv_ball_state, bv_accumulator, bv_next_feed, bv_net_touched, bv_under_net;
+float bv_antenna_touched;
 float bv_live_time;
 float bv_ball_float, bv_ball_phase;
 vector bv_ball_position;
@@ -62,6 +63,7 @@ void(entity player, float automatic) BV_Feed;
 float(entity player) BV_Charge;
 float(entity player) BV_ServeTiming;
 float(entity player) BV_IsReceiving;
+void(vector point, vector incoming) BV_NetImpact;
 
 float(vector position) BV_InCourt =
 {
@@ -94,8 +96,10 @@ float(vector position, float side, float net, float under) BV_LandingResult =
     return BV_RESULT_IN;
 };
 
-float(vector position, float side, float net, float under, float duration) BV_AttemptResult =
+float(vector position, float side, float net, float under, float antenna,
+      float duration) BV_AttemptResult =
 {
+    if (antenna) return BV_RESULT_ANTENNA;
     /* Expiring in midair is a miss, even above an opponent target. Keep
      * this classification shared by live scoring and the training preview.
      */
@@ -124,8 +128,13 @@ void(vector position) BV_FinishRally =
         bv_last_player.bv_attempts = bv_last_player.bv_attempts + 1;
         bv_last_player.bv_feedback_at = time;
         bv_last_player.bv_last_result = BV_AttemptResult(position,
-            bv_last_player.bv_contact_side, bv_net_touched, bv_under_net, bv_live_time);
-        if (bv_last_player.bv_last_result == BV_RESULT_UNDER)
+            bv_last_player.bv_contact_side, bv_net_touched, bv_under_net,
+            bv_antenna_touched, bv_live_time);
+        if (bv_last_player.bv_last_result == BV_RESULT_ANTENNA)
+        {
+            bv_last_player.bv_message = "ANTENNA - keep the ball inside the rods";
+        }
+        else if (bv_last_player.bv_last_result == BV_RESULT_UNDER)
         {
             bv_last_player.bv_message = "UNDER NET";
         }
@@ -216,10 +225,14 @@ float(entity player, vector point) BV_Reachable =
 {
     if (vlen(point - bv_hand_position) > bv_hand_radius) return FALSE;
     traceline(bv_hand_position, point, TRUE, player);
-    return trace_fraction == 1 &&
-           !(bv_hand_position_x * point_x < 0 &&
-             fabs(point_y) < BV_HALF_WIDTH &&
-             point_z < BV_NET_HEIGHT + BV_RADIUS);
+    if (trace_fraction != 1) return FALSE;
+    if (bv_hand_position_x * point_x < 0 &&
+        fabs(point_y) < BV_NET_HALF_LENGTH &&
+        point_z < BV_NET_HEIGHT + BV_RADIUS) return FALSE;
+    // The visible equipment has no BSP hull for balls or hands. Use the same
+    // swept volumes so the cue, manual release and assisted hits cannot reach
+    // through padding, net wings or rods.
+    return !BV_EquipmentSweepRadius(bv_hand_position, point, 0);
 };
 
 /* Release arms a short contact window. A fast ball crossing the hands
@@ -293,12 +306,15 @@ void(float dt) BV_BallStep =
         impact = old + (position - old) * fraction;
         impact_z = BV_RADIUS;
     }
-    if (BV_NetSweep(old, position) && bv_net_fraction < fraction)
+    if (BV_EquipmentSweep(old, position) && bv_equipment_fraction < fraction)
     {
-        event = 2;
-        fraction = bv_net_fraction;
-        impact = bv_net_position;
-        normal = bv_net_normal;
+        event = bv_equipment_kind;
+        if (event == 1) event = 2;
+        else if (event == 2) event = 4;
+        else event = 5;
+        fraction = bv_equipment_fraction;
+        impact = bv_equipment_position;
+        normal = bv_equipment_normal;
     }
     /* Point traces avoid Quake's fixed player-sized hulls. Include raised
      * horizontal surfaces as well as post sides; the sand event is earlier
@@ -325,6 +341,13 @@ void(float dt) BV_BallStep =
         }
     }
     position = impact;
+    if (event == 5)
+    {
+        bv_antenna_touched = TRUE;
+        sound(bv_ball, 1, "beach/net.wav", 0.7, 1);
+        BV_FinishRally(position);
+        return;
+    }
     if (event == 1)
     {
         BV_FinishRally(position);
@@ -332,6 +355,7 @@ void(float dt) BV_BallStep =
     }
     if (event == 2)
     {
+        BV_NetImpact(position, launch_velocity);
         position = position + normal * 0.01;
         launch_velocity = BV_Reflect(launch_velocity, normal, 0.22, 0.65);
         spin = spin * 0.4;
@@ -339,7 +363,7 @@ void(float dt) BV_BallStep =
         bv_net_touched = TRUE;
         sound(bv_ball, 1, "beach/net.wav", 0.7, 1);
     }
-    if (event == 3)
+    if (event == 3 || event == 4)
     {
         position = position + normal * 0.01;
         launch_velocity = BV_Reflect(launch_velocity, normal, 0.3, 1);

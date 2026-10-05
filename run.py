@@ -46,6 +46,8 @@ def main():
     parser.add_argument("--bin", type=Path, required=True)
     parser.add_argument("--basedir", type=Path, required=True)
     parser.add_argument("--window", action="store_true")
+    parser.add_argument("--samples", type=int, choices=(0, 2, 4, 8), default=4,
+                        help="anti-aliasing samples for the fine net cords; 0 disables")
     args = parser.parse_args()
     binary = args.bin.expanduser().resolve()
     basedir = args.basedir.expanduser().resolve()
@@ -54,6 +56,7 @@ def main():
         parser.error("build the mod with build.py first")
     runtime = stage_runtime(binary, basedir, HERE / ".runtime", game)
     command = [str(binary), "-basedir", str(runtime), "-game", "beachvolley", "-nohome",
+               "-fsaa", str(args.samples),
                "+exec", "beach.cfg", "+map", "beach"]
     if args.window:
         command[1:1] = ["-window", "-width", "1280", "-height", "720"]

@@ -14,7 +14,7 @@ vector bv_step_position, bv_step_velocity, bv_step_spin;
 float bv_step_phase;
 vector bv_landing;
 float bv_flight_time, bv_apex;
-float bv_predict_net, bv_predict_under_net;
+float bv_predict_net, bv_predict_under_net, bv_predict_antenna;
 vector bv_visual_forward, bv_visual_up, bv_draw_angles;
 
 void() BV_ResetBallRotation =
@@ -183,12 +183,12 @@ float(float start, float delta, float low, float high, vector axis) BV_BoxSlab =
     return bv_box_enter <= bv_box_leave;
 };
 
-float(vector start, vector finish, vector low, vector high) BV_BoxSweep =
+float(vector start, vector finish, vector low, vector high, float radius) BV_BoxSweepRadius =
 {
     local vector delta;
     local float depth, candidate;
-    low = low - '1 1 1' * BV_RADIUS;
-    high = high + '1 1 1' * BV_RADIUS;
+    low = low - '1 1 1' * radius;
+    high = high + '1 1 1' * radius;
     delta = finish - start;
     if (start_x >= low_x && start_x <= high_x &&
         start_y >= low_y && start_y <= high_y &&
@@ -225,31 +225,27 @@ float(vector start, vector finish, vector low, vector high) BV_BoxSweep =
     return vlen(bv_box_normal) > 0.5;
 };
 
+float(vector start, vector finish, vector low, vector high) BV_BoxSweep =
+{
+    return BV_BoxSweepRadius(start, finish, low, high, BV_RADIUS);
+};
+
 float bv_net_fraction;
 vector bv_net_position, bv_net_normal;
 
-float(vector start, vector finish) BV_NetSweep =
+float(vector start, vector finish, float radius) BV_NetSweepRadius =
 {
     local vector low, high;
     local float hit;
     hit = FALSE;
     bv_net_fraction = 1;
-    low = '-0.65 -128 43';
-    high = '0.65 128 0';
+    low_x = -BV_NET_HALF_DEPTH;
+    low_y = -BV_NET_HALF_LENGTH;
+    low_z = BV_NET_BOTTOM;
+    high_x = BV_NET_HALF_DEPTH;
+    high_y = BV_NET_HALF_LENGTH;
     high_z = BV_NET_HEIGHT;
-    if (BV_BoxSweep(start, finish, low, high))
-    {
-        hit = TRUE;
-        bv_net_fraction = bv_box_fraction;
-        bv_net_position = bv_box_position;
-        bv_net_normal = bv_box_normal;
-    }
-    low = '-1 -144 0';
-    low_z = BV_NET_HEIGHT - 3;
-    high = '1 144 0';
-    high_z = BV_NET_HEIGHT;
-    if (BV_BoxSweep(start, finish, low, high) &&
-        (!hit || bv_box_fraction < bv_net_fraction))
+    if (BV_BoxSweepRadius(start, finish, low, high, radius))
     {
         hit = TRUE;
         bv_net_fraction = bv_box_fraction;
@@ -257,6 +253,144 @@ float(vector start, vector finish) BV_NetSweep =
         bv_net_normal = bv_box_normal;
     }
     return hit;
+};
+
+float(vector start, vector finish) BV_NetSweep =
+{
+    return BV_NetSweepRadius(start, finish, BV_RADIUS);
+};
+
+float bv_capsule_fraction;
+vector bv_capsule_position, bv_capsule_normal;
+
+void(vector start, vector delta, vector centre, float radius) BV_CapsuleSphere =
+{
+    local vector relative, position;
+    local float a, b, c, discriminant, fraction;
+    relative = start - centre;
+    a = delta * delta;
+    if (a < 0.0000001) return;
+    b = relative * delta;
+    c = relative * relative - radius * radius;
+    discriminant = b * b - a * c;
+    if (discriminant < 0) return;
+    fraction = (-b - sqrt(discriminant)) / a;
+    if (fraction < 0 || fraction > 1 || fraction >= bv_capsule_fraction) return;
+    position = start + delta * fraction;
+    bv_capsule_fraction = fraction;
+    bv_capsule_position = position;
+    bv_capsule_normal = normalize(position - centre);
+};
+
+/* Swept sphere against a vertical capsule: padded posts and antenna rods.
+ * End caps matter for descending balls; overlap may only move away freely.
+ */
+float(vector start, vector finish, vector centre, float low_z, float high_z,
+      float radius) BV_CapsuleSweep =
+{
+    local vector delta, relative, nearest, position;
+    local float distance, a, b, c, discriminant, fraction;
+    bv_capsule_fraction = 2;
+    // Most forecast steps are far from equipment. Reject those before roots.
+    if ((start_x < centre_x - radius && finish_x < centre_x - radius) ||
+        (start_x > centre_x + radius && finish_x > centre_x + radius) ||
+        (start_y < centre_y - radius && finish_y < centre_y - radius) ||
+        (start_y > centre_y + radius && finish_y > centre_y + radius) ||
+        (start_z < low_z - radius && finish_z < low_z - radius) ||
+        (start_z > high_z + radius && finish_z > high_z + radius)) return FALSE;
+    delta = finish - start;
+    nearest = centre;
+    nearest_z = BV_Clamp(start_z, low_z, high_z);
+    relative = start - nearest;
+    distance = vlen(relative);
+    if (distance < radius - 0.00001)
+    {
+        bv_capsule_normal = normalize(relative);
+        if (distance < 0.00001) bv_capsule_normal = normalize(-delta);
+        if (vlen(bv_capsule_normal) < 0.5) bv_capsule_normal = '1 0 0';
+        if (delta * bv_capsule_normal >= 0) return FALSE;
+        bv_capsule_fraction = 0;
+        bv_capsule_position = nearest + bv_capsule_normal * radius;
+        return TRUE;
+    }
+    relative = start - centre;
+    a = delta_x * delta_x + delta_y * delta_y;
+    b = relative_x * delta_x + relative_y * delta_y;
+    c = relative_x * relative_x + relative_y * relative_y - radius * radius;
+    if (a > 0.0000001)
+    {
+        discriminant = b * b - a * c;
+        if (discriminant >= 0)
+        {
+            fraction = (-b - sqrt(discriminant)) / a;
+            position = start + delta * fraction;
+            if (fraction >= 0 && fraction <= 1 && position_z >= low_z && position_z <= high_z)
+            {
+                bv_capsule_fraction = fraction;
+                bv_capsule_position = position;
+                position_z = centre_z;
+                bv_capsule_normal = normalize(position - centre);
+            }
+        }
+    }
+    centre_z = low_z;
+    BV_CapsuleSphere(start, delta, centre, radius);
+    centre_z = high_z;
+    BV_CapsuleSphere(start, delta, centre, radius);
+    return bv_capsule_fraction <= 1;
+};
+
+float bv_equipment_fraction, bv_equipment_kind;
+vector bv_equipment_position, bv_equipment_normal;
+
+float(vector start, vector finish, float radius) BV_EquipmentSweepRadius =
+{
+    local float side, kind;
+    local vector centre;
+    bv_equipment_fraction = 2;
+    bv_equipment_kind = 0;
+    if (BV_NetSweepRadius(start, finish, radius))
+    {
+        bv_equipment_fraction = bv_net_fraction;
+        bv_equipment_position = bv_net_position;
+        bv_equipment_normal = bv_net_normal;
+        bv_equipment_kind = 1;
+    }
+    side = -1;
+    while (side <= 1)
+    {
+        kind = 2;
+        while (kind <= 3)
+        {
+            centre = '0 0 0';
+            centre_y = side * BV_POST_Y;
+            if (kind == 2)
+                BV_CapsuleSweep(start, finish, centre, BV_POST_RADIUS,
+                    BV_POST_HEIGHT - BV_POST_RADIUS, BV_POST_RADIUS + radius);
+            else
+            {
+                centre_x = side * BV_ANTENNA_X;
+                centre_y = side * BV_ANTENNA_Y;
+                BV_CapsuleSweep(start, finish, centre, BV_NET_BOTTOM + BV_ANTENNA_RADIUS,
+                    BV_ANTENNA_TOP - BV_ANTENNA_RADIUS, BV_ANTENNA_RADIUS + radius);
+            }
+            if (bv_capsule_fraction <= 1 && bv_capsule_fraction < bv_equipment_fraction)
+            {
+                bv_equipment_fraction = bv_capsule_fraction;
+                bv_equipment_position = bv_capsule_position;
+                bv_equipment_normal = bv_capsule_normal;
+                bv_equipment_kind = kind;
+            }
+            kind = kind + 1;
+        }
+        side = side + 2;
+    }
+    return bv_equipment_kind > 0;
+};
+
+float(vector start, vector finish) BV_EquipmentSweep =
+{
+    return BV_EquipmentSweepRadius(start, finish, BV_RADIUS);
 };
 
 float(vector start, vector finish) BV_UnderNetSweep =
@@ -267,7 +401,8 @@ float(vector start, vector finish) BV_UnderNetSweep =
         return FALSE;
     fraction = -start_x / (finish_x - start_x);
     crossing = start + (finish - start) * fraction;
-    return fabs(crossing_y) <= BV_HALF_WIDTH + BV_RADIUS && crossing_z < 43 - BV_RADIUS;
+    return fabs(crossing_y) <= BV_HALF_WIDTH + BV_RADIUS &&
+        crossing_z < BV_NET_BOTTOM - BV_RADIUS;
 };
 
 vector(vector velocity, vector normal, float bounce, float damping) BV_Reflect =
@@ -288,6 +423,7 @@ void(vector position, vector velocity, vector spin, float floating, float phase)
     bv_apex = position_z;
     bv_predict_net = FALSE;
     bv_predict_under_net = FALSE;
+    bv_predict_antenna = FALSE;
     while (duration < BV_MAX_FLIGHT)
     {
         old = position;
@@ -309,16 +445,26 @@ void(vector position, vector velocity, vector spin, float floating, float phase)
             impact = old + (position - old) * fraction;
             impact_z = BV_RADIUS;
         }
-        if (BV_NetSweep(old, position) && bv_net_fraction < fraction)
+        if (BV_EquipmentSweep(old, position) && bv_equipment_fraction < fraction)
         {
-            event = 2;
-            fraction = bv_net_fraction;
-            impact = bv_net_position;
-            normal = bv_net_normal;
+            event = bv_equipment_kind;
+            if (event == 1) event = 2;
+            else if (event == 2) event = 4;
+            else event = 5;
+            fraction = bv_equipment_fraction;
+            impact = bv_equipment_position;
+            normal = bv_equipment_normal;
         }
         if (BV_UnderNetSweep(old, impact)) bv_predict_under_net = TRUE;
         duration = duration + BV_STEP;
         position = impact;
+        if (event == 5)
+        {
+            bv_predict_antenna = TRUE;
+            bv_landing = position;
+            bv_flight_time = duration - BV_STEP + BV_STEP * fraction;
+            return;
+        }
         if (position_z > bv_apex) bv_apex = position_z;
         if (event == 1)
         {
@@ -331,6 +477,13 @@ void(vector position, vector velocity, vector spin, float floating, float phase)
             bv_predict_net = TRUE;
             position = position + normal * 0.01;
             velocity = BV_Reflect(velocity, normal, 0.22, 0.65);
+            spin = spin * 0.4;
+            floating = floating * 0.4;
+        }
+        if (event == 4)
+        {
+            position = position + normal * 0.01;
+            velocity = BV_Reflect(velocity, normal, 0.3, 1);
             spin = spin * 0.4;
             floating = floating * 0.4;
         }

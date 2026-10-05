@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 timbergeron
-"""Generate original court textures, models, and sounds with the stdlib."""
+"""Build court textures, original models, and sounds with the stdlib."""
 
 import math
 import random
 import re
+import shutil
 import struct
 from pathlib import Path
 
 from hud_font import pixels as font_pixels
 from ball_assets import generate_ball
+from net_assets import generate_net, POST_Y, POST_RADIUS, POST_HEIGHT
 
 
 def pak_entry(pak, name):
@@ -121,20 +123,25 @@ def court_map(wad):
         ((-254, 126, 0), (254, 128, 0.25)),
     ):
         lines.append(brush(low, high, "bv_line"))
-    for y in (-144, 144):
-        lines.append(brush((-3, y - 3, 0), (3, y + 3, 91), "bv_pole"))
+    # Player-only round collision hulls; the MD3 supplies the visible padding.
+    # Ball sweeps use the matching rounded capsules in physics.qc.
+    for y in (-POST_Y, POST_Y):
+        planes = [((0, y, 0), (POST_RADIUS, y, 0), (0, y + POST_RADIUS, 0)),
+                  ((0, y, POST_HEIGHT), (0, y + POST_RADIUS, POST_HEIGHT),
+                   (POST_RADIUS, y, POST_HEIGHT))]
+        for i in range(24):
+            a, b = math.tau * i / 24, math.tau * (i + 1) / 24
+            x0, y0 = POST_RADIUS * math.cos(a), y + POST_RADIUS * math.sin(a)
+            x1, y1 = POST_RADIUS * math.cos(b), y + POST_RADIUS * math.sin(b)
+            planes.append(((x0, y0, 0), (x0, y0, POST_HEIGHT), (x1, y1, 0)))
+        lines.append("{\n" + "\n".join(" ".join("( %g %g %g )" % point for point in plane)
+                     + " clip 0 0 0 1 1" for plane in planes) + "\n}")
     for x in (-208, -80, 80, 208):
         for y in (-92, 0, 92):
             lines.append(brush((x - 28, y - 26, 0), (x + 28, y + 26, 0.1), "bv_target"))
     # Low driftwood barriers frame the practice area without obscuring the sea.
     for x in (-480, 480):
         lines.append(brush((x - 4, -240, 0), (x + 4, 240, 12), "bv_wood", 2))
-    lines.append("}")
-    # A non-solid brush model gives the mesh a visible surface. QC sweeps the
-    # actual ball/net collision rather than relying on alpha texture holes.
-    lines.extend(['{', '"classname" "func_illusionary"'])
-    lines.append(brush((-0.65, -128, 43), (0.65, 128, 77.76), "{bv_net"))
-    lines.append(brush((-1, -144, 74.76), (1, 144, 77.76), "bv_tape"))
     lines.append("}")
     lines.extend(['{', '"classname" "info_player_start"',
                   '"origin" "-288 0 32"', '"angle" "0"', '}',
@@ -365,48 +372,68 @@ def write_tga(path, width, height, pixels):
     path.write_bytes(data)
 
 
-def external_textures(game):
+def court_textures():
+    """Load the prepared 1024px RGBA textures without an image-library dependency."""
+    directory = Path(__file__).resolve().parent / "resources/textures"
+    images = {}
+    for name, filename in (("bv_sand", "bv_sand.tga"), ("*bv_sea", "#bv_sea.tga")):
+        path = directory / filename
+        data = path.read_bytes()
+        if len(data) < 18:
+            raise ValueError(f"truncated court texture: {path}")
+        width, height = struct.unpack_from("<HH", data, 12)
+        if data[1] or data[2] != 2 or data[16] != 32 or (width, height) != (1024, 1024):
+            raise ValueError(f"court texture must be a 1024x1024 uncompressed RGBA TGA: {path}")
+        start = 18 + data[0]
+        pixels = data[start:start + width * height * 4]
+        if len(pixels) != width * height * 4:
+            raise ValueError(f"truncated court pixels: {path}")
+        rows = [pixels[y * width * 4:(y + 1) * width * 4] for y in range(height)]
+        if not data[17] & 0x20:
+            rows.reverse()
+        if data[17] & 0x10:
+            rows = [b"".join(row[x:x + 4] for x in range(len(row) - 4, -1, -4)) for row in rows]
+        pixels = b"".join(rows)
+        rgba = bytearray(pixels)
+        rgba[0::4], rgba[2::4] = pixels[2::4], pixels[0::4]
+        images[name] = bytes(rgba)
+    # Use exactly the same sand pixels/UVs under the practice paint.
+    sand = images["bv_sand"]
+    target = bytearray(sand)
+    for y in range(1024):
+        ty = y // 16
+        for x in range(1024):
+            tx = x // 16
+            border = tx < 3 or ty < 3 or tx > 60 or ty > 60
+            cross = (abs(tx - 32) < 2 and abs(ty - 32) < 9) or \
+                    (abs(ty - 32) < 2 and abs(tx - 32) < 9)
+            if border or cross:
+                offset = (y * 1024 + x) * 4
+                grain = (sum(sand[offset:offset + 3]) // 3 - 160) // 6
+                target[offset:offset + 3] = bytes((43 + grain, 134 + grain, 145 + grain))
+    images["bv_target"] = bytes(target)
+    return images
+
+
+def external_textures(game, court):
     """RGB companions keep daylight colours independent of Quake's palette."""
     destination = game / "textures/beach"
     destination.mkdir(parents=True, exist_ok=True)
-    rng = random.Random(182)
-    pixels = []
-    for y in range(256):
-        for x in range(256):
-            grain = rng.randrange(-9, 10)
-            ripple = round(3 * math.sin(x * 0.15 + 1.5 * math.sin(y * 0.04)))
-            shade = grain + ripple
-            pixels.append((213 + shade, 193 + shade, 146 + shade, 255))
-    write_tga(destination / "bv_sand.tga", 256, 256, pixels)
-    for name, color in (("bv_line", (24, 95, 162)), ("bv_tape", (235, 235, 224)),
-                        ("bv_pole", (210, 181, 126)), ("#bv_sea", (24, 124, 164))):
+    source = Path(__file__).resolve().parent / "resources/textures"
+    for name in ("bv_sand.tga", "#bv_sea.tga"):
+        shutil.copyfile(source / name, destination / name)
+    target = court["bv_target"]
+    write_tga(destination / "bv_target.tga", 1024, 1024,
+              (target[i:i + 4] for i in range(0, len(target), 4)))
+    for name, color in (("bv_line", (24, 95, 162)),):
         write_tga(destination / f"{name}.tga", 64, 64, [(*color, 255)] * 4096)
-    # Painted practice boxes blend into sand rather than looking like slabs.
-    pixels = []
-    for y in range(64):
-        for x in range(64):
-            grain = rng.randrange(-5, 6)
-            color = (213 + grain, 193 + grain, 146 + grain)
-            border = x < 3 or y < 3 or x > 60 or y > 60
-            cross = (abs(x - 32) < 2 and abs(y - 32) < 9) or \
-                    (abs(y - 32) < 2 and abs(x - 32) < 9)
-            if border or cross:
-                color = (43 + grain, 134 + grain, 145 + grain)
-            pixels.append((*color, 255))
-    write_tga(destination / "bv_target.tga", 64, 64, pixels)
-    for name, base in (("bv_pole", (210, 181, 126)), ("bv_wood", (135, 102, 65)),
-                       ("bv_tape", (235, 235, 224))):
+    for name, base in (("bv_wood", (135, 102, 65)),):
         pixels = []
         for y in range(64):
             for x in range(64):
                 grain = round(4 * math.sin(x * 0.9 + 0.4 * math.sin(y * 0.1)))
-                if name == "bv_tape":
-                    grain = -5 if x % 4 == 0 or y % 4 == 0 else 0
                 pixels.append((*[c + grain for c in base], 255))
         write_tga(destination / f"{name}.tga", 64, 64, pixels)
-    pixels = [(32, 37, 40, 255 if x % 16 < 2 or y % 16 < 2 else 0)
-              for y in range(64) for x in range(64)]
-    write_tga(destination / "{bv_net.tga", 64, 64, pixels)
     write_tga(destination / "sky_beach_back.tga", 128, 128,
               [(87, 160, 215, 255)] * 16384)
     clouds = [(22, 38, 11, 5), (85, 24, 18, 6), (72, 85, 13, 4),
@@ -464,27 +491,22 @@ def generate(base, build, game):
     build.mkdir(parents=True, exist_ok=True)
     for directory in ("maps", "progs", "sound/beach"):
         (game / directory).mkdir(parents=True, exist_ok=True)
-    rng = random.Random(713)
     textures = {}
-    sand = [nearest(palette, (188 + i * 4, 165 + i * 4, 112 + i * 3)) for i in range(8)]
-    pixels = [sand[rng.randrange(8)] for _ in range(64 * 64)]
-    textures["bv_sand"] = texture("bv_sand", 64, 64, pixels)
+    court = court_textures()
+    # Keep the BSP's classic 64px materials and UV scale, with matching palette
+    # fallbacks. High-resolution RGB replacements carry the full artwork.
+    for name, rgba in court.items():
+        pixels = []
+        for y in range(64):
+            for x in range(64):
+                offset = ((y * 16 + 8) * 1024 + x * 16 + 8) * 4
+                pixels.append(nearest(palette, rgba[offset:offset + 3]))
+        textures[name] = texture(name, 64, 64, pixels)
     for name, color in (
-        ("bv_line", (32, 88, 160)), ("bv_pole", (235, 206, 140)),
-        ("bv_tape", (238, 235, 210)), ("bv_wood", (110, 85, 58)),
-        ("*bv_sea", (35, 100, 132)),
+        ("bv_line", (32, 88, 160)), ("bv_wood", (110, 85, 58)),
     ):
         index = nearest(palette, color)
         textures[name] = texture(name, 64, 64, [index] * 4096)
-    target = nearest(palette, (165, 114, 52))
-    bright = nearest(palette, (224, 198, 124))
-    pixels = [target if x < 3 or y < 3 or x >= 61 or y >= 61 else bright
-              for y in range(64) for x in range(64)]
-    textures["bv_target"] = texture("bv_target", 64, 64, pixels)
-    cord = nearest(palette, (40, 40, 36))
-    pixels = [cord if x % 16 < 2 or y % 16 < 2 else 255
-              for y in range(64) for x in range(64)]
-    textures["{bv_net"] = texture("{bv_net", 64, 64, pixels)
     blue = nearest(palette, (74, 126, 161))
     cloud = nearest(palette, (205, 215, 215))
     pixels = [blue if x >= 128 else
@@ -495,10 +517,11 @@ def generate(base, build, game):
     write_wad(wad, textures)
     (build / "beach.map").write_text(court_map(wad))
     generate_ball(game / "progs")
+    generate_net(game / "progs")
     marker_model(game / "progs/bv_marker.mdl", palette)
     athlete_models(game, palette)
     shadow_model(game / "progs/bv_shadow.mdl", palette)
-    external_textures(game)
+    external_textures(game, court)
     daylight_skybox(game)
     write_tga(game / "gfx/bv_hud.tga", 128, 128, font_pixels())
     for kind, duration in (("pass", 0.18), ("set", 0.13), ("spike", 0.2),

@@ -3,6 +3,7 @@ defs.qc
 shared.qc
 physics.qc
 ball.qc
+net.qc
 feel.qc
 serve.qc
 receive.qc
@@ -12,6 +13,7 @@ bots.qc
 animations.qc
 selftest.qc
 regressions.qc
+nettest.qc
 feeltest.qc
 matchrules.qc
 bottest.qc

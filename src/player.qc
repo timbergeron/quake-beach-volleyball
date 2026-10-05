@@ -166,6 +166,7 @@ void(entity player) BV_ReadyServe =
     bv_next_feed = 0;
     bv_net_touched = 0;
     bv_under_net = 0;
+    bv_antenna_touched = FALSE;
     player.bv_mode = 0;
     player.bv_preparing = 0;
     player.bv_armed_until = 0;
@@ -268,6 +269,7 @@ void(entity player, float automatic) BV_Feed =
     bv_next_feed = 0;
     bv_net_touched = 0;
     bv_under_net = 0;
+    bv_antenna_touched = FALSE;
     player.bv_armed_until = 0;
     player.bv_serve_contact = 0;
     player.bv_receive_committed = FALSE;
@@ -346,7 +348,7 @@ void(entity player) BV_UpdatePreview =
         side = 1;
         if (player.origin_x <= 0) side = -1;
         player.bv_preview_result = BV_AttemptResult(bv_landing, side,
-            bv_predict_net, bv_predict_under_net, bv_flight_time);
+            bv_predict_net, bv_predict_under_net, bv_predict_antenna, bv_flight_time);
         setorigin(player.bv_marker, bv_landing + '0 0 -2.5');
         /* The marker is a training overlay; its projected alias shadow would
          * otherwise cover this thin ring just above the playing surface.
@@ -362,6 +364,10 @@ void(entity player) BV_UpdatePreview =
     }
 };
 
+void(entity player) BV_NetVisualSetup;
+void() BV_NetVisualInput;
+void() BV_NetVisualObserve;
+
 void() PlayerPreThink =
 {
     local float action, pulse, speed, eye_height;
@@ -371,6 +377,7 @@ void() PlayerPreThink =
     if (cvar("bv_matchtest")) BV_MatchTestInput();
     if (cvar("bv_bottest")) BV_BotTestInput();
     if (cvar("bv_receivetest")) BV_ReceiveTestInput();
+    if (cvar("bv_netview")) BV_NetVisualInput();
     BV_UpdateFooting(self);
     self.gravity = BV_Clamp(autocvar_bv_gravity, 100, 800) /
                    BV_Clamp(cvar("sv_gravity"), 1, 2000);
@@ -530,6 +537,7 @@ void() PlayerPostThink =
     if (cvar("bv_matchtest")) BV_MatchTestObserve();
     if (cvar("bv_bottest")) BV_BotTestObserve();
     if (cvar("bv_receivetest")) BV_ReceiveTestObserve();
+    if (cvar("bv_netview")) BV_NetVisualObserve();
 };
 
 void() PutClientInServer =
@@ -574,6 +582,7 @@ void() PutClientInServer =
         self.bv_sidespin = -1;
         self.bv_topspin = -1;
     }
+    if (cvar("bv_netview")) BV_NetVisualSetup(self);
 };
 
 void() ClientConnect = {};

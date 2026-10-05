@@ -21,6 +21,7 @@ void() worldspawn =
     local float style;
     style = 0;
     precache_model("progs/bv_ball.md3");
+    precache_model("progs/bv_net.md3");
     precache_model("progs/bv_marker.mdl");
     precache_model("progs/bv_athlete.mdl");
     precache_model("progs/bv_hands.mdl");
@@ -97,6 +98,7 @@ void() worldspawn =
     bv_last_player = world;
     bv_feeder = world;
     bv_tests_ran = FALSE;
+    BV_SpawnNet();
     bv_accumulator = 0;
     bv_live_time = 0;
     bv_shadow = spawn();
@@ -119,4 +121,5 @@ void() StartFrame =
     }
     BV_UpdateMatch();
     BV_UpdateBall();
+    BV_UpdateNet();
 };

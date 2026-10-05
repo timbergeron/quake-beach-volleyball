@@ -4,6 +4,16 @@
 const float BV_GRAVITY = 313.92;
 const float BV_RADIUS = 3.4;
 const float BV_NET_HEIGHT = 77.76;
+const float BV_NET_BOTTOM = 45.76;
+const float BV_NET_HALF_LENGTH = 136;
+const float BV_NET_HALF_DEPTH = 0.12;
+const float BV_POST_Y = 160;
+const float BV_POST_HEIGHT = 81.6;
+const float BV_POST_RADIUS = 3.52;
+const float BV_ANTENNA_X = 0.24;
+const float BV_ANTENNA_Y = 128.16;
+const float BV_ANTENNA_RADIUS = 0.16;
+const float BV_ANTENNA_TOP = 103.36;
 const float BV_HALF_LENGTH = 256;
 const float BV_HALF_WIDTH = 128;
 const float BV_STEP = 0.008333333;
@@ -32,6 +42,7 @@ const float BV_RESULT_OWN = 4;
 const float BV_RESULT_MISS = 5;
 const float BV_RESULT_UNDER = 6;
 const float BV_RESULT_NET = 7;
+const float BV_RESULT_ANTENNA = 10;
 
 /* Custom stats are shared by the server and HUD. Vector stats occupy three
  * consecutive slots; keep the player and preview vectors separate.

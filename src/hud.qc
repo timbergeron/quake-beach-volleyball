@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Copyright (C) 2026 timbergeron
 float bv_hud_ready, bv_capture_done, bv_play_hud_reported;
+float bv_net_hud_reported;
 float bv_play_reach_reported, bv_play_preview_reported;
 float bv_play_timing_reported;
 float bv_play_quality_reported;
@@ -62,6 +63,7 @@ string(float result) BV_ResultLabel =
     if (result == BV_RESULT_OWN) return "OWN COURT";
     if (result == BV_RESULT_UNDER) return "UNDER NET";
     if (result == BV_RESULT_NET) return "NET";
+    if (result == BV_RESULT_ANTENNA) return "ANTENNA";
     return "MISS";
 };
 
@@ -69,6 +71,7 @@ string(float reason) BV_PointLabel =
 {
     if (reason == BV_RESULT_OUT) return "OUT";
     if (reason == BV_RESULT_UNDER) return "UNDER NET";
+    if (reason == BV_RESULT_ANTENNA) return "ANTENNA";
     if (reason == BV_POINT_DOUBLE) return "DOUBLE CONTACT";
     if (reason == BV_POINT_FOUR) return "FOUR TOUCHES";
     return "BALL DOWN";
@@ -93,6 +96,34 @@ void(float x, float y, float slot, vector color, float outline) BV_MapPoint =
     if (outline) BV_Box(px - 1, py - 1, 3, 3, '0.04 0.1 0.12', 1);
 };
 
+void() BV_VisualCapture =
+{
+    if (!bv_hud_ready)
+    {
+        bv_hud_ready = TRUE;
+        dprint("BEACH HUD READY\n");
+        if (cvar("bv_visualtest") || cvar("bv_playtest") || cvar("bv_receivetest"))
+            localcmd("con_notifytime 0\ncon_notifylines 0\nscr_fade 0\nscr_conspeed 100000\n");
+    }
+    if (cvar("bv_visualtest") && time > 2 && !bv_capture_done)
+    {
+        bv_capture_done = 1;
+        localcmd("screenshot tga\n");
+        if (cvar("bv_visualtest") == 2) localcmd("set bv_help 0\n");
+    }
+    if (cvar("bv_visualtest") == 2 && time > 2.2 && bv_capture_done == 1)
+    {
+        bv_capture_done = 2;
+        localcmd("screenshot tga\n");
+    }
+    if ((cvar("bv_visualtest") == 1 && time > 2.2 && bv_capture_done == 1) ||
+        (cvar("bv_visualtest") == 2 && time > 2.4 && bv_capture_done == 2))
+    {
+        bv_capture_done = 3;
+        localcmd("quit\n");
+    }
+};
+
 void(vector virtual_size, float showscores) CSQC_DrawHud =
 {
     local float x, y, width, charge, arc, side, mode, state, top, preview;
@@ -100,6 +131,11 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     local float match, phase, hint, assisted, overlays, receiving, style;
     local vector color;
     local string label, instruction;
+    if (cvar("bv_netview") > 0 && cvar("bv_netview") != 6)
+    {
+        BV_VisualCapture();
+        return;
+    }
     charge = BV_Clamp(getstatf(BV_STAT_CHARGE), 0, 1);
     arc = getstatf(BV_STAT_ARC);
     side = getstatf(BV_STAT_SIDE);
@@ -276,6 +312,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
             if (result == BV_RESULT_TARGET) instruction = "GOOD PLACEMENT";
             if (result == BV_RESULT_OUT) instruction = "ADJUST POWER AND ARC";
             if (result == BV_RESULT_OWN) instruction = "SET AGAIN OR CLEAR THE NET";
+            if (result == BV_RESULT_ANTENNA) instruction = "KEEP BALL INSIDE ANTENNAS";
             if (result == BV_RESULT_MISS) instruction = "RELEASE WHEN THE BALL IS CLOSE";
             if (result == BV_RESULT_NET || result == BV_RESULT_UNDER)
                 instruction = "ADD ARC OR RAISE YOUR CONTACT";
@@ -341,29 +378,11 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         BV_Text(x + 12, y + 182, "5 DOUBLES / J TRAINING OVERLAYS", '0.65 0.8 0.85');
         BV_Text(x + 12, y + 202, "H CLOSE / TAB HOLD FOR HELP", '0.65 0.8 0.85');
     }
-    if (!bv_hud_ready)
+    BV_VisualCapture();
+    if (cvar("bv_netview") == 6 && getstatf(BV_STAT_RESULT) == BV_RESULT_ANTENNA && !bv_net_hud_reported)
     {
-        bv_hud_ready = TRUE;
-        dprint("BEACH HUD READY\n");
-        if (cvar("bv_visualtest") || cvar("bv_playtest") || cvar("bv_receivetest"))
-            localcmd("con_notifytime 0\ncon_notifylines 0\nscr_fade 0\nscr_conspeed 100000\n");
-    }
-    if (cvar("bv_visualtest") && time > 2 && !bv_capture_done)
-    {
-        bv_capture_done = 1;
-        localcmd("screenshot tga\n");
-        if (cvar("bv_visualtest") == 2) localcmd("set bv_help 0\n");
-    }
-    if (cvar("bv_visualtest") == 2 && time > 2.2 && bv_capture_done == 1)
-    {
-        bv_capture_done = 2;
-        localcmd("screenshot tga\n");
-    }
-    if ((cvar("bv_visualtest") == 1 && time > 2.2 && bv_capture_done == 1) ||
-        (cvar("bv_visualtest") == 2 && time > 2.4 && bv_capture_done == 2))
-    {
-        bv_capture_done = 3;
-        localcmd("quit\n");
+        bv_net_hud_reported = TRUE;
+        dprint("BEACH NET HUD antenna-feedback\n");
     }
     if (cvar("bv_playtest") && getstatf(BV_STAT_KIND) == BV_SERVE && !bv_play_hud_reported)
     {

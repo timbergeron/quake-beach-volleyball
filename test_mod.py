@@ -28,30 +28,41 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     match = profile in ("match", "match-set", "match-topspin")
     bot = profile in ("bot-dive", "bot-dive-fast")
     receive = profile in ("receive-float", "receive-topspin", "receive-early", "receive-late")
+    netview = {"net-hero": 1, "net-opposite": 2, "net-close": 3, "net-post": 4,
+               "net-hit": 5, "net-antenna": 6, "net-hardware": 7}.get(profile, 0)
     if not visual and not play and not match and not bot and not receive:
         (runtime / "beachvolley/autoexec.cfg").write_text("exec server.cfg\n")
     stage_runtime(binary, basedir, runtime, runtime / "beachvolley")
+    # Quake keeps only 50 command-line arguments. Put fixture settings in a
+    # script so renderer options cannot silently discard the final +map.
+    settings = {
+        "developer": 1,
+        "bv_selftest": int(not (visual or play or match or bot or receive)),
+        "bv_visualtest": 2 if profile == "compact" else int(visual),
+        "bv_playtest": {"opposite": 2, "sweet": 3, "late": 4, "jump-serve": 5}.get(profile, 1) if play else 0,
+        "bv_matchtest": 3 if profile == "match-topspin" else 2 if profile == "match-set" else int(match),
+        "bv_bottest": int(bot),
+        "bv_receivetest": {"receive-float": 1, "receive-topspin": 2,
+                           "receive-early": 3, "receive-late": 4}.get(profile, 0),
+        "bv_netview": netview,
+    }
     command = [str(binary), "-basedir", str(runtime), "-game", "beachvolley",
-               "-nohome", "-nolan", "-noudp", "-nosound",
-               "+set", "developer", "1", "+set", "bv_selftest", "0" if visual or play or match or bot or receive else "1",
-               "+set", "bv_visualtest", "2" if profile == "compact" else "1" if visual else "0",
-               "+set", "bv_playtest", str({"opposite": 2, "sweet": 3, "late": 4, "jump-serve": 5}.get(profile, 1)) if play else "0",
-               "+set", "bv_matchtest", "3" if profile == "match-topspin" else "2" if profile == "match-set" else "1" if match else "0",
-               "+set", "bv_bottest", "1" if bot else "0",
-               "+set", "bv_receivetest", str({"receive-float": 1, "receive-topspin": 2,
-                   "receive-early": 3, "receive-late": 4}.get(profile, 0)),
-               "+map", "beach"]
+               "-nohome", "-nolan", "-noudp", "-nosound", "+exec", "fixture.cfg"]
     if visual or play or match or bot or receive:
-        command[1:1] = ["-window", "-width", str(width), "-height", str(height), "-nojoy", "-nomouse"]
+        command[1:1] = ["-window", "-width", str(width), "-height", str(height), "-nojoy", "-nomouse",
+                        "-fsaa", "4"]
         command.remove("-nosound")
         # Shader warmup and screenshot readback must not lengthen the scripted
         # button hold. Variable server rates are checked separately in QC.
-        command[-2:-2] = ["+set", "host_timescale", "0", "+set", "host_framerate", "0.02" if match or profile == "bot-dive" else "0.01",
-                         "+set", "host_maxfps", "100"]
+        settings.update(host_timescale=0,
+                        host_framerate=0.02 if visual or match or profile == "bot-dive" else 0.01,
+                        host_maxfps=100)
         if profile == "compact":
-            command[-2:-2] = ["+set", "scr_sbarscale", "2", "+set", "bv_help", "1"]
+            settings.update(scr_sbarscale=2, bv_help=1)
     else:
         command.insert(1, "-dedicated")
+    (runtime / "beachvolley/fixture.cfg").write_text(
+        "".join(f"set {key} {value}\n" for key, value in settings.items()) + "map beach\n")
     env = {**os.environ, "SDL_VIDEO_DRIVER": "offscreen", "SDL_AUDIO_DRIVER": "dummy",
            "LIBGL_ALWAYS_SOFTWARE": "1", "LP_NUM_THREADS": "2"}
     artifacts = HERE / "artifacts"
@@ -59,7 +70,11 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     try:
         result = subprocess.run(command, cwd=runtime, env=env,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, errors="replace", timeout=80 if match else 40)
+                                text=True, errors="replace",
+                                # Software rendering of the detailed net can
+                                # take longer while the fixed-rate simulation
+                                # still follows the same input/contact timings.
+                                timeout=120 if visual or play or match or bot or receive else 40)
     except subprocess.TimeoutExpired as failure:
         output = failure.stdout or b""
         if isinstance(output, bytes):
@@ -70,7 +85,9 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     errors = []
     if result.returncode:
         errors.append(f"engine exit {result.returncode}")
-    for forbidden in ("BEACH FAIL", "BEACH PLAY FAIL", "BEACH MATCH FAIL", "BEACH BOT FAIL", "BEACH RECEIVE FAIL", "Host_Error", "Sys_Error", "Program error",
+    if "SpawnServer: beach" not in result.stdout:
+        errors.append("beach map did not start")
+    for forbidden in ("BEACH FAIL", "BEACH PLAY FAIL", "BEACH MATCH FAIL", "BEACH BOT FAIL", "BEACH RECEIVE FAIL", "BEACH NET FAIL", "Playing demo", "Host_Error", "Sys_Error", "Program error",
                       "unimplemented builtin", "Shader compilation failed", "Could not load",
                       "not looped", "bad loop", "not precached", "Couldn't load sound/beach", "couldn't load bitmap font"):
         if forbidden in result.stdout:
@@ -136,6 +153,12 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     elif visual:
         if "BEACH HUD READY" not in result.stdout:
             errors.append("HUD did not render")
+        if profile == "net-hit" and "BEACH NET PASS live-mesh-impact-and-recoil" not in result.stdout:
+            errors.append("missing live net impact/recoil")
+        if profile == "net-antenna":
+            for marker in ("BEACH NET PASS live-antenna-fault", "BEACH NET HUD antenna-feedback"):
+                if marker not in result.stdout:
+                    errors.append(f"missing {marker}")
         images = sorted((runtime / "beachvolley/screenshots").glob("*.tga"))
         if not images:
             errors.append("no screenshot")
@@ -143,7 +166,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
             dimensions = struct.unpack_from("<HH", images[-1].read_bytes(), 12)
             if dimensions != (width, height):
                 errors.append(f"unexpected screenshot size: {dimensions}")
-            screenshot = "compact-hud.tga" if profile == "compact" else "court.tga"
+            screenshot = f"{profile}.tga" if netview else "compact-hud.tga" if profile == "compact" else "court.tga"
             shutil.copyfile(images[-1], artifacts / screenshot)
             if profile == "compact":
                 if len(images) != 2:
@@ -152,11 +175,11 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                     shutil.copyfile(images[0], artifacts / "compact-help.tga")
     else:
         completed = re.search(r"BEACH DONE pass=(\d+) fail=(\d+)", result.stdout)
-        if not completed or int(completed[2]) or int(completed[1]) < 205:
+        if not completed or int(completed[2]) or int(completed[1]) < 234:
             errors.append("missing or failed gameplay completion marker")
     if errors:
         raise RuntimeError(f"{name}: {', '.join(errors)}\n{result.stdout[-6000:]}")
-    return {"name": name, "passes": re.findall(r"BEACH (?:(?:PLAY|MATCH|BOT|RECEIVE) )?PASS (.+)", result.stdout),
+    return {"name": name, "passes": re.findall(r"BEACH (?:(?:PLAY|MATCH|BOT|RECEIVE|NET) )?PASS (.+)", result.stdout),
             "screenshot": screenshot if visual or play or match or bot or receive else None,
             "contact_screenshot": f"{name}-contact.tga" if play or bot or receive else None,
             "custom_font": "BEACH HUD FONT custom" in result.stdout if visual or play or match or bot or receive else None}
@@ -170,7 +193,8 @@ def main():
     selection.add_argument("--skip-visual", action="store_true")
     selection.add_argument("--case", action="append", choices=("gameplay", "visual", "play", "opposite",
         "sweet", "late", "compact", "match", "match-set", "bot-dive", "bot-dive-fast", "jump-serve",
-        "receive-float", "receive-topspin", "receive-early", "receive-late", "match-topspin"),
+        "receive-float", "receive-topspin", "receive-early", "receive-late", "match-topspin",
+        "net-hero", "net-opposite", "net-close", "net-post", "net-hit", "net-antenna", "net-hardware"),
         help="run a selected case; repeat to select several")
     args = parser.parse_args()
     binary = args.bin.expanduser().resolve()
@@ -181,6 +205,18 @@ def main():
     # Runtime copies can exceed a small system tmpfs when the whole suite runs.
     scratch = HERE / "build"
     scratch.mkdir(exist_ok=True)
+    summary = {"engine_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+               "progs_sha256": hashlib.sha256((game / "progs.dat").read_bytes()).hexdigest(),
+               "csprogs_sha256": hashlib.sha256((game / "csprogs.dat").read_bytes()).hexdigest(),
+               "map_sha256": hashlib.sha256((game / "maps/beach.bsp").read_bytes()).hexdigest(),
+               "net_sha256": hashlib.sha256((game / "progs/bv_net.md3").read_bytes()).hexdigest(),
+               "net_skin_sha256": hashlib.sha256((game / "progs/bv_net.tga").read_bytes()).hexdigest(),
+               "complete": False, "results": []}
+    artifacts = HERE / "artifacts"
+    artifacts.mkdir(exist_ok=True)
+    def save_summary():
+        (artifacts / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+
     with tempfile.TemporaryDirectory(prefix="beachvolley-test-", dir=scratch) as temporary:
         workspace = Path(temporary)
         cases = (("gameplay", False, False, "default"), ("visual", True, False, "default"),
@@ -194,17 +230,23 @@ def main():
                  ("receive-topspin", False, False, "receive-topspin"),
                  ("receive-early", False, False, "receive-early"),
                  ("receive-late", False, False, "receive-late"),
-                 ("match-topspin", False, False, "match-topspin"))
+                 ("match-topspin", False, False, "match-topspin"),
+                 ("net-hero", True, False, "net-hero"), ("net-opposite", True, False, "net-opposite"),
+                 ("net-close", True, False, "net-close"), ("net-post", True, False, "net-post"),
+                 ("net-hit", True, False, "net-hit"), ("net-antenna", True, False, "net-antenna"),
+                 ("net-hardware", True, False, "net-hardware"))
         selected = args.case or (["gameplay"] if args.skip_visual else [case[0] for case in cases])
-        results = [run_case(binary, basedir, game, workspace, visual, play, profile)
-                   for name, visual, play, profile in cases if name in selected]
-    summary = {"engine_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
-               "progs_sha256": hashlib.sha256((game / "progs.dat").read_bytes()).hexdigest(),
-               "csprogs_sha256": hashlib.sha256((game / "csprogs.dat").read_bytes()).hexdigest(),
-               "results": results}
-    (HERE / "artifacts/summary.json").write_text(json.dumps(summary, indent=2) + "\n")
-    for result in results:
-        print(f"{result['name']}: PASS ({len(result['passes'])} gameplay assertions)")
+        summary["selected_cases"] = selected
+        save_summary()
+        for name, visual, play, profile in cases:
+            if name not in selected:
+                continue
+            result = run_case(binary, basedir, game, workspace, visual, play, profile)
+            summary["results"].append(result)
+            save_summary()
+            print(f"{result['name']}: PASS ({len(result['passes'])} gameplay assertions)", flush=True)
+    summary["complete"] = True
+    save_summary()
 
 
 if __name__ == "__main__":

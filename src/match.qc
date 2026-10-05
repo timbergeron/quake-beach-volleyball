@@ -125,6 +125,7 @@ void(float winner, string reason) BV_MatchPoint =
     bv_point_reason = BV_RESULT_IN;
     if (reason == "OUT") bv_point_reason = BV_RESULT_OUT;
     if (reason == "UNDER NET") bv_point_reason = BV_RESULT_UNDER;
+    if (reason == "ANTENNA") bv_point_reason = BV_RESULT_ANTENNA;
     if (reason == "DOUBLE CONTACT") bv_point_reason = BV_POINT_DOUBLE;
     if (reason == "FOUR TOUCHES") bv_point_reason = BV_POINT_FOUR;
     bprint("Point: ", reason, " | YOU ", ftos(bv_home_score), " - ",
@@ -142,7 +143,8 @@ void(vector position) BV_MatchLanding =
     local float winner;
     winner = -bv_touch_team;
     if (bv_touch_team == 0) winner = -bv_serving_team;
-    if (!bv_under_net && bv_live_time < BV_MAX_FLIGHT && BV_InCourt(position))
+    if (bv_antenna_touched) BV_MatchPoint(winner, "ANTENNA");
+    else if (!bv_under_net && bv_live_time < BV_MAX_FLIGHT && BV_InCourt(position))
     {
         winner = -1;
         if (position_x < 0) winner = 1;

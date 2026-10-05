@@ -118,7 +118,7 @@ void(entity player) BV_RunBugTests =
         player.bv_last_result == BV_RESULT_NET && player.bv_targets == targets);
     BV_Predict('2 0 110', '0 0 -300', '0 0 0');
     BV_Assert("net-stall-preview-matches-live", BV_AttemptResult(bv_landing, -1,
-        bv_predict_net, bv_predict_under_net, bv_flight_time) == BV_RESULT_NET);
+        bv_predict_net, bv_predict_under_net, bv_predict_antenna, bv_flight_time) == BV_RESULT_NET);
 
     BV_TestReset(player);
     setorigin(bv_ball, '208 92 120');
@@ -134,11 +134,11 @@ void(entity player) BV_RunBugTests =
         player.bv_last_result == BV_RESULT_OUT && player.bv_targets == targets);
 
     BV_TestReset(player);
-    setorigin(bv_ball, '0 144 120');
+    setorigin(bv_ball, '0 160 120');
     bv_ball.velocity = '0 0 -200';
     bv_ball_spin = '0 0 0';
     bv_ball_state = BV_LIVE;
     BV_BallStep(0.2);
-    BV_Assert("post-top-does-not-let-ball-through", bv_ball.origin_z >= 91 + BV_RADIUS - 0.01 &&
+    BV_Assert("post-top-does-not-let-ball-through", bv_ball.origin_z >= BV_POST_HEIGHT + BV_RADIUS - 0.01 &&
         bv_ball.velocity_z > 0 && !bv_net_touched);
 };

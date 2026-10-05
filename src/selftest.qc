@@ -3,6 +3,7 @@
 /* Runs inside the actual QSS-M QC VM via +set bv_selftest 1. */
 float bv_test_pass, bv_test_fail;
 void(entity player) BV_RunBugTests;
+void(entity player) BV_RunNetTests;
 void(entity player) BV_RunFeelTests;
 void(entity player) BV_RunMatchRules;
 void(entity player) BV_RunBotTests;
@@ -102,7 +103,7 @@ void() BV_RunSelfTests =
     BV_Predict('-600 0 100', '200 0 180', '0 0 0');
     BV_Assert("prediction-repeatability", vlen(landing - bv_landing) < 0.001);
     BV_Assert("net-high-speed-sweep", BV_NetSweep('-100 0 60', '100 0 60'));
-    BV_Assert("net-crossing-location", fabs(bv_net_position_x + BV_RADIUS + 0.65) < 0.01);
+    BV_Assert("net-crossing-location", fabs(bv_net_position_x + BV_RADIUS + BV_NET_HALF_DEPTH) < 0.01);
     BV_Assert("net-opposite-side-sweep", BV_NetSweep('100 0 60', '-100 0 60'));
     BV_Assert("clear-net-above-tape", !BV_NetSweep('-100 0 100', '100 0 100'));
     BV_Assert("clear-net-outside-width", !BV_NetSweep('-100 150 60', '100 150 60'));
@@ -301,6 +302,7 @@ void() BV_RunSelfTests =
         (player.bv_preview_result == BV_RESULT_TARGET || player.bv_preview_result == BV_RESULT_IN) &&
         player.bv_preview_range > 8 && player.bv_preview_height > 2);
     BV_RunBugTests(player);
+    BV_RunNetTests(player);
     BV_RunFeelTests(player);
     BV_RunMatchRules(player);
     BV_RunBotTests(player);
