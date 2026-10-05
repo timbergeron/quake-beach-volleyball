@@ -4,6 +4,7 @@
 float bv_test_pass, bv_test_fail;
 void(entity player) BV_RunBugTests;
 void(entity player) BV_RunFeelTests;
+void(entity player) BV_RunMatchRules;
 
 void(string name, float condition) BV_Assert =
 {
@@ -159,6 +160,7 @@ void() BV_RunSelfTests =
     setorigin(player, '-288 0 24');
     player.bv_preparing = 1;
     player.bv_last_contact = -1;
+    player.bv_recover_until = 0;
     bv_ball_state = BV_LIVE;
     setorigin(bv_ball, '-265 0 44');
     PlayerPostThink();
@@ -298,6 +300,7 @@ void() BV_RunSelfTests =
         player.bv_preview_range > 8 && player.bv_preview_height > 2);
     BV_RunBugTests(player);
     BV_RunFeelTests(player);
+    BV_RunMatchRules(player);
     self = player;
     ClientDisconnect();
     remove(player);

@@ -4,6 +4,8 @@ float bv_hud_ready, bv_capture_done, bv_play_hud_reported;
 float bv_play_reach_reported, bv_play_preview_reported;
 float bv_play_timing_reported;
 float bv_play_quality_reported;
+float bv_match_hud_reported;
+float bv_match_point_reported;
 
 void(float x, float y, string text, vector color, float alpha) BV_Label =
 {
@@ -62,6 +64,15 @@ string(float result) BV_ResultLabel =
     return "MISS";
 };
 
+string(float reason) BV_PointLabel =
+{
+    if (reason == BV_RESULT_OUT) return "OUT";
+    if (reason == BV_RESULT_UNDER) return "UNDER NET";
+    if (reason == BV_POINT_DOUBLE) return "DOUBLE CONTACT";
+    if (reason == BV_POINT_FOUR) return "FOUR TOUCHES";
+    return "BALL DOWN";
+};
+
 vector(float result) BV_ResultColor =
 {
     if (result == BV_RESULT_TARGET || result == BV_RESULT_IN)
@@ -85,6 +96,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
 {
     local float x, y, width, charge, arc, side, mode, state, top, preview;
     local float result, age, alpha, reach, locked, compact, feed, serving, timing, note;
+    local float match, phase, hint, assisted, overlays;
     local vector color;
     local string label, instruction;
     charge = BV_Clamp(getstatf(BV_STAT_CHARGE), 0, 1);
@@ -99,6 +111,11 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     feed = getstatf(BV_STAT_FEED_DELAY);
     serving = getstatf(BV_STAT_SERVING);
     timing = getstatf(BV_STAT_TIMING);
+    match = getstatf(BV_STAT_MATCH);
+    phase = getstatf(BV_STAT_PHASE);
+    hint = getstatf(BV_STAT_HINT);
+    assisted = getstatf(BV_STAT_ASSISTED);
+    overlays = getstatf(BV_STAT_OVERLAYS);
     width = BV_Clamp(virtual_size_x - 24, 0, 500);
     compact = width < 460;
     x = (virtual_size_x - width) * 0.5;
@@ -112,6 +129,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     if (mode == 1) label = "RECEIVE DRILL";
     if (mode == 2) label = "SETTING DRILL";
     if (mode == 3) label = "ATTACK DRILL";
+    if (match) label = "BEACH DOUBLES / 2V2";
     BV_Text(x + 12, y + 10, label, '0.95 1 1');
     BV_Text(x + width - 60, y + 10, "H HELP", '0.6 0.8 0.85');
     label = "POWER ";
@@ -146,6 +164,22 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     if (locked) label = "AIM STORED / SHIFT + LOOK TO ADJUST";
     if (reach) label = "RELEASE / BALL IN REACH";
     if (reach && serving && timing >= 0.9) label = "RELEASE / SERVE SWEET SPOT";
+    if (assisted && locked) label = "HOLD / MOVE HANDS INTO REACH";
+    if (match)
+    {
+        label = "COVER YOUR PARTNER";
+        if (hint == BV_HINT_RECEIVE) label = "RECEIVE / LMB TOWARD PARTNER";
+        if (hint == BV_HINT_SET) label = "SET / RMB TOWARD PARTNER";
+        if (hint == BV_HINT_ATTACK) label = "ATTACK / JUMP + LMB OR RMB";
+        if (phase == BV_MATCH_SERVE)
+        {
+            label = "OPPONENT SERVING / GET READY";
+            if (getstatf(BV_STAT_SERVE_TEAM) < 0) label = "YOUR SERVE / HOLD LMB TO TOSS";
+        }
+        if (phase == BV_MATCH_POINT)
+            label = strcat(BV_PointLabel(getstatf(BV_STAT_POINT_REASON)), " / NEXT SERVE");
+        if (phase == BV_MATCH_OVER) label = "MATCH OVER / 5 PLAY AGAIN";
+    }
     BV_Text(x + 12, y + 70, label, color);
     label = "WHEEL ARC / Q,E SIDE / Z TOP";
     color = '0.65 0.8 0.85';
@@ -157,12 +191,38 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
             BV_Decimal(getstatf(BV_STAT_PREVIEW_HEIGHT)), "M");
         color = BV_ResultColor(preview);
     }
+    if (match)
+    {
+        label = "C ASSIST OFF / J OVERLAYS";
+        if (assisted) label = "C ASSIST ON / J OVERLAYS";
+        if (bv_match_hud_reported == 0 && cvar("bv_matchtest"))
+        {
+            bv_match_hud_reported = TRUE;
+            dprint("BEACH MATCH HUD score-and-guidance\n");
+        }
+        if (phase == BV_MATCH_POINT && getstatf(BV_STAT_POINT_REASON) > 0 &&
+            !bv_match_point_reported && cvar("bv_matchtest"))
+        {
+            bv_match_point_reported = TRUE;
+            dprint("BEACH MATCH HUD point-reason\n");
+        }
+    }
     BV_Text(x + 12, y + 86, label, color);
 
     BV_Box(12, 12, 200, 48, '0.025 0.055 0.07', 0.86);
-    BV_Text(24, 22, "BEACH / SOLO PRACTICE", '0.95 1 1');
-    BV_Text(24, 40, strcat("TARGETS ", ftos(getstatf(BV_STAT_TARGETS)), " / ",
-        ftos(getstatf(BV_STAT_ATTEMPTS))), '0.4 1 0.75');
+    label = "BEACH / SOLO PRACTICE";
+    instruction = strcat("TARGETS ", ftos(getstatf(BV_STAT_TARGETS)), " / ",
+        ftos(getstatf(BV_STAT_ATTEMPTS)));
+    if (match)
+    {
+        label = "YOU + BLUE / VS ORANGE";
+        instruction = strcat("SCORE ", ftos(getstatf(BV_STAT_HOME_SCORE)), " - ",
+            ftos(getstatf(BV_STAT_AWAY_SCORE)));
+        if (phase == BV_MATCH_RALLY && getstatf(BV_STAT_TOUCH_TEAM) < 0)
+            instruction = strcat(instruction, " / TOUCH ", ftos(getstatf(BV_STAT_TOUCHES)), "/3");
+    }
+    BV_Text(24, 22, label, '0.95 1 1');
+    BV_Text(24, 40, instruction, '0.4 1 0.75');
     result = getstatf(BV_STAT_RESULT);
     age = getstatf(BV_STAT_FEEDBACK_AGE);
     if (age < 3 && (result || getstatf(BV_STAT_KIND)))
@@ -203,7 +263,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         BV_Label(x + 12, 87, label, color, alpha);
         BV_Label(x + 12, 104, instruction, '0.9 0.97 1', alpha);
     }
-    if (virtual_size_x >= 480)
+    if (virtual_size_x >= 480 && overlays)
     {
         x = virtual_size_x - 132;
         BV_Box(x, 12, 120, 88, '0.025 0.055 0.07', 0.86);
@@ -216,6 +276,12 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         if (preview) BV_MapPoint(x, 12, BV_STAT_PREVIEW, BV_ResultColor(preview), TRUE);
         BV_MapPoint(x, 12, BV_STAT_PLAYER, '0.95 1 1', FALSE);
         BV_MapPoint(x, 12, BV_STAT_BALL, '1 0.8 0.35', FALSE);
+        if (match)
+        {
+            BV_MapPoint(x, 12, BV_STAT_PARTNER, '0.3 0.7 1', FALSE);
+            BV_MapPoint(x, 12, BV_STAT_OPPONENT1, '1 0.45 0.2', FALSE);
+            BV_MapPoint(x, 12, BV_STAT_OPPONENT2, '1 0.45 0.2', FALSE);
+        }
         BV_Text(x + 12, 84, "YOU", '0.95 1 1');
         BV_Text(x + 68, 84, "BALL", '1 0.8 0.35');
     }
@@ -238,17 +304,17 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         x = (virtual_size_x - width) * 0.5;
         y = virtual_size_y * 0.5 - 110;
         BV_Box(x, y, width, 220, '0.025 0.055 0.07', 0.98);
-        BV_Text(x + 12, y + 14, "BEACH / PRACTICE CONTROLS", '0.4 1 0.75');
+        BV_Text(x + 12, y + 14, "BEACH / CONTROLS", '0.4 1 0.75');
         BV_Text(x + 12, y + 38, "LMB PASS/SPIKE / RMB SET/ROLL", '0.95 1 1');
         BV_Text(x + 12, y + 54, "HOLD TO CHARGE / RELEASE TO HIT", '0.95 1 1');
-        BV_Text(x + 12, y + 70, "GREEN CUE: BALL WITHIN REACH", '0.4 1 0.75');
+        BV_Text(x + 12, y + 70, "C ASSIST: HOLD FOR CLOSE CONTACT", '0.4 1 0.75');
         BV_Text(x + 12, y + 86, "SHIFT + LOOK: CHANGE STORED AIM", '0.95 1 1');
         BV_Text(x + 12, y + 102, "WHEEL ARC / Q,E SIDE / Z TOP", '0.95 1 1');
         BV_Text(x + 12, y + 118, "F SHORT / V DEEP / B MID DEPTH", '0.95 1 1');
         BV_Text(x + 12, y + 134, "MMB RESET SPIN / SPACE JUMP", '0.95 1 1');
         BV_Text(x + 12, y + 150, "CTRL DIVE / R SERVE / T FEED", '0.95 1 1');
         BV_Text(x + 12, y + 166, "1 SERVE 2 RECEIVE 3 SET 4 ATTACK", '0.95 1 1');
-        BV_Text(x + 12, y + 182, "OUTLINED MAP DOT: LANDING PREVIEW", '0.65 0.8 0.85');
+        BV_Text(x + 12, y + 182, "5 DOUBLES / J TRAINING OVERLAYS", '0.65 0.8 0.85');
         BV_Text(x + 12, y + 202, "H CLOSE / TAB HOLD FOR HELP", '0.65 0.8 0.85');
     }
     if (!bv_hud_ready)

@@ -18,6 +18,31 @@
 .string bv_message;
 .float button3, button4, button5, button6, button7, button8;
 .float gravity;
+.float bv_isbot, bv_assisted, bv_overlays, bv_recover_until, bv_recovery;
+.float bv_plan_kind, bv_plan_next, bv_jump_ready;
+.vector bv_goal, bv_shot_target;
+.float bv_shot_apex;
+.float bv_match_hint;
+
+entity bv_match_owner, bv_partner, bv_opponent1, bv_opponent2, bv_server;
+float bv_match, bv_home_score, bv_away_score, bv_match_phase;
+float bv_serving_team, bv_touch_team, bv_touches, bv_serve_pending;
+float bv_match_next, bv_match_goal;
+float bv_point_reason;
+entity bv_touch_actor;
+vector bv_partner_position, bv_opponent1_position, bv_opponent2_position;
+entity bv_shadow;
+
+void(entity player) BV_StartMatch;
+void() BV_StopMatch;
+void(vector position) BV_MatchLanding;
+float(entity player, vector point) BV_MatchEligible;
+float(entity player) BV_MatchContact;
+void(entity player, vector contact) BV_BotBuildShot;
+void() BV_UpdateMatch;
+void(entity player) BV_Animate;
+void() BV_MatchTestInput;
+void() BV_MatchTestObserve;
 
 entity bv_ball, bv_holder, bv_last_player, bv_feeder;
 vector bv_ball_spin;
@@ -27,6 +52,8 @@ vector bv_ball_position;
 
 void(entity player, vector contact) BV_Contact;
 void(entity player, float automatic) BV_Feed;
+float(entity player) BV_Charge;
+float(entity player) BV_ServeTiming;
 
 float(vector position) BV_InCourt =
 {
@@ -78,6 +105,11 @@ void(vector position) BV_FinishRally =
     bv_ball.velocity = '0 0 0';
     bv_ball_spin = '0 0 0';
     setorigin(bv_ball, position);
+    if (bv_match)
+    {
+        BV_MatchLanding(position);
+        return;
+    }
     if (bv_last_player != world)
     {
         bv_last_player.bv_attempts = bv_last_player.bv_attempts + 1;
@@ -124,7 +156,9 @@ void(entity player, vector ball) BV_ContactZone =
     height = 20;
     bv_hand_radius = 25 + BV_RADIUS;
     if (player.bv_action == 2) height = 45;
-    if (player.bv_action == 1 && ball_z > player.origin_z + 36)
+    if (player.bv_action == 1 && ball_z > player.origin_z + 36 &&
+        (!bv_match || player.bv_match_hint != BV_HINT_RECEIVE) &&
+        (!player.bv_isbot || player.bv_plan_kind != BV_PASS))
     {
         height = 53;
         bv_hand_radius = 30 + BV_RADIUS;
@@ -162,16 +196,28 @@ float(vector start, vector finish) BV_TryContacts =
 {
     local entity player;
     local vector closest;
+    local float ready, radius;
     player = find(world, classname, "player");
     while (player != world)
     {
-        if (player.bv_isplayer && player.bv_armed_until >= time &&
-            player.bv_armed_until > 0 && time - player.bv_last_contact > 0.22)
+        ready = FALSE;
+        if (player.bv_armed_until >= time && player.bv_armed_until > 0)
+            ready = TRUE;
+        if (player.bv_assisted && player.bv_preparing &&
+            time - player.bv_prepare_started >= 0.12)
+            ready = TRUE;
+        if (player.bv_serve_contact && player.bv_preparing &&
+            BV_ServeTiming(player) < 0.92) ready = FALSE;
+        if (player.bv_isplayer && ready && time >= player.bv_recover_until &&
+            time - player.bv_last_contact > 0.22)
         {
             BV_ContactZone(player, start);
             closest = BV_ClosestPoint(start, finish, bv_hand_position);
-            if (BV_Reachable(player, closest))
+            radius = bv_hand_radius;
+            if (player.bv_preparing) bv_hand_radius = radius * 0.45;
+            if (BV_Reachable(player, closest) && BV_MatchEligible(player, closest))
             {
+                if (player.bv_preparing) player.bv_charge = BV_Charge(player);
                 BV_Contact(player, closest);
                 return TRUE;
             }
@@ -233,7 +279,15 @@ void(float dt) BV_BallStep =
      * a future net/floor event. Never search beyond the first obstacle.
      */
     if (BV_TryContacts(old, impact)) return;
-    if (BV_UnderNetSweep(old, impact)) bv_under_net = TRUE;
+    if (BV_UnderNetSweep(old, impact))
+    {
+        bv_under_net = TRUE;
+        if (bv_match)
+        {
+            BV_FinishRally(impact);
+            return;
+        }
+    }
     position = impact;
     if (event == 1)
     {
@@ -285,4 +339,14 @@ void() BV_UpdateBall =
         BV_Feed(bv_feeder, TRUE);
     }
     bv_ball_position = bv_ball.origin;
+    if (bv_shadow != world)
+    {
+        if (bv_ball.origin_z > BV_RADIUS && BV_InCourt(bv_ball.origin))
+        {
+            setmodel(bv_shadow, "progs/bv_shadow.mdl");
+            setorigin(bv_shadow, '0 0 0.5' +
+                '1 0 0' * bv_ball.origin_x + '0 1 0' * bv_ball.origin_y);
+        }
+        else bv_shadow.modelindex = 0;
+    }
 };

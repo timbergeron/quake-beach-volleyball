@@ -22,13 +22,17 @@ void() worldspawn =
     style = 0;
     precache_model("progs/bv_ball.mdl");
     precache_model("progs/bv_marker.mdl");
-    precache_model("progs/player.mdl");
+    precache_model("progs/bv_athlete.mdl");
+    precache_model("progs/bv_hands.mdl");
+    precache_model("progs/bv_shadow.mdl");
     precache_sound("beach/pass.wav");
     precache_sound("beach/set.wav");
     precache_sound("beach/spike.wav");
     precache_sound("beach/roll.wav");
     precache_sound("beach/serve.wav");
     precache_sound("beach/dig.wav");
+    precache_sound("beach/sand.wav");
+    cvar_set("sv_sound_land", "beach/sand.wav");
     precache_sound("beach/net.wav");
     precache_sound("beach/target.wav");
     precache_sound("beach/ocean.wav");
@@ -64,6 +68,21 @@ void() worldspawn =
     clientstat(BV_STAT_CONTACT_NOTE, 2, bv_contact_note);
     clientstat(BV_STAT_TIMING, 2, bv_timing);
     clientstat(BV_STAT_SERVING, 2, bv_serve_contact);
+    globalstat(BV_STAT_MATCH, 2, "bv_match");
+    globalstat(BV_STAT_HOME_SCORE, 2, "bv_home_score");
+    globalstat(BV_STAT_AWAY_SCORE, 2, "bv_away_score");
+    globalstat(BV_STAT_TOUCHES, 2, "bv_touches");
+    globalstat(BV_STAT_TOUCH_TEAM, 2, "bv_touch_team");
+    globalstat(BV_STAT_PHASE, 2, "bv_match_phase");
+    globalstat(BV_STAT_SERVE_TEAM, 2, "bv_serving_team");
+    clientstat(BV_STAT_ASSISTED, 2, bv_assisted);
+    clientstat(BV_STAT_OVERLAYS, 2, bv_overlays);
+    clientstat(BV_STAT_RECOVERY, 2, bv_recover_until);
+    clientstat(BV_STAT_HINT, 2, bv_match_hint);
+    globalstat(BV_STAT_POINT_REASON, 2, "bv_point_reason");
+    globalstat(BV_STAT_PARTNER, 3, "bv_partner_position");
+    globalstat(BV_STAT_OPPONENT1, 3, "bv_opponent1_position");
+    globalstat(BV_STAT_OPPONENT2, 3, "bv_opponent2_position");
     bv_ball = spawn();
     bv_ball.classname = "volleyball";
     bv_ball.movetype = MOVETYPE_NONE;
@@ -78,6 +97,12 @@ void() worldspawn =
     bv_tests_ran = FALSE;
     bv_accumulator = 0;
     bv_live_time = 0;
+    bv_shadow = spawn();
+    bv_shadow.movetype = MOVETYPE_NONE;
+    bv_shadow.solid = SOLID_NOT;
+    bv_shadow.effects = BV_EF_NOSHADOW;
+    setmodel(bv_shadow, "progs/bv_shadow.mdl");
+    bv_shadow.modelindex = 0;
     ambientsound('0 480 32', "beach/ocean.wav", 0.18, 0);
 };
 
@@ -90,5 +115,6 @@ void() StartFrame =
         localcmd("quit\n");
         return;
     }
+    BV_UpdateMatch();
     BV_UpdateBall();
 };

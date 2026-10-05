@@ -25,21 +25,23 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     runtime = workspace / name
     runtime.mkdir()
     shutil.copytree(game, runtime / "beachvolley")
-    if not visual and not play:
+    match = profile in ("match", "match-set")
+    if not visual and not play and not match:
         (runtime / "beachvolley/autoexec.cfg").write_text("exec server.cfg\n")
     stage_runtime(binary, basedir, runtime, runtime / "beachvolley")
     command = [str(binary), "-basedir", str(runtime), "-game", "beachvolley",
                "-nohome", "-nolan", "-noudp", "-nosound",
-               "+set", "developer", "1", "+set", "bv_selftest", "0" if visual or play else "1",
+               "+set", "developer", "1", "+set", "bv_selftest", "0" if visual or play or match else "1",
                "+set", "bv_visualtest", "2" if profile == "compact" else "1" if visual else "0",
                "+set", "bv_playtest", str({"opposite": 2, "sweet": 3, "late": 4}.get(profile, 1)) if play else "0",
+               "+set", "bv_matchtest", "2" if profile == "match-set" else "1" if match else "0",
                "+map", "beach"]
-    if visual or play:
+    if visual or play or match:
         command[1:1] = ["-window", "-width", str(width), "-height", str(height), "-nojoy", "-nomouse"]
         command.remove("-nosound")
         # Shader warmup and screenshot readback must not lengthen the scripted
         # button hold. Variable server rates are checked separately in QC.
-        command[-2:-2] = ["+set", "host_timescale", "0", "+set", "host_framerate", "0.01",
+        command[-2:-2] = ["+set", "host_timescale", "0", "+set", "host_framerate", "0.02" if match else "0.01",
                          "+set", "host_maxfps", "100"]
         if profile == "compact":
             command[-2:-2] = ["+set", "scr_sbarscale", "2", "+set", "bv_help", "1"]
@@ -47,21 +49,42 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
         command.insert(1, "-dedicated")
     env = {**os.environ, "SDL_VIDEO_DRIVER": "offscreen", "SDL_AUDIO_DRIVER": "dummy",
            "LIBGL_ALWAYS_SOFTWARE": "1", "LP_NUM_THREADS": "2"}
-    result = subprocess.run(command, cwd=runtime, env=env,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            text=True, errors="replace", timeout=40)
     artifacts = HERE / "artifacts"
     artifacts.mkdir(exist_ok=True)
+    try:
+        result = subprocess.run(command, cwd=runtime, env=env,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, errors="replace", timeout=80 if match else 40)
+    except subprocess.TimeoutExpired as failure:
+        output = failure.stdout or b""
+        if isinstance(output, bytes):
+            output = output.decode(errors="replace")
+        (artifacts / f"{name}.log").write_text(output)
+        raise RuntimeError(f"{name}: engine timed out\n{output[-6000:]}") from failure
     (artifacts / f"{name}.log").write_text(result.stdout)
     errors = []
     if result.returncode:
         errors.append(f"engine exit {result.returncode}")
-    for forbidden in ("BEACH FAIL", "BEACH PLAY FAIL", "Host_Error", "Sys_Error", "Program error",
+    for forbidden in ("BEACH FAIL", "BEACH PLAY FAIL", "BEACH MATCH FAIL", "Host_Error", "Sys_Error", "Program error",
                       "unimplemented builtin", "Shader compilation failed", "Could not load",
-                      "not looped", "bad loop", "Couldn't load sound/beach", "couldn't load bitmap font"):
+                      "not looped", "bad loop", "not precached", "Couldn't load sound/beach", "couldn't load bitmap font"):
         if forbidden in result.stdout:
             errors.append(forbidden)
-    if play:
+    if match:
+        for marker in ("BEACH MATCH PASS live-receive-set-attack-return",
+                       "BEACH MATCH PASS point-scored-once", "BEACH MATCH HUD score-and-guidance",
+                       "BEACH MATCH HUD point-reason",
+                       "BEACH MATCH DONE"):
+            if marker not in result.stdout:
+                errors.append(f"missing {marker}")
+        images = sorted((runtime / "beachvolley/screenshots").glob("*.tga"))
+        if len(images) != 2:
+            errors.append("missing live doubles/point captures")
+        else:
+            screenshot = f"{name}.tga"
+            shutil.copyfile(images[0], artifacts / screenshot)
+            shutil.copyfile(images[-1], artifacts / f"{name}-point.tga")
+    elif play:
         landing_marker = "late-serve-misses" if profile == "late" else "serve-landed-in"
         for marker in ("BEACH PLAY PASS serve-contact", f"BEACH PLAY PASS {landing_marker}",
                        "BEACH PLAY PASS serve-quality", "BEACH PLAY HUD timing",
@@ -96,14 +119,14 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                     shutil.copyfile(images[0], artifacts / "compact-help.tga")
     else:
         completed = re.search(r"BEACH DONE pass=(\d+) fail=(\d+)", result.stdout)
-        if not completed or int(completed[2]) or int(completed[1]) < 109:
+        if not completed or int(completed[2]) or int(completed[1]) < 136:
             errors.append("missing or failed gameplay completion marker")
     if errors:
         raise RuntimeError(f"{name}: {', '.join(errors)}\n{result.stdout[-6000:]}")
-    return {"name": name, "passes": re.findall(r"BEACH (?:PLAY )?PASS (.+)", result.stdout),
-            "screenshot": screenshot if visual or play else None,
+    return {"name": name, "passes": re.findall(r"BEACH (?:(?:PLAY|MATCH) )?PASS (.+)", result.stdout),
+            "screenshot": screenshot if visual or play or match else None,
             "contact_screenshot": f"{name}-contact.tga" if play else None,
-            "custom_font": "BEACH HUD FONT custom" in result.stdout if visual or play else None}
+            "custom_font": "BEACH HUD FONT custom" in result.stdout if visual or play or match else None}
 
 
 def main():
@@ -127,6 +150,8 @@ def main():
             results.append(run_case(binary, basedir, game, workspace, False, True, "sweet"))
             results.append(run_case(binary, basedir, game, workspace, False, True, "late"))
             results.append(run_case(binary, basedir, game, workspace, True, profile="compact"))
+            results.append(run_case(binary, basedir, game, workspace, False, profile="match"))
+            results.append(run_case(binary, basedir, game, workspace, False, profile="match-set"))
     summary = {"engine_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                "progs_sha256": hashlib.sha256((game / "progs.dat").read_bytes()).hexdigest(),
                "csprogs_sha256": hashlib.sha256((game / "csprogs.dat").read_bytes()).hexdigest(),

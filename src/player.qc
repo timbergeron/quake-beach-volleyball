@@ -11,6 +11,11 @@ void(entity player, vector contact) BV_BuildShot =
 {
     local vector heading, launch_velocity, spin;
     local float charge, arc, speed, angle, apex, top;
+    if (player.bv_isbot)
+    {
+        BV_BotBuildShot(player, contact);
+        return;
+    }
     speed = 0;
     angle = 0;
     launch_velocity = '0 0 0';
@@ -85,6 +90,7 @@ void(entity player, vector contact) BV_BuildShot =
 
 void(entity player, vector contact) BV_Contact =
 {
+    if (!BV_MatchContact(player)) return;
     BV_ResolveContact(player, contact);
     player.bv_timing = 0;
     if (player.bv_serve_contact) player.bv_timing = BV_ServeTiming(player);
@@ -97,6 +103,7 @@ void(entity player, vector contact) BV_Contact =
     bv_holder = world;
     player.bv_last_contact = time;
     player.bv_armed_until = 0;
+    player.bv_preparing = 0;
     player.bv_serve_contact = 0;
     player.bv_aim_locked = FALSE;
     player.bv_kind = bv_shot_kind;
@@ -108,6 +115,13 @@ void(entity player, vector contact) BV_Contact =
     player.bv_last_result = 0;
     player.bv_last_speed = vlen(bv_contact_velocity) / 32;
     player.bv_message = "CONTACT";
+    player.bv_recovery = 0.24;
+    if (player.bv_kind == BV_SET) player.bv_recovery = 0.28;
+    if (player.bv_kind == BV_ROLL) player.bv_recovery = 0.36;
+    if (player.bv_kind == BV_SPIKE) player.bv_recovery = 0.5;
+    if (player.bv_kind == BV_SERVE) player.bv_recovery = 0.45;
+    if (player.bv_dive_until > time) player.bv_recovery = 0.75;
+    player.bv_recover_until = time + player.bv_recovery;
     BV_ContactFeedback(player);
 };
 
@@ -135,9 +149,10 @@ void(entity player) BV_ReadyServe =
     player.bv_feedback_at = -100;
     player.bv_preview_result = 0;
     player.bv_preview_next = 0;
-    player.bv_marker.modelindex = 0;
+    if (player.bv_marker != world) player.bv_marker.modelindex = 0;
     player.bv_dive_until = 0;
     player.bv_last_contact = -1;
+    player.bv_recover_until = 0;
     player.view_ofs = '0 0 27';
     player.punchangle = '0 0 0';
     if (fabs(player.origin_x) < BV_HALF_LENGTH + 20)
@@ -202,6 +217,7 @@ void(entity player, float automatic) BV_Feed =
     player.bv_serve_contact = 0;
     player.bv_last_contact = -1;
     player.bv_timing = 0;
+    player.bv_recover_until = 0;
     if (!automatic || !player.bv_preparing)
     {
         player.bv_preparing = 0;
@@ -246,7 +262,7 @@ void(entity player) BV_UpdatePreview =
 {
     local vector contact, distance;
     local float side;
-    if (player.bv_preparing || player.bv_armed_until > time)
+    if (player.bv_overlays && (player.bv_preparing || player.bv_armed_until > time))
     {
         if (time < player.bv_preview_next) return;
         player.bv_preview_next = time + 0.08;
@@ -284,6 +300,7 @@ void() PlayerPreThink =
     local vector heading, horizontal;
     if (!self.bv_isplayer) return;
     if (cvar("bv_playtest")) BV_PlayTestInput();
+    if (cvar("bv_matchtest")) BV_MatchTestInput();
     BV_UpdateFooting(self);
     self.gravity = BV_Clamp(autocvar_bv_gravity, 100, 800) /
                    BV_Clamp(cvar("sv_gravity"), 1, 2000);
@@ -304,7 +321,11 @@ void() PlayerPreThink =
     if (pulse == 40) self.bv_depth = BV_Clamp(self.bv_depth - 0.1, -1, 1);
     if (pulse == 41) self.bv_depth = BV_Clamp(self.bv_depth + 0.1, -1, 1);
     if (pulse == 42) self.bv_depth = 0;
-    if (pulse == 20 || pulse == 30) BV_ReadyServe(self);
+    if (pulse == 43) self.bv_assisted = !self.bv_assisted;
+    if (pulse == 44) self.bv_overlays = !self.bv_overlays;
+    if (pulse == 34) BV_StartMatch(self);
+    if (pulse == 30 || (pulse >= 31 && pulse <= 33)) BV_StopMatch();
+    if (pulse == 30 || (pulse == 20 && !bv_match)) BV_ReadyServe(self);
     if (pulse >= 31 && pulse <= 33)
     {
         self.bv_mode = pulse - 30;
@@ -319,14 +340,15 @@ void() PlayerPreThink =
         }
         BV_Feed(self, FALSE);
     }
-    if (pulse == 21) BV_Feed(self, FALSE);
+    if (pulse == 21 && !bv_match) BV_Feed(self, FALSE);
     self.bv_sidespin = BV_Clamp(self.bv_sidespin +
         (self.button5 - self.button4) * frametime * 1.6, -1, 1);
 
     action = 0;
     if (self.button0 && !self.bv_previous_primary) action = 1;
     if (self.button3 && !self.bv_previous_secondary) action = 2;
-    if (action && !self.bv_preparing) BV_BeginPreparation(self, action);
+    if (action && !self.bv_preparing && time >= self.bv_recover_until)
+        BV_BeginPreparation(self, action);
     if (self.bv_preparing)
     {
         self.bv_charge = BV_Charge(self);
@@ -382,6 +404,7 @@ void() PlayerPreThink =
     horizontal = self.velocity;
     horizontal_z = 0;
     speed = 185;
+    if (self.bv_recover_until > time) speed = 135;
     if (self.bv_dive_until > time) speed = 250;
     if (vlen(horizontal) > speed)
     {
@@ -399,6 +422,11 @@ void() PlayerPostThink =
     position = self.origin;
     position_x = BV_Clamp(position_x, -750, 750);
     position_y = BV_Clamp(position_y, -750, 750);
+    if (bv_match && self == bv_match_owner)
+    {
+        position_x = BV_Clamp(position_x, -340, -20);
+        position_y = BV_Clamp(position_y, -180, 180);
+    }
     if (position != self.origin) setorigin(self, position);
     self.bv_state = bv_ball_state;
     self.bv_feedback_age = BV_Clamp(time - self.bv_feedback_at, 0, 100);
@@ -408,13 +436,17 @@ void() PlayerPostThink =
     self.bv_in_reach = FALSE;
     if (bv_ball_state == BV_LIVE &&
         (self.bv_preparing || self.bv_armed_until > time) &&
-        time - self.bv_last_contact > 0.22)
+        time - self.bv_last_contact > 0.22 && time >= self.bv_recover_until &&
+        BV_MatchEligible(self, bv_ball.origin))
     {
         BV_ContactZone(self, bv_ball.origin);
+        if (self.bv_assisted && self.bv_preparing) bv_hand_radius = bv_hand_radius * 0.45;
         self.bv_in_reach = BV_Reachable(self, bv_ball.origin);
     }
     BV_UpdatePreview(self);
+    BV_Animate(self);
     if (cvar("bv_playtest")) BV_PlayTestObserve();
+    if (cvar("bv_matchtest")) BV_MatchTestObserve();
 };
 
 void() PutClientInServer =
@@ -429,7 +461,7 @@ void() PutClientInServer =
     self.solid = SOLID_BBOX;
     self.flags = 8;
     self.view_ofs = '0 0 27';
-    self.weaponmodel = "";
+    self.weaponmodel = "progs/bv_hands.mdl";
     self.weapon = 0;
     self.items = 0;
     self.bv_arc = 0.35;
@@ -437,8 +469,9 @@ void() PutClientInServer =
     self.bv_contact_side = -1;
     self.bv_last_contact = -1;
     self.bv_footing = 1;
+    self.bv_overlays = TRUE;
     self.bv_message = "R SERVE | T FEED | 1-4 DRILLS | H HELP";
-    setmodel(self, "progs/player.mdl");
+    setmodel(self, "progs/bv_athlete.mdl");
     setsize(self, '-16 -16 -24', '16 16 32');
     setorigin(self, '-288 0 24');
     self.angles = '0 0 0';
@@ -460,9 +493,14 @@ void() PutClientInServer =
 };
 
 void() ClientConnect = {};
-void() ClientKill = { BV_ReadyServe(self); };
+void() ClientKill =
+{
+    if (bv_match && self == bv_match_owner) BV_StartMatch(self);
+    else if (!bv_match) BV_ReadyServe(self);
+};
 void() ClientDisconnect =
 {
+    if (self == bv_match_owner) BV_StopMatch();
     self.bv_isplayer = FALSE;
     if (self.bv_marker != world) remove(self.bv_marker);
     if (bv_holder == self) bv_holder = world;

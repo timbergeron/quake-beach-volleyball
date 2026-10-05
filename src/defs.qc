@@ -163,6 +163,9 @@ void(entity e, float channel, string sample, float volume, float attenuation) so
 vector(vector value) normalize = #9;
 void(string text) error = #10;
 float(vector value) vlen = #12;
+float(vector direction) vectoyaw = #13;
+float(float yaw, float distance) walkmove = #32;
+float() droptofloor = #34;
 void(entity e) remove = #15;
 entity(entity start, .string field, string match) find = #18;
 string(string name) precache_model = #20;

@@ -142,30 +142,157 @@ def court_map(wad):
     return "\n".join(lines) + "\n"
 
 
-def write_mdl(path, vertices, texcoords, triangles, skin, skin_size, normals=None):
-    """One original alias-model frame, with duplicated UV seam vertices."""
-    mins = [min(v[axis] for v in vertices) for axis in range(3)]
-    maxs = [max(v[axis] for v in vertices) for axis in range(3)]
+def write_mdl(path, vertices, texcoords, triangles, skin, skin_size, normals=None,
+              frames=None, skins=None):
+    """Original Quake alias geometry; animated frames share vertex topology."""
+    frames = frames or [vertices]
+    skins = skins or [skin]
+    if any(len(frame) != len(vertices) for frame in frames):
+        raise ValueError("alias frames must share topology")
+    mins = [min(v[axis] for frame in frames for v in frame) for axis in range(3)]
+    maxs = [max(v[axis] for frame in frames for v in frame) for axis in range(3)]
     scales = [max((high - low) / 255, 0.001) for low, high in zip(mins, maxs)]
-    encoded = [tuple(max(0, min(255, round((v[axis] - mins[axis]) / scales[axis])))
-                     for axis in range(3)) + (normals[i] if normals else 5,)
-               for i, v in enumerate(vertices)]
-    radius = max(math.sqrt(sum(c * c for c in v)) for v in vertices)
+    radius = max(math.sqrt(sum(c * c for c in v)) for frame in frames for v in frame)
     header = struct.pack("<ii3f3ff3f8if", 1330660425, 6, *scales, *mins, radius,
-                         0, 0, 0, 1, *skin_size, len(vertices),
-                         len(triangles), 1, 0, 0, 1)
+                         0, 0, 0, len(skins), *skin_size, len(vertices),
+                         len(triangles), len(frames), 0, 0, 1)
     data = bytearray(header)
-    data.extend(struct.pack("<i", 0))
-    data.extend(skin)
+    for pixels in skins:
+        data.extend(struct.pack("<i", 0))
+        data.extend(pixels)
     for s, t in texcoords:
         data.extend(struct.pack("<iii", 0, s, t))
     for triangle in triangles:
         # Quake alias-model front faces wind clockwise.
         data.extend(struct.pack("<4i", 1, triangle[0], triangle[2], triangle[1]))
-    data.extend(struct.pack("<i4B4B16s", 0, 0, 0, 0, 0, 255, 255, 255, 0, b"beach"))
-    for vertex in encoded:
-        data.extend(bytes(vertex))
+    for number, frame in enumerate(frames):
+        frame_normals = normals if len(frames) == 1 else mesh_normals(frame, triangles)
+        data.extend(struct.pack("<i4B4B16s", 0, 0, 0, 0, 0, 255, 255, 255, 0,
+                                f"pose{number}".encode()))
+        for i, vertex in enumerate(frame):
+            encoded = tuple(max(0, min(255, round((vertex[axis] - mins[axis]) / scales[axis])))
+                            for axis in range(3)) + (frame_normals[i] if frame_normals else 5,)
+            data.extend(bytes(encoded))
     path.write_bytes(data)
+
+
+def mesh_normals(vertices, triangles):
+    pattern = r"\{\s*(-?\d+\.\d+),\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)\s*\}"
+    directions = [tuple(map(float, values)) for values in re.findall(
+        pattern, (Path(__file__).parent / "resources/anorms.h").read_text())]
+    accumulated = [[0., 0., 0.] for _ in vertices]
+    for a, b, c in triangles:
+        u = [vertices[b][i] - vertices[a][i] for i in range(3)]
+        v = [vertices[c][i] - vertices[a][i] for i in range(3)]
+        normal = (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2],
+                  u[0] * v[1] - u[1] * v[0])
+        for index in (a, b, c):
+            accumulated[index] = [x + y for x, y in zip(accumulated[index], normal)]
+    return [max(range(len(directions)), key=lambda i: sum(x * y for x, y in
+                zip(normal, directions[i]))) for normal in accumulated]
+
+
+def athlete_models(game, palette):
+    """Twelve original athletic poses, with corresponding first-person hands.
+
+    Capsules use consistent topology so QSS-M interpolates between poses.
+    Blue and orange jerseys identify teams without relying on debug markers.
+    """
+    skins = []
+    for jersey in ((35, 105, 180), (230, 100, 35)):
+        colors = [(184, 133, 95), jersey, (35, 42, 58), (50, 34, 24),
+                  (230, 218, 190), (22, 22, 25)]
+        pixels = bytearray(nearest(palette, colors[x // 8]) for _y in range(8)
+                           for x in range(48))
+        pixels[0] = 255
+        skins.append(pixels)
+
+    def limb(mesh, start, end, radius, color, width=1):
+        vertices, uvs, triangles = mesh
+        delta = [b - a for a, b in zip(start, end)]
+        length = math.sqrt(sum(x * x for x in delta))
+        axis = [x / max(length, 0.001) for x in delta]
+        helper = (0, 0, 1) if abs(axis[2]) < .9 else (1, 0, 0)
+        right = [axis[1] * helper[2] - axis[2] * helper[1],
+                 axis[2] * helper[0] - axis[0] * helper[2],
+                 axis[0] * helper[1] - axis[1] * helper[0]]
+        size = math.sqrt(sum(x * x for x in right))
+        right = [x / max(size, .001) for x in right]
+        up = [axis[1] * right[2] - axis[2] * right[1],
+              axis[2] * right[0] - axis[0] * right[2],
+              axis[0] * right[1] - axis[1] * right[0]]
+        offset = len(vertices)
+        for centre in (start, end):
+            for i in range(8):
+                angle = math.tau * i / 8
+                vertices.append(tuple(centre[j] + radius * (
+                    math.cos(angle) * right[j] * width + math.sin(angle) * up[j])
+                    for j in range(3)))
+                uvs.append((color * 8 + 4, 4))
+        for i in range(8):
+            j = (i + 1) % 8
+            triangles.extend(((offset + i, offset + j, offset + 8 + i),
+                              (offset + j, offset + 8 + j, offset + 8 + i)))
+        for i in range(1, 7):
+            triangles.extend(((offset, offset + i + 1, offset + i),
+                              (offset + 8, offset + 8 + i, offset + 8 + i + 1)))
+
+    body_frames, hand_frames = [], []
+    for pose in range(12):
+        body, hands = ([], [], []), ([], [], [])
+        for side in (-1, 1):
+            swing = side * (5 if pose == 1 else -5 if pose == 2 else 0)
+            limb(body, (0, side * 4, 0), (swing, side * 4, -11), 3, 0)
+            limb(body, (swing, side * 4, -11), (-swing, side * 5, -22), 2.4, 0)
+            limb(body, (-swing - 2, side * 5, -22), (-swing + 4, side * 5, -22), 2, 0)
+            elbow, hand = (1, side * 12, 7), (3, side * 12, -1)
+            if pose in (1, 2): elbow, hand = (swing, side * 11, 9), (swing * 2, side * 10, 2)
+            if pose in (3, 7, 11): elbow, hand = (9, side * 7, 11), (19, side * 2, 14)
+            if pose in (4, 8): elbow, hand = (7, side * 10, 27), (12, side * 5, 35)
+            if pose in (5, 6): elbow, hand = (-3, side * 10, 29), (-7, side * 6, 37)
+            if pose == 9: elbow, hand = (7, side * 8, 31), (18, side * 4, 36)
+            if pose == 10: elbow, hand = (10, side * 8, 19), (18, side * 3, 18)
+            limb(body, (0, side * 8, 19), elbow, 2.7, 0)
+            limb(body, elbow, hand, 2, 0)
+            limb(body, hand, (hand[0] + 3, hand[1], hand[2]), 2.6, 0)
+            # View-model coordinates: X forward, Z below the eye at rest.
+            wrist = (19, side * 10, -13)
+            if pose in (3, 7, 11): wrist = (25, side * 2.5, -9 if pose != 7 else -5)
+            if pose in (4, 8): wrist = (19, side * 6, 1 if pose == 4 else 5)
+            if pose in (5, 6): wrist = (8, side * 9, 0)
+            if pose == 9: wrist = (26, side * 4, 5)
+            if pose == 10: wrist = (22, side * 5, -6)
+            limb(hands, (1, side * 13, -21), (10, side * 10, -15), 2.8, 0)
+            limb(hands, (10, side * 10, -15), wrist, 2.1, 0)
+            limb(hands, wrist, (wrist[0] + 4, wrist[1], wrist[2]), 2.7, 0)
+            # A thumb and four short fingers make hand silhouettes legible.
+            limb(hands, wrist, (wrist[0] + 2, wrist[1] - side * 3, wrist[2] + 1), .9, 0)
+            for finger in range(4):
+                start = (wrist[0] + 3, wrist[1] + (finger - 1.5) * 1.25, wrist[2] + .4)
+                limb(hands, start, (start[0] + 3, start[1], start[2]), .65, 0)
+        limb(body, (0, 0, -2), (0, 0, 5), 7, 2, 1.1)
+        limb(body, (0, 0, 5), (0, 0, 20), 7, 1, 1.2)
+        limb(body, (0, 0, 21), (0, 0, 25), 2.5, 0)
+        limb(body, (0, 0, 25), (0, 0, 33), 4.6, 0)
+        limb(body, (0, 0, 32), (0, 0, 35), 4.7, 3)
+        for side in (-1, 1):
+            limb(body, (4.3, side * 1.8, 30), (4.9, side * 1.8, 30), .7, 5)
+        limb(body, (4.2, 0, 28), (5.8, 0, 28), 1, 0)
+        body_frames.append(body[0])
+        hand_frames.append(hands[0])
+    write_mdl(game / "progs/bv_athlete.mdl", body_frames[0], body[1], body[2],
+              skins[0], (48, 8), frames=body_frames, skins=skins)
+    write_mdl(game / "progs/bv_hands.mdl", hand_frames[0], hands[1], hands[2],
+              skins[0], (48, 8), frames=hand_frames)
+
+
+def shadow_model(path, palette):
+    vertices = [(0, 0, 0)] + [(math.cos(i * math.tau / 24) * 5,
+                math.sin(i * math.tau / 24) * 5, 0) for i in range(24)]
+    triangles = [(0, i + 1, (i + 1) % 24 + 1) for i in range(24)]
+    pixels = bytearray([nearest(palette, (70, 65, 50))] * 64)
+    pixels[0] = 255
+    write_mdl(path, vertices, [(4, 4)] * len(vertices), triangles, pixels, (8, 8))
 
 
 def ball_model(path, palette):
@@ -235,6 +362,7 @@ def write_sound(path, kind, duration, loop=False):
         "pass": (125, 0.35, 28), "set": (230, 0.12, 38),
         "spike": (85, 0.65, 24), "roll": (180, 0.18, 34),
         "serve": (105, 0.5, 25), "dig": (95, 0.7, 22),
+        "sand": (65, 0.9, 35),
     }
     for i in range(count):
         t = i / rate
@@ -407,10 +535,12 @@ def generate(base, build, game):
     (build / "beach.map").write_text(court_map(wad))
     ball_model(game / "progs/bv_ball.mdl", palette)
     marker_model(game / "progs/bv_marker.mdl", palette)
+    athlete_models(game, palette)
+    shadow_model(game / "progs/bv_shadow.mdl", palette)
     external_textures(game)
     daylight_skybox(game)
     write_tga(game / "gfx/bv_hud.tga", 128, 128, font_pixels())
     for kind, duration in (("pass", 0.18), ("set", 0.13), ("spike", 0.2),
-                           ("roll", 0.15), ("serve", 0.2), ("dig", 0.22),
+                           ("roll", 0.15), ("serve", 0.2), ("dig", 0.22), ("sand", 0.15),
                            ("net", 0.2), ("target", 0.3), ("ocean", 4)):
         write_sound(game / f"sound/beach/{kind}.wav", kind, duration, kind == "ocean")

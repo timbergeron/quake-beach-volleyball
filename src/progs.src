@@ -5,8 +5,13 @@ physics.qc
 ball.qc
 feel.qc
 player.qc
+match.qc
+bots.qc
+animations.qc
 selftest.qc
 regressions.qc
 feeltest.qc
+matchrules.qc
 playtest.qc
+matchtest.qc
 world.qc

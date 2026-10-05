@@ -3,14 +3,18 @@
 A playable first-person QuakeC prototype for QSS-M. It includes a beach court,
 serve tosses, passes, sets, spikes, roll shots, continuous power and arc controls,
 sidespin and topspin/backspin, jumps, dives, landing previews, and repeatable
-training feeds. The design takes inspiration from Virtua Tennis's preparation
-and positioning controls, described in Sega's
+training feeds. Press **5** for a local 2v2 match: you and a blue AI teammate
+against two orange opponents. Original animated athletes and first-person hands
+show preparation, contact and recovery. The design takes inspiration from
+Virtua Tennis's preparation and positioning controls, described in Sega's
 [Dreamcast manual](https://www.dreamcast.es/descargas/manuales/Virtua_Tennis.pdf).
 The contact and flight code is an original QuakeC implementation.
 
-This version is a solo practice court. Opponent AI, competitive 2v2 matches,
-complete beach volleyball rules, and first-person hand animations are future
-work. Ball aerodynamics and contact assistance are tunable gameplay values.
+Doubles is a playable prototype with rally scoring, three-touch limits and
+same-player double-contact faults. Complete beach rules (including blocks,
+service rotation and side changes), network doubles and match difficulty tiers
+remain future work. Ball aerodynamics and contact assistance are tunable
+gameplay values rather than a calibrated sports simulation.
 
 ![The beach court and first-person contact feedback](docs/court.png)
 
@@ -26,8 +30,8 @@ quakespasm -game beachvolley +exec beach.cfg +map beach
 ```
 
 You need an installed copy of Quake, including `id1/pak0.pak`. The archive
-contains generated mod assets and compiled QC; base Quake data and the player
-model come from your installation.
+contains original generated mod assets and compiled QC; base Quake data comes
+from your installation.
 
 To play a source build, run this from the mod repository root after building:
 
@@ -58,7 +62,10 @@ PAKs through symlinks. It does not install files into your Quake directory.
 | Space | Jump; release between jumps |
 | Ctrl | Dive in your movement direction; recovery has a short cooldown |
 | R / T | Ready a serve / feed another ball |
-| 1 / 2 / 3 / 4 | Serve / receive / setting / attack drill |
+| 1 / 2 / 3 / 4 | Leave doubles and enter serve / receive / setting / attack practice |
+| 5 | Start or restart local doubles |
+| C | Toggle assisted contact while holding a shot |
+| J | Toggle landing preview and training minimap |
 | H / Tab | Toggle help / hold for help |
 | F12 | Console |
 
@@ -67,8 +74,14 @@ you to look upward and track the ball. Hold Shift while preparing to change
 that direction for a cut or wrist-away shot. Spin controls the subsequent curve
 separately from the launch direction.
 
-Release when the ball reaches your hands. The reticle and timing cue turn green
-when the ball is within physical reach, using the same obstruction checks as
+Release when the ball reaches your hands. With C assistance enabled, you can
+keep holding: contact happens automatically only in the centre of physical hand
+reach after preparation, with the same obstruction and recovery checks. This
+is enabled when starting doubles and optional in practice. Manual release
+retains the wider hand window. Assistance never moves the ball or your feet.
+
+The reticle and timing cue turn green when the ball is within physical reach,
+using the same obstruction checks as
 contact. A brief contact window helps catch balls moving between server frames;
 it still requires physical reach. Centred contacts give clean power and control;
 reaching toward the edge of your hands produces softer, glancing shots.
@@ -119,6 +132,29 @@ Targets are painted on both courts. The HUD shows shot speed
 in metres per second and reports target hits, in/out, misses, and under-net
 faults. Consecutive self contacts are allowed for practice.
 
+## Doubles rallies
+
+Press **5** to start. The opponents serve first; move into the incoming ball,
+prepare LMB toward your blue teammate, then get forward for their set. The HUD
+calls out receive, set, attack or cover and shows your team's touch count. Both
+opponents use the same physical receive–set–attack sequence. Bots forecast the
+ball's flight, move with collision-aware feet, prepare and strike only within
+hand reach. Poor positioning can cause a miss.
+
+Passes and sets stay in your own court when aimed toward your teammate with
+short depth (F); use B to restore neutral depth for the attack. Wheel arc changes
+the height. The direction is yours to choose, including on assisted contacts.
+Jump + LMB attacks high balls; jump + RMB gives a slower looping roll shot.
+Shot-specific follow-through briefly limits movement and prevents instant
+recontacts. A small ball shadow helps read height even with J overlays off.
+
+The default match is first to seven, win by two. The winner serves next after
+a two-second pause; you serve home points and the far back bot serves away
+points. Press 5 to restart or 1–4 to return to practice. R/T practice resets are
+inactive during doubles. `bv_match_points` sets the next match's target (3–21),
+and `bv_bot_speed` adjusts bot movement (80–220 units/second, default 155).
+This mode is for one local human player; it does not provide network 2v2 slots.
+
 ## Build
 
 Requires Python 3, FTEQCC, and the `qbsp`, `vis`, and `light` tools from
@@ -165,12 +201,15 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 109 assertions inside the actual QC VM, captures the court and compact
+It runs 136 assertions inside the actual QC VM, captures the court and compact
 help/HUD through SDL's offscreen renderer, and performs standing serves from
 both baselines through the normal input, toss, release, collision, flight,
 scoring, and HUD update paths. Additional live serves check the sweet timing
 window and the weaker result of a late strike, with contact feedback captures.
 It also verifies that timing, contact grades, and landing cues reach the client HUD.
+Two live doubles fixtures run at 50 Hz: human receive → bot set → human jump
+attack → opponent return, and bot receive → human set → bot attack. Both follow
+normal reach/collision paths into a scored point, with match HUD captures.
 Audio uses SDL's dummy device. Use `--skip-visual` for
 dedicated-only checks. Logs,
 screenshots, and executable/progs hashes are written to `artifacts/`.
