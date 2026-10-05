@@ -185,7 +185,7 @@ Tools can be omitted from the arguments if they are on PATH. The build generates
 the editable court MAP, a texture WAD, original MDL/MD3 models and sounds, and RGB
 texture companions. It then compiles version-6 server QC, a simple CSQC HUD, and
 the lit/visible BSP. Outputs go into `dist/beachvolley` and an install ZIP.
-Generated files are ignored by Git; all source is in this directory.
+Build outputs are ignored by Git; all source is in this directory.
 
 The volleyball is an original static MD3 with 561 vertices, 960 triangles, and a
 512×512 RGB skin. Its ten curved white/yellow/blue panels, seams, surface grain,
@@ -194,6 +194,12 @@ radius matches the physics; gameplay applies the spin. To generate just the ball
 without Quake data or external tools, run `python3 ball_assets.py`. This writes
 `bv_ball.md3` and `bv_ball.tga` into `dist/beachvolley/progs`; keep the texture at
 `progs/bv_ball.tga` within the game directory when using the MD3 elsewhere.
+
+Ready-to-use copies are also committed in the repository:
+[bv_ball.md3](resources/models/bv_ball.md3) and
+[bv_ball.tga](resources/models/bv_ball.tga). Copy both into your mod's `progs/`
+directory. To refresh these checked-in assets from the generator, run
+`python3 ball_assets.py --output resources/models`.
 
 ![The original volleyball MD3, shown from three angles](docs/ball.png)
 
