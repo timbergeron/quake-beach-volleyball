@@ -12,6 +12,7 @@ selftest.qc
 regressions.qc
 feeltest.qc
 matchrules.qc
+bottest.qc
 playtest.qc
 matchtest.qc
 world.qc

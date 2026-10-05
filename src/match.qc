@@ -32,6 +32,7 @@ void() BV_StopMatch =
     bv_match_owner.bv_preparing = 0;
     bv_match_owner.bv_armed_until = 0;
     bv_match_owner.bv_match_hint = 0;
+    bv_match_owner.bv_contact_latched = FALSE;
     bv_match_owner = world;
 };
 
@@ -47,6 +48,9 @@ void(entity actor, vector position) BV_ResetActor =
     actor.bv_last_contact = -1;
     actor.bv_recover_until = 0;
     actor.bv_dive_until = 0;
+    actor.bv_dive_ready = 0;
+    actor.bv_jump_ready = 0;
+    actor.bv_contact_latched = FALSE;
     actor.bv_footing = 1;
     actor.bv_aim_locked = 0;
     actor.bv_plan_next = 0;

@@ -26,22 +26,24 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     runtime.mkdir()
     shutil.copytree(game, runtime / "beachvolley")
     match = profile in ("match", "match-set")
-    if not visual and not play and not match:
+    bot = profile in ("bot-dive", "bot-dive-fast")
+    if not visual and not play and not match and not bot:
         (runtime / "beachvolley/autoexec.cfg").write_text("exec server.cfg\n")
     stage_runtime(binary, basedir, runtime, runtime / "beachvolley")
     command = [str(binary), "-basedir", str(runtime), "-game", "beachvolley",
                "-nohome", "-nolan", "-noudp", "-nosound",
-               "+set", "developer", "1", "+set", "bv_selftest", "0" if visual or play or match else "1",
+               "+set", "developer", "1", "+set", "bv_selftest", "0" if visual or play or match or bot else "1",
                "+set", "bv_visualtest", "2" if profile == "compact" else "1" if visual else "0",
                "+set", "bv_playtest", str({"opposite": 2, "sweet": 3, "late": 4}.get(profile, 1)) if play else "0",
                "+set", "bv_matchtest", "2" if profile == "match-set" else "1" if match else "0",
+               "+set", "bv_bottest", "1" if bot else "0",
                "+map", "beach"]
-    if visual or play or match:
+    if visual or play or match or bot:
         command[1:1] = ["-window", "-width", str(width), "-height", str(height), "-nojoy", "-nomouse"]
         command.remove("-nosound")
         # Shader warmup and screenshot readback must not lengthen the scripted
         # button hold. Variable server rates are checked separately in QC.
-        command[-2:-2] = ["+set", "host_timescale", "0", "+set", "host_framerate", "0.02" if match else "0.01",
+        command[-2:-2] = ["+set", "host_timescale", "0", "+set", "host_framerate", "0.02" if match or profile == "bot-dive" else "0.01",
                          "+set", "host_maxfps", "100"]
         if profile == "compact":
             command[-2:-2] = ["+set", "scr_sbarscale", "2", "+set", "bv_help", "1"]
@@ -65,12 +67,24 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     errors = []
     if result.returncode:
         errors.append(f"engine exit {result.returncode}")
-    for forbidden in ("BEACH FAIL", "BEACH PLAY FAIL", "BEACH MATCH FAIL", "Host_Error", "Sys_Error", "Program error",
+    for forbidden in ("BEACH FAIL", "BEACH PLAY FAIL", "BEACH MATCH FAIL", "BEACH BOT FAIL", "Host_Error", "Sys_Error", "Program error",
                       "unimplemented builtin", "Shader compilation failed", "Could not load",
                       "not looped", "bad loop", "not precached", "Couldn't load sound/beach", "couldn't load bitmap font"):
         if forbidden in result.stdout:
             errors.append(forbidden)
-    if match:
+    if bot:
+        for marker in ("BEACH BOT PASS physical-dive-and-pose", "BEACH BOT PASS live-emergency-dig",
+                       "BEACH BOT PASS dig-recovery", "BEACH BOT DONE"):
+            if marker not in result.stdout:
+                errors.append(f"missing {marker}")
+        images = sorted((runtime / "beachvolley/screenshots").glob("*.tga"))
+        if len(images) != 2:
+            errors.append("missing live dive/dig captures")
+        else:
+            screenshot = f"{name}.tga"
+            shutil.copyfile(images[0], artifacts / screenshot)
+            shutil.copyfile(images[-1], artifacts / f"{name}-contact.tga")
+    elif match:
         for marker in ("BEACH MATCH PASS live-receive-set-attack-return",
                        "BEACH MATCH PASS point-scored-once", "BEACH MATCH HUD score-and-guidance",
                        "BEACH MATCH HUD point-reason",
@@ -119,21 +133,25 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                     shutil.copyfile(images[0], artifacts / "compact-help.tga")
     else:
         completed = re.search(r"BEACH DONE pass=(\d+) fail=(\d+)", result.stdout)
-        if not completed or int(completed[2]) or int(completed[1]) < 136:
+        if not completed or int(completed[2]) or int(completed[1]) < 163:
             errors.append("missing or failed gameplay completion marker")
     if errors:
         raise RuntimeError(f"{name}: {', '.join(errors)}\n{result.stdout[-6000:]}")
-    return {"name": name, "passes": re.findall(r"BEACH (?:(?:PLAY|MATCH) )?PASS (.+)", result.stdout),
-            "screenshot": screenshot if visual or play or match else None,
-            "contact_screenshot": f"{name}-contact.tga" if play else None,
-            "custom_font": "BEACH HUD FONT custom" in result.stdout if visual or play or match else None}
+    return {"name": name, "passes": re.findall(r"BEACH (?:(?:PLAY|MATCH|BOT) )?PASS (.+)", result.stdout),
+            "screenshot": screenshot if visual or play or match or bot else None,
+            "contact_screenshot": f"{name}-contact.tga" if play or bot else None,
+            "custom_font": "BEACH HUD FONT custom" in result.stdout if visual or play or match or bot else None}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bin", type=Path, required=True)
     parser.add_argument("--basedir", type=Path, required=True)
-    parser.add_argument("--skip-visual", action="store_true")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--skip-visual", action="store_true")
+    selection.add_argument("--case", action="append", choices=("gameplay", "visual", "play", "opposite",
+        "sweet", "late", "compact", "match", "match-set", "bot-dive", "bot-dive-fast"),
+        help="run a selected case; repeat to select several")
     args = parser.parse_args()
     binary = args.bin.expanduser().resolve()
     basedir = args.basedir.expanduser().resolve()
@@ -142,16 +160,15 @@ def main():
         parser.error("build the mod first")
     with tempfile.TemporaryDirectory(prefix="beachvolley-test-") as temporary:
         workspace = Path(temporary)
-        results = [run_case(binary, basedir, game, workspace, False)]
-        if not args.skip_visual:
-            results.append(run_case(binary, basedir, game, workspace, True))
-            results.append(run_case(binary, basedir, game, workspace, False, True))
-            results.append(run_case(binary, basedir, game, workspace, False, True, "opposite"))
-            results.append(run_case(binary, basedir, game, workspace, False, True, "sweet"))
-            results.append(run_case(binary, basedir, game, workspace, False, True, "late"))
-            results.append(run_case(binary, basedir, game, workspace, True, profile="compact"))
-            results.append(run_case(binary, basedir, game, workspace, False, profile="match"))
-            results.append(run_case(binary, basedir, game, workspace, False, profile="match-set"))
+        cases = (("gameplay", False, False, "default"), ("visual", True, False, "default"),
+                 ("play", False, True, "default"), ("opposite", False, True, "opposite"),
+                 ("sweet", False, True, "sweet"), ("late", False, True, "late"),
+                 ("compact", True, False, "compact"), ("match", False, False, "match"),
+                 ("match-set", False, False, "match-set"), ("bot-dive", False, False, "bot-dive"),
+                 ("bot-dive-fast", False, False, "bot-dive-fast"))
+        selected = args.case or (["gameplay"] if args.skip_visual else [case[0] for case in cases])
+        results = [run_case(binary, basedir, game, workspace, visual, play, profile)
+                   for name, visual, play, profile in cases if name in selected]
     summary = {"engine_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
                "progs_sha256": hashlib.sha256((game / "progs.dat").read_bytes()).hexdigest(),
                "csprogs_sha256": hashlib.sha256((game / "csprogs.dat").read_bytes()).hexdigest(),

@@ -22,3 +22,10 @@ palette during the build.
 
 The controls take inspiration from Virtua Tennis. No Sega assets or code are
 used. This is an independent mod and is not affiliated with Sega or id Software.
+
+Bot candidate-shot evaluation, emergency dives and contact separation also take
+design inspiration from Kyutae Lee's
+[Pikachu Volleyball reconstruction](https://github.com/gorisanson/pikachu-volleyball/blob/main/src/resources/js/physics.js).
+These systems are original QuakeC implementations using this mod's 3D flight and
+contact code. No source code, sprites, sounds or other assets from that project
+are included.

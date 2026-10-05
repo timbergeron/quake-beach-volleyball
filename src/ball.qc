@@ -23,6 +23,8 @@
 .vector bv_goal, bv_shot_target;
 .float bv_shot_apex;
 .float bv_match_hint;
+.float bv_contact_latched, bv_latch_radius;
+.vector bv_latch_offset, bv_dive_direction;
 
 entity bv_match_owner, bv_partner, bv_opponent1, bv_opponent2, bv_server;
 float bv_match, bv_home_score, bv_away_score, bv_match_phase;
@@ -178,6 +180,28 @@ void(entity player, vector ball) BV_ContactZone =
                        '0 0 1' * height;
 };
 
+/* A slow ball can remain in the hands after a recovery timer expires.
+ * Release the latch only after separation from the original contact volume;
+ * changing shot buttons or poses cannot manufacture a second touch.
+ */
+void(entity player, vector point) BV_UpdateContactLatch =
+{
+    if (player.bv_contact_latched &&
+        vlen(point - player.origin - player.bv_latch_offset) > player.bv_latch_radius + 2)
+        player.bv_contact_latched = FALSE;
+};
+
+void() BV_ClearContactLatches =
+{
+    local entity player;
+    player = find(world, classname, "player");
+    while (player != world)
+    {
+        player.bv_contact_latched = FALSE;
+        player = find(player, classname, "player");
+    }
+};
+
 /* The timing cue and actual contact share both reach and obstruction checks. */
 float(entity player, vector point) BV_Reachable =
 {
@@ -200,6 +224,7 @@ float(vector start, vector finish) BV_TryContacts =
     player = find(world, classname, "player");
     while (player != world)
     {
+        BV_UpdateContactLatch(player, start);
         ready = FALSE;
         if (player.bv_armed_until >= time && player.bv_armed_until > 0)
             ready = TRUE;
@@ -208,7 +233,8 @@ float(vector start, vector finish) BV_TryContacts =
             ready = TRUE;
         if (player.bv_serve_contact && player.bv_preparing &&
             BV_ServeTiming(player) < 0.92) ready = FALSE;
-        if (player.bv_isplayer && ready && time >= player.bv_recover_until &&
+        if (player.bv_isplayer && ready && !player.bv_contact_latched &&
+            time >= player.bv_recover_until &&
             time - player.bv_last_contact > 0.22)
         {
             BV_ContactZone(player, start);

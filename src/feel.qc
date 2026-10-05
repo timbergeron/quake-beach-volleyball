@@ -51,11 +51,10 @@ void(entity player) BV_UpdateFooting =
         BV_Clamp(target - player.bv_footing, -dt * 4, dt * 4), 0, 1);
 };
 
-void(entity player, vector contact) BV_ResolveContact =
+void(entity player, vector contact) BV_GradeContact =
 {
-    local vector horizontal, offset, right;
-    local float preparation, stretch, moving, footing, lateral, carry;
-    BV_BuildShot(player, contact);
+    local vector horizontal, offset;
+    local float preparation, stretch, moving, footing;
     BV_ContactZone(player, contact);
     offset = contact - bv_hand_position;
     stretch = BV_Smooth((vlen(offset) / bv_hand_radius - 0.25) / 0.75);
@@ -81,6 +80,20 @@ void(entity player, vector contact) BV_ResolveContact =
         if (BV_ServeTiming(player) < 0.75) bv_contact_reason = BV_NOTE_TIMING;
     }
     bv_contact_quality = BV_Clamp(bv_contact_quality, 0.35, 1);
+};
+
+/* Candidate bot flights and the final contact use the same placement loss,
+ * incoming momentum and spin. This helper only writes contact outputs.
+ */
+void(entity player, vector contact) BV_ApplyContact =
+{
+    local vector horizontal, offset, right;
+    local float stretch, lateral, carry;
+    BV_ContactZone(player, contact);
+    offset = contact - bv_hand_position;
+    stretch = BV_Smooth((vlen(offset) / bv_hand_radius - 0.25) / 0.75);
+    horizontal = player.velocity;
+    horizontal_z = 0;
     right = BV_Cross(player.bv_aim, '0 0 1');
     if (vlen(right) < 0.5) right = BV_Cross(BV_Heading(player.v_angle_y), '0 0 1');
     lateral = BV_Clamp((offset * right) / bv_hand_radius, -1, 1);
@@ -97,6 +110,13 @@ void(entity player, vector contact) BV_ResolveContact =
     if (bv_shot_kind == BV_SERVE) carry = 0;
     bv_contact_velocity = bv_contact_velocity + bv_ball.velocity * carry;
     bv_contact_spin = bv_shot_spin * bv_contact_quality - '0 0 1' * (lateral * stretch * 8);
+};
+
+void(entity player, vector contact) BV_ResolveContact =
+{
+    BV_GradeContact(player, contact);
+    BV_BuildShot(player, contact);
+    BV_ApplyContact(player, contact);
 };
 
 string(float kind, float diving) BV_ContactSample =

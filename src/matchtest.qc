@@ -116,7 +116,8 @@ void() BV_MatchTestObserve =
         else
         {
             if (bv_touch_actor.bv_kind == BV_SET) bv_match_test_bot_set = TRUE;
-            if (bv_touch_actor.bv_kind == BV_SPIKE) bv_match_test_bot_attack = TRUE;
+            if (bv_touch_actor.bv_kind == BV_SPIKE || bv_touch_actor.bv_kind == BV_ROLL)
+                bv_match_test_bot_attack = TRUE;
         }
     }
     if (self.bv_preparing && bv_match_phase == BV_MATCH_RALLY &&

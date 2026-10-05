@@ -141,6 +141,18 @@ opponents use the same physical receive–set–attack sequence. Bots forecast t
 ball's flight, move with collision-aware feet, prepare and strike only within
 hand reach. Poor positioning can cause a miss.
 
+At attack contact, bots simulate nine short/deep and angled spike/roll options
+with the current wind, drag, spin and contact quality. They reject predicted
+net and court faults, then compare when each defender could intercept the
+descending ball. Both defenders affect placement. This is an approximate
+reach estimate; collisions, dives and changes of direction can still save a shot.
+
+Receivers can make an emergency dive when ordinary movement would arrive late
+and a low dig is physically reachable. A dive commits to its original direction,
+lowers control and costs recovery time even when it misses. A recovering teammate
+also affects which player takes the next incoming ball. Repeated contacts require
+the ball to leave the original hand volume as well as the recovery timer to expire.
+
 Passes and sets stay in your own court when aimed toward your teammate with
 short depth (F); use B to restore neutral depth for the attack. Wheel arc changes
 the height. The direction is yours to choose, including on assisted contacts.
@@ -201,7 +213,7 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 136 assertions inside the actual QC VM, captures the court and compact
+It runs 163 assertions inside the actual QC VM, captures the court and compact
 help/HUD through SDL's offscreen renderer, and performs standing serves from
 both baselines through the normal input, toss, release, collision, flight,
 scoring, and HUD update paths. Additional live serves check the sweet timing
@@ -211,7 +223,10 @@ Two live doubles fixtures run at 50 Hz: human receive → bot set → human jump
 attack → opponent return, and bot receive → human set → bot attack. Both follow
 normal reach/collision paths into a scored point, with match HUD captures.
 Audio uses SDL's dummy device. Use `--skip-visual` for
-dedicated-only checks. Logs,
+dedicated-only checks. Emergency digs also run through live movement and contact
+at 50 and 100 Hz, verifying the dive pose, reduced control and recovery. Use
+`--case bot-dive --case bot-dive-fast` to run those cases alone, or select any
+case listed by `--help`. Logs,
 screenshots, and executable/progs hashes are written to `artifacts/`.
 
 Run `python3 -m unittest -v test_launcher` for three launcher regressions covering

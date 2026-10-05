@@ -2,6 +2,8 @@
 // Copyright (C) 2026 timbergeron
 void() BV_PlayTestInput;
 void() BV_PlayTestObserve;
+void() BV_BotTestInput;
+void() BV_BotTestObserve;
 
 /* Shot recipes expose continuous power/arc/spin while sharing the forces.
  * Pitch at preparation adds a small launch-angle adjustment. Looking at the
@@ -92,6 +94,9 @@ void(entity player, vector contact) BV_Contact =
 {
     if (!BV_MatchContact(player)) return;
     BV_ResolveContact(player, contact);
+    player.bv_contact_latched = TRUE;
+    player.bv_latch_offset = bv_hand_position - player.origin;
+    player.bv_latch_radius = bv_hand_radius;
     player.bv_timing = 0;
     if (player.bv_serve_contact) player.bv_timing = BV_ServeTiming(player);
     setorigin(bv_ball, contact);
@@ -128,6 +133,7 @@ void(entity player, vector contact) BV_Contact =
 void(entity player) BV_ReadyServe =
 {
     local vector position;
+    BV_ClearContactLatches();
     bv_holder = player;
     bv_ball_state = BV_HELD;
     bv_live_time = 0;
@@ -177,6 +183,7 @@ void(entity player, float automatic) BV_Feed =
     local vector start, target, launch_velocity;
     local float side;
     if (!player.bv_isplayer) return;
+    BV_ClearContactLatches();
     if (!player.bv_mode) player.bv_mode = 1;
     side = 1;
     if (player.origin_x > 0) side = -1;
@@ -301,6 +308,7 @@ void() PlayerPreThink =
     if (!self.bv_isplayer) return;
     if (cvar("bv_playtest")) BV_PlayTestInput();
     if (cvar("bv_matchtest")) BV_MatchTestInput();
+    if (cvar("bv_bottest")) BV_BotTestInput();
     BV_UpdateFooting(self);
     self.gravity = BV_Clamp(autocvar_bv_gravity, 100, 800) /
                    BV_Clamp(cvar("sv_gravity"), 1, 2000);
@@ -434,7 +442,9 @@ void() PlayerPostThink =
     if (bv_feeder == self && bv_next_feed > time)
         self.bv_feed_delay = bv_next_feed - time;
     self.bv_in_reach = FALSE;
+    BV_UpdateContactLatch(self, bv_ball.origin);
     if (bv_ball_state == BV_LIVE &&
+        !self.bv_contact_latched &&
         (self.bv_preparing || self.bv_armed_until > time) &&
         time - self.bv_last_contact > 0.22 && time >= self.bv_recover_until &&
         BV_MatchEligible(self, bv_ball.origin))
@@ -447,6 +457,7 @@ void() PlayerPostThink =
     BV_Animate(self);
     if (cvar("bv_playtest")) BV_PlayTestObserve();
     if (cvar("bv_matchtest")) BV_MatchTestObserve();
+    if (cvar("bv_bottest")) BV_BotTestObserve();
 };
 
 void() PutClientInServer =
