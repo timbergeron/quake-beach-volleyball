@@ -63,7 +63,7 @@ def main():
     shutil.copyfile(HERE / "beach.cfg", GAME / "beach.cfg")
     shutil.copyfile(HERE / "server.cfg", GAME / "server.cfg")
     (GAME / "autoexec.cfg").write_text("exec beach.cfg\n")
-    documents = ("README.md", "LICENSE", "THIRD_PARTY.md", "docs/court.png")
+    documents = ("README.md", "LICENSE", "THIRD_PARTY.md", "docs/court.png", "docs/ball.png")
     for name in documents:
         (GAME / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(HERE / name, GAME / name)
@@ -72,7 +72,8 @@ def main():
     members = [GAME / name for name in ("progs.dat", "csprogs.dat", "beach.cfg", "server.cfg", "autoexec.cfg")]
     members.extend(GAME / name for name in documents)
     for directory in ("maps", "progs", "sound", "textures", "gfx"):
-        members.extend(p for p in (GAME / directory).rglob("*") if p.suffix in (".bsp", ".lit", ".mdl", ".wav", ".tga"))
+        members.extend(p for p in (GAME / directory).rglob("*") if p.suffix in (".bsp", ".lit", ".mdl", ".md3", ".wav", ".tga")
+                       and p.relative_to(GAME).as_posix() != "progs/bv_ball.mdl")
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
         for path in sorted(members):
             output.write(path, path.relative_to(GAME.parent))

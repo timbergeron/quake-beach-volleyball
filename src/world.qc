@@ -20,7 +20,7 @@ void() worldspawn =
 {
     local float style;
     style = 0;
-    precache_model("progs/bv_ball.mdl");
+    precache_model("progs/bv_ball.md3");
     precache_model("progs/bv_marker.mdl");
     precache_model("progs/bv_athlete.mdl");
     precache_model("progs/bv_hands.mdl");
@@ -87,7 +87,7 @@ void() worldspawn =
     bv_ball.classname = "volleyball";
     bv_ball.movetype = MOVETYPE_NONE;
     bv_ball.solid = SOLID_NOT;
-    setmodel(bv_ball, "progs/bv_ball.mdl");
+    setmodel(bv_ball, "progs/bv_ball.md3");
     setsize(bv_ball, '-3.4 -3.4 -3.4', '3.4 3.4 3.4');
     setorigin(bv_ball, '-260 0 48');
     bv_ball_state = BV_IDLE;

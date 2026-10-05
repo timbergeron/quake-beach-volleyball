@@ -10,6 +10,7 @@ import struct
 from pathlib import Path
 
 from hud_font import pixels as font_pixels
+from ball_assets import generate_ball
 
 
 def pak_entry(pak, name):
@@ -295,46 +296,6 @@ def shadow_model(path, palette):
     write_mdl(path, vertices, [(4, 4)] * len(vertices), triangles, pixels, (8, 8))
 
 
-def ball_model(path, palette):
-    columns, rows = 24, 12
-    width, height = 128, 64
-    vertices, texcoords, triangles = [], [], []
-    for row in range(rows + 1):
-        latitude = math.pi * row / rows
-        for column in range(columns + 1):
-            longitude = math.tau * column / columns
-            vertices.append((3.4 * math.sin(latitude) * math.cos(longitude),
-                             3.4 * math.sin(latitude) * math.sin(longitude),
-                             3.4 * math.cos(latitude)))
-            texcoords.append((round(column / columns * (width - 1)),
-                              round(row / rows * (height - 1))))
-    for row in range(rows):
-        for column in range(columns):
-            a = row * (columns + 1) + column
-            b = a + columns + 1
-            if row > 0:
-                triangles.append((a, b, a + 1))
-            if row < rows - 1:
-                triangles.append((a + 1, b, b + 1))
-    colors = [nearest(palette, c) for c in ((240, 225, 185), (230, 177, 40), (40, 92, 150))]
-    seam = nearest(palette, (42, 44, 48))
-    skin = bytearray()
-    for y in range(height):
-        for x in range(width):
-            panel = (x // 21 + y // 22) % 3
-            skin.append(seam if x % 21 < 1 or y % 22 < 1 else colors[panel])
-    normal_file = Path(__file__).resolve().parent / "resources/anorms.h"
-    normals = None
-    if normal_file.is_file():
-        pattern = r"\{\s*(-?\d+\.\d+),\s*(-?\d+\.\d+),\s*(-?\d+\.\d+)\s*\}"
-        directions = [tuple(map(float, values))
-                      for values in re.findall(pattern, normal_file.read_text())]
-        if len(directions) == 162:
-            normals = [max(range(162), key=lambda i: sum(a * b
-                           for a, b in zip(vertex, directions[i]))) for vertex in vertices]
-    write_mdl(path, vertices, texcoords, triangles, skin, (width, height), normals)
-
-
 def marker_model(path, palette):
     vertices, triangles = [], []
     for i in range(24):
@@ -533,7 +494,7 @@ def generate(base, build, game):
     wad = build / "beach.wad"
     write_wad(wad, textures)
     (build / "beach.map").write_text(court_map(wad))
-    ball_model(game / "progs/bv_ball.mdl", palette)
+    generate_ball(game / "progs")
     marker_model(game / "progs/bv_marker.mdl", palette)
     athlete_models(game, palette)
     shadow_model(game / "progs/bv_shadow.mdl", palette)
