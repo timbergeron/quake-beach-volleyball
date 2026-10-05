@@ -36,3 +36,8 @@ design inspiration from Kyutae Lee's
 These systems are original QuakeC implementations using this mod's 3D flight and
 contact code. No source code, sprites, sounds or other assets from that project
 are included.
+
+Float-versus-speed serve design is informed by Reiser et al. (2020),
+[study of float serves in beach and indoor volleyball](https://www.frontiersin.org/journals/sports-and-active-living/articles/10.3389/fspor.2020.559277/full).
+The bounded wake approximation and platform-rebound receive code are original
+implementations. No paper text, data, or third-party simulation code is bundled.

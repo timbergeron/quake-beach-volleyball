@@ -17,6 +17,7 @@ void() BV_PlayTestInput =
         self.bv_arc = 0.35;
         self.bv_sidespin = 0;
         self.bv_topspin = 0.35;
+        if (cvar("bv_playtest") == 5) self.bv_serve_style = BV_TOPSPIN_SERVE;
         if (cvar("bv_playtest") == 2) setorigin(self, '50 0 24');
     }
     self.button0 = 0;
@@ -26,6 +27,12 @@ void() BV_PlayTestInput =
     release_at = 0.45;
     if (cvar("bv_playtest") == 3) release_at = 0.55;
     if (cvar("bv_playtest") == 4) release_at = 0.85;
+    if (cvar("bv_playtest") == 5)
+    {
+        release_at = 0.77;
+        if (time - self.bv_play_started >= 0.1 && time - self.bv_play_started < 0.12)
+            self.button2 = 1;
+    }
     if (self.bv_play_stage == 1 &&
         time - self.bv_play_started >= 0.1 &&
         time - self.bv_play_started < release_at)
@@ -38,6 +45,7 @@ void() BV_PlayTestObserve =
     capture_at = 0.3;
     if (cvar("bv_playtest") == 3) capture_at = 0.52;
     if (cvar("bv_playtest") == 4) capture_at = 0.77;
+    if (cvar("bv_playtest") == 5) capture_at = 0.62;
     if (self.bv_preparing && time - self.bv_play_started > capture_at && !self.bv_play_capture)
     {
         self.bv_play_capture = TRUE;
@@ -65,6 +73,13 @@ void() BV_PlayTestObserve =
         }
         if (quality_ok) dprint("BEACH PLAY PASS serve-quality\n");
         else dprint("BEACH PLAY FAIL serve-quality\n");
+        if (cvar("bv_playtest") == 5)
+        {
+            if (!(self.flags & FL_ONGROUND) && self.bv_last_speed > 19 &&
+                bv_ball_spin_y > 90 && bv_ball_float == 0)
+                dprint("BEACH PLAY PASS live-jump-topspin\n");
+            else dprint("BEACH PLAY FAIL live-jump-topspin\n");
+        }
     }
     if (self.bv_play_stage == 2 && bv_ball_state == BV_DEAD)
     {

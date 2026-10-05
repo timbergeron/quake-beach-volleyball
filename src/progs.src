@@ -4,6 +4,8 @@ shared.qc
 physics.qc
 ball.qc
 feel.qc
+serve.qc
+receive.qc
 player.qc
 match.qc
 bots.qc
@@ -13,6 +15,8 @@ regressions.qc
 feeltest.qc
 matchrules.qc
 bottest.qc
+servetest.qc
+receivetest.qc
 playtest.qc
 matchtest.qc
 world.qc

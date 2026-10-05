@@ -55,13 +55,14 @@ PAKs through symlinks. It does not install files into your Quake directory.
 | Wheel up / down | Increase / decrease arc in 5% steps |
 | Hold Q / E | Adjust remembered sidespin left / right continuously |
 | Z | Cycle topspin/backspin; positive values dip, negative values lift |
-| F / V | Bias placement shorter / deeper in 10% steps |
+| F / V | Bias placement shorter / deeper; soften / firm up a receive |
 | B | Reset placement depth to neutral |
 | Middle mouse | Reset sidespin and restore moderate topspin |
 | Shift + mouse | Change shot direction while preparing |
 | Space | Jump; release between jumps |
 | Ctrl | Dive in your movement direction; recovery has a short cooldown |
 | R / T | Ready a serve / feed another ball |
+| G | Select float or topspin jump serve; also selects the receive drill's serve |
 | 1 / 2 / 3 / 4 | Leave doubles and enter serve / receive / setting / attack practice |
 | 5 | Start or restart local doubles |
 | C | Toggle assisted contact while holding a shot |
@@ -77,21 +78,33 @@ separately from the launch direction.
 Release when the ball reaches your hands. With C assistance enabled, you can
 keep holding: contact happens automatically only in the centre of physical hand
 reach after preparation, with the same obstruction and recovery checks. This
-is enabled when starting doubles and optional in practice. Manual release
-retains the wider hand window. Assistance never moves the ball or your feet.
+is optional in both doubles and practice; doubles starts with manual contact.
+Manual release retains the wider hand window and allows the best receive timing.
+Assisted receives have a timing grade capped at 60%. Assistance never moves the
+ball or your feet.
 
 The reticle and timing cue turn green when the ball is within physical reach,
 using the same obstruction checks as
 contact. A brief contact window helps catch balls moving between server frames;
 it still requires physical reach. Centred contacts give clean power and control;
 reaching toward the edge of your hands produces softer, glancing shots.
-Glances deflect toward the reach consistently. Fast incoming balls also carry
-a little momentum through a pass or set, especially when contact is stretched.
+Glances deflect toward the reach consistently. Receives rebound from incoming
+ball velocity rather than charging a chosen outgoing speed.
 Preparing early and planting your feet improves contact quality. Footing recovers
 over about a quarter-second after you stop; jump attacks retain takeoff footing,
 while dives provide an emergency save with reduced control.
 
-Normal shot power fills over 0.75 seconds. F/V changes placement depth separately
+Normal shot power fills over 0.75 seconds. Receiving is different: aim your
+forearm platform toward your teammate, choose lift with the wheel, then release
+as the ball reaches the hands. The clean timing band is about 35 ms either side
+of closest approach, with a gradual penalty outside it. Preparing early helps
+read the descending approach; Shift updates that read and your stored aim when
+the ball drifts. Plant before contact. F softens the platform to absorb pace;
+V makes the rebound firmer and longer. Holding longer does not increase receive
+power. Overhead first contacts use the same timing and incoming-energy model.
+Poor timing, a stretched reach or the wrong platform can shank or overpass.
+
+F/V changes placement depth separately
 from that power and the wheel arc. Short/deep attacks change launch angle while
 preserving arm speed, allowing a hard short cut. Passes, sets, rolls, and serves
 change forward travel; sets retain their selected vertical lift. B restores
@@ -112,11 +125,23 @@ Quake font as a fallback.
 
 Start with a serve: press R, move along the baseline, aim, and hold LMB to toss.
 The serve gauge rises toward the toss apex and then falls; the sweet spot is
-around 0.45 seconds at default gravity. Release around 0.35–0.55 seconds for a
-standing serve, using the timing readout and SERVE SWEET SPOT cue. Early/late
+around 0.45 seconds for a float serve at default gravity. Release around
+0.35–0.55 seconds for a standing float, using the timing readout and
+SERVE SWEET SPOT cue. Early/late
 strikes lose power and control. Timing follows the configured gravity. Try F/V
 and wheel arc for short/deep serves; extra depth can send the ball long.
-A jump raises your attack contact point.
+
+G selects the serve type before the toss. FLOAT uses a hard, low-spin contact
+with bounded lateral and vertical drift. Adding substantial Q/E sidespin
+suppresses the float effect. TOPSPIN uses a higher toss with forward spin and
+a faster downward bend. Jump with the toss and strike around its 0.67-second
+apex for the fastest contact; a standing topspin contact loses pace. The type
+sets forward spin for serves; Z still controls other strokes. The opponent
+mixes serve types between points. Receive drill (2) uses the G selection.
+The model rotates about the same world spin axis used by the flight forces.
+Float movement is a deterministic wake approximation with a new phase per
+serve, shared by live flight and previews. These are game-feel mechanics, not
+a ball- or wind-tunnel-calibrated aerodynamic model.
 
 Passes, sets, spikes, rolls, serves, and digs have distinct original contact
 sounds and a small camera pulse. Set `bv_contact_kick 0` in the console to
@@ -135,7 +160,8 @@ faults. Consecutive self contacts are allowed for practice.
 ## Doubles rallies
 
 Press **5** to start. The opponents serve first; move into the incoming ball,
-prepare LMB toward your blue teammate, then get forward for their set. The HUD
+prepare LMB toward your blue teammate and release at the hands, then get forward
+for their set. The HUD
 calls out receive, set, attack or cover and shows your team's touch count. Both
 opponents use the same physical receive–set–attack sequence. Bots forecast the
 ball's flight, move with collision-aware feet, prepare and strike only within
@@ -153,8 +179,8 @@ lowers control and costs recovery time even when it misses. A recovering teammat
 also affects which player takes the next incoming ball. Repeated contacts require
 the ball to leave the original hand volume as well as the recovery timer to expire.
 
-Passes and sets stay in your own court when aimed toward your teammate with
-short depth (F); use B to restore neutral depth for the attack. Wheel arc changes
+Aim receives toward your teammate and use F to cushion incoming pace. Ordinary
+passes and sets use short depth (F); use B to restore neutral depth for the attack. Wheel arc changes
 the height. The direction is yours to choose, including on assisted contacts.
 Jump + LMB attacks high balls; jump + RMB gives a slower looping roll shot.
 Shot-specific follow-through briefly limits movement and prevents instant
@@ -217,7 +243,7 @@ The console exposes `bv_gravity`, `bv_drag`, `bv_magnus`, `bv_spin_decay`,
 `bv_wind_x`, and `bv_wind_y`. Wind values use units/second; 32 is 1 m/s.
 Gravity defaults to 313.92 units/second². Player gravity follows the ball's
 gravity, while `server.cfg` sets sand movement speed, acceleration, and friction.
-Shot velocity recipes are in `src/player.qc`; aerodynamic forces are in
+Shot velocity recipes are in `src/player.qc`, `src/serve.qc` and `src/receive.qc`; aerodynamic forces are in
 `src/physics.qc`. The current preview includes floor and net interactions; posts
 and surroundings are additionally traced during live play.
 
@@ -229,15 +255,18 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 163 assertions inside the actual QC VM, captures the court and compact
+It runs 205 assertions inside the actual QC VM, captures the court and compact
 help/HUD through SDL's offscreen renderer, and performs standing serves from
 both baselines through the normal input, toss, release, collision, flight,
 scoring, and HUD update paths. Additional live serves check the sweet timing
-window and the weaker result of a late strike, with contact feedback captures.
+window and the weaker result of a late strike, plus a physical jump topspin
+serve. Four live receive fixtures cover clean float/topspin passes and early/late
+manual releases, with timing/cushion HUD and contact feedback captures.
 It also verifies that timing, contact grades, and landing cues reach the client HUD.
-Two live doubles fixtures run at 50 Hz: human receive → bot set → human jump
-attack → opponent return, and bot receive → human set → bot attack. Both follow
-normal reach/collision paths into a scored point, with match HUD captures.
+Three live doubles fixtures run at 50 Hz: human receive → bot set → human jump
+attack → opponent return, and bot receive → human set → bot attack. They follow
+normal reach/collision paths into a scored point, with match HUD captures;
+the third verifies an opponent's physical jump topspin serve and the return rally.
 Audio uses SDL's dummy device. Use `--skip-visual` for
 dedicated-only checks. Emergency digs also run through live movement and contact
 at 50 and 100 Hz, verifying the dive pose, reduced control and recovery. Use

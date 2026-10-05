@@ -21,6 +21,7 @@ void() BV_MatchTestInput =
         self.bv_match_test_started = time;
         BV_StartMatch(self);
         if (cvar("bv_matchtest") == 2) bv_server.bv_shot_target = '-78 58 44';
+        if (cvar("bv_matchtest") == 3) bv_server.bv_serve_style = BV_TOPSPIN_SERVE;
         localcmd("con_notifytime 0\ncon_notifylines 0\nscr_fade 0\n");
     }
     self.button0 = 0;
@@ -32,6 +33,7 @@ void() BV_MatchTestInput =
     if (bv_match_phase == BV_MATCH_SERVE && bv_server == self)
     {
         self.button0 = 1;
+        if (self.bv_preparing && BV_ServeTiming(self) > 0.99) self.button0 = 0;
         return;
     }
     if (bv_match_phase != BV_MATCH_RALLY || bv_home_receiver != self) return;
@@ -55,7 +57,7 @@ void() BV_MatchTestInput =
         height = 115;
         action = 2;
         self.bv_depth = 0;
-        self.bv_arc = 0.2;
+        self.bv_arc = 0.12;
     }
     if (time >= self.bv_match_test_predict_at || self.bv_match_test_height != height)
     {
@@ -89,6 +91,15 @@ void() BV_MatchTestInput =
         self.button2 = 1;
     if (action == 1) self.button0 = 1;
     else self.button3 = 1;
+    if (self.bv_preparing && fabs(BV_ReceiveError(self)) < 0.025)
+    {
+        BV_ContactZone(self, bv_ball.origin);
+        if (vlen(bv_ball.origin - bv_hand_position) < bv_hand_radius)
+        {
+            self.button0 = 0;
+            self.button3 = 0;
+        }
+    }
     self.button8 = 1;
 };
 
@@ -104,6 +115,17 @@ void() BV_MatchTestObserve =
             " touch=", ftos(bv_touches), " kind=", ftos(bv_touch_actor.bv_kind));
         dprint(" bot=", ftos(bv_touch_actor.bv_isbot), " quality=",
             ftos(bv_touch_actor.bv_quality), "\n");
+        dprint("BEACH MATCH FLIGHT x=", ftos(bv_ball.origin_x),
+            " z=", ftos(bv_ball.origin_z), "\n");
+        dprint("BEACH MATCH SPEED x=", ftos(bv_ball.velocity_x), " y=", ftos(bv_ball.velocity_y),
+            " z=", ftos(bv_ball.velocity_z), "\n");
+        if (cvar("bv_matchtest") == 3 && bv_touch_actor.bv_kind == BV_SERVE)
+        {
+            if (bv_touch_actor.bv_isbot && !(bv_touch_actor.flags & FL_ONGROUND) &&
+                bv_touch_actor.bv_last_speed > 17 && bv_ball_spin_y < -80 && bv_ball_float == 0)
+                dprint("BEACH MATCH PASS opponent-jump-topspin\n");
+            else dprint("BEACH MATCH FAIL opponent-jump-topspin\n");
+        }
         if (bv_touch_team < 0) bv_match_test_home_contacts = bv_match_test_home_contacts + 1;
         else if (!bv_touch_actor.bv_serve_contact && bv_touches > 0)
             bv_match_test_away_contacts = bv_match_test_away_contacts + 1;

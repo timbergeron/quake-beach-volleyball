@@ -51,6 +51,9 @@ void(entity actor, vector position) BV_ResetActor =
     actor.bv_dive_ready = 0;
     actor.bv_jump_ready = 0;
     actor.bv_contact_latched = FALSE;
+    actor.bv_receive_contact = FALSE;
+    actor.bv_receive_committed = FALSE;
+    actor.bv_receiving = FALSE;
     actor.bv_footing = 1;
     actor.bv_aim_locked = 0;
     actor.bv_plan_next = 0;
@@ -67,6 +70,12 @@ void() BV_MatchServe =
     bv_match_owner.fixangle = TRUE;
     bv_server = bv_opponent2;
     if (bv_serving_team < 0) bv_server = bv_match_owner;
+    if (bv_server.bv_isbot)
+    {
+        bv_server.bv_serve_style = BV_FLOAT_SERVE;
+        if (bv_home_score + bv_away_score != floor((bv_home_score + bv_away_score) / 2) * 2)
+            bv_server.bv_serve_style = BV_TOPSPIN_SERVE;
+    }
     BV_ReadyServe(bv_server);
     bv_feeder = world;
     bv_server.bv_plan_next = time + 0.7;
@@ -88,7 +97,7 @@ void(entity player) BV_StartMatch =
     bv_home_score = 0;
     bv_away_score = 0;
     bv_match_goal = BV_Clamp(floor(autocvar_bv_match_points), 3, 21);
-    player.bv_assisted = TRUE;
+    player.bv_assisted = FALSE;
     player.bv_mode = 0;
     player.bv_marker.modelindex = 0;
     bv_partner = BV_SpawnBot('-78 58 24', -1);
@@ -105,6 +114,7 @@ void(float winner, string reason) BV_MatchPoint =
     bv_ball_state = BV_DEAD;
     bv_ball.velocity = '0 0 0';
     bv_ball_spin = '0 0 0';
+    bv_ball_float = 0;
     bv_holder = world;
     if (winner < 0) bv_home_score = bv_home_score + 1;
     else bv_away_score = bv_away_score + 1;

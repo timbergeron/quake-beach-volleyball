@@ -25,6 +25,9 @@
 .float bv_match_hint;
 .float bv_contact_latched, bv_latch_radius;
 .vector bv_latch_offset, bv_dive_direction;
+.float bv_serve_style, bv_float_seed, bv_receive_contact, bv_receiving;
+.float bv_receive_committed, bv_release_timing, bv_release_error;
+.vector bv_read_direction;
 
 entity bv_match_owner, bv_partner, bv_opponent1, bv_opponent2, bv_server;
 float bv_match, bv_home_score, bv_away_score, bv_match_phase;
@@ -40,6 +43,7 @@ void() BV_StopMatch;
 void(vector position) BV_MatchLanding;
 float(entity player, vector point) BV_MatchEligible;
 float(entity player) BV_MatchContact;
+float(entity player) BV_Team;
 void(entity player, vector contact) BV_BotBuildShot;
 void() BV_UpdateMatch;
 void(entity player) BV_Animate;
@@ -50,12 +54,14 @@ entity bv_ball, bv_holder, bv_last_player, bv_feeder;
 vector bv_ball_spin;
 float bv_ball_state, bv_accumulator, bv_next_feed, bv_net_touched, bv_under_net;
 float bv_live_time;
+float bv_ball_float, bv_ball_phase;
 vector bv_ball_position;
 
 void(entity player, vector contact) BV_Contact;
 void(entity player, float automatic) BV_Feed;
 float(entity player) BV_Charge;
 float(entity player) BV_ServeTiming;
+float(entity player) BV_IsReceiving;
 
 float(vector position) BV_InCourt =
 {
@@ -106,6 +112,7 @@ void(vector position) BV_FinishRally =
     bv_ball_state = BV_DEAD;
     bv_ball.velocity = '0 0 0';
     bv_ball_spin = '0 0 0';
+    bv_ball_float = 0;
     setorigin(bv_ball, position);
     if (bv_match)
     {
@@ -158,7 +165,7 @@ void(entity player, vector ball) BV_ContactZone =
     height = 20;
     bv_hand_radius = 25 + BV_RADIUS;
     if (player.bv_action == 2) height = 45;
-    if (player.bv_action == 1 && ball_z > player.origin_z + 36 &&
+    if (player.bv_action == 1 && !BV_IsReceiving(player) && ball_z > player.origin_z + 36 &&
         (!bv_match || player.bv_match_hint != BV_HINT_RECEIVE) &&
         (!player.bv_isbot || player.bv_plan_kind != BV_PASS))
     {
@@ -169,6 +176,8 @@ void(entity player, vector ball) BV_ContactZone =
     {
         /* The extended serving hand meets the ball near the toss apex. */
         height = 71;
+        if (player.bv_serve_style == BV_TOPSPIN_SERVE && !(player.flags & FL_ONGROUND))
+            height = 53;
         bv_hand_radius = 23 + BV_RADIUS;
     }
     if (player.bv_dive_until > time)
@@ -266,7 +275,8 @@ void(float dt) BV_BallStep =
         return;
     }
     old = bv_ball.origin;
-    BV_Integrate(old, bv_ball.velocity, bv_ball_spin, dt);
+    BV_IntegrateFlight(old, bv_ball.velocity, bv_ball_spin, dt, bv_ball_float, bv_ball_phase);
+    bv_ball_phase = bv_step_phase;
     position = bv_step_position;
     launch_velocity = bv_step_velocity;
     spin = bv_step_spin;
@@ -325,6 +335,7 @@ void(float dt) BV_BallStep =
         position = position + normal * 0.01;
         launch_velocity = BV_Reflect(launch_velocity, normal, 0.22, 0.65);
         spin = spin * 0.4;
+        bv_ball_float = bv_ball_float * 0.4;
         bv_net_touched = TRUE;
         sound(bv_ball, 1, "beach/net.wav", 0.7, 1);
     }
@@ -333,11 +344,13 @@ void(float dt) BV_BallStep =
         position = position + normal * 0.01;
         launch_velocity = BV_Reflect(launch_velocity, normal, 0.3, 1);
         spin = spin * 0.4;
+        bv_ball_float = bv_ball_float * 0.4;
     }
     setorigin(bv_ball, position);
     bv_ball.velocity = launch_velocity;
     bv_ball_spin = spin;
-    bv_ball.angles = bv_ball.angles + spin * (dt * 180 / BV_PI);
+    BV_AdvanceBallRotation(spin, dt);
+    bv_ball.angles = bv_draw_angles;
     if (fabs(position_x) > 1100 || fabs(position_y) > 1100 || position_z > 1200)
         BV_FinishRally(position);
 };

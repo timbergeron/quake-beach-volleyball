@@ -6,9 +6,13 @@
 var float autocvar_bv_contact_kick = 1;
 vector bv_shot_velocity, bv_shot_spin;
 float bv_shot_kind;
+float bv_shot_float, bv_shot_phase;
 vector bv_contact_velocity, bv_contact_spin;
 float bv_contact_quality, bv_contact_reason;
 void(entity player, vector contact) BV_BuildShot;
+float(entity player) BV_TossSpeed;
+float(entity player) BV_IsReceiving;
+float(entity player) BV_ReceiveTiming;
 
 float(float value) BV_Smooth =
 {
@@ -19,7 +23,7 @@ float(float value) BV_Smooth =
 float(entity player) BV_ServeTiming =
 {
     local float peak, error;
-    peak = 140 / BV_Clamp(autocvar_bv_gravity, 100, 800);
+    peak = BV_TossSpeed(player) / BV_Clamp(autocvar_bv_gravity, 100, 800);
     error = fabs(time - player.bv_prepare_started - peak);
     return 1 - BV_Smooth((error - 0.07) / 0.3);
 };
@@ -29,7 +33,7 @@ float(entity player) BV_Charge =
     local float peak, age;
     age = time - player.bv_prepare_started;
     if (!player.bv_serve_contact) return BV_Clamp(age / 0.75, 0, 1);
-    peak = 140 / BV_Clamp(autocvar_bv_gravity, 100, 800);
+    peak = BV_TossSpeed(player) / BV_Clamp(autocvar_bv_gravity, 100, 800);
     /* The serve gauge rises toward the apex, then falls. Waiting longer
      * cannot bank a maximum-power serve after the useful toss window.
      */
@@ -79,6 +83,17 @@ void(entity player, vector contact) BV_GradeContact =
         bv_contact_quality = bv_contact_quality * (0.72 + BV_ServeTiming(player) * 0.28);
         if (BV_ServeTiming(player) < 0.75) bv_contact_reason = BV_NOTE_TIMING;
     }
+    else if (BV_IsReceiving(player))
+    {
+        bv_contact_quality = bv_contact_quality * (0.55 + 0.45 * BV_ReceiveTiming(player));
+        if (BV_ReceiveTiming(player) < 0.95 && player.bv_dive_until <= time)
+        {
+            bv_contact_reason = BV_NOTE_EARLY;
+            if (player.bv_release_error < 0) bv_contact_reason = BV_NOTE_LATE;
+            if (!player.bv_isbot && player.bv_assisted && player.bv_preparing)
+                bv_contact_reason = BV_NOTE_ASSIST;
+        }
+    }
     bv_contact_quality = BV_Clamp(bv_contact_quality, 0.35, 1);
 };
 
@@ -108,6 +123,7 @@ void(entity player, vector contact) BV_ApplyContact =
     if (bv_shot_kind == BV_PASS) carry = carry + 0.035;
     if (bv_shot_kind == BV_SET) carry = carry + 0.015;
     if (bv_shot_kind == BV_SERVE) carry = 0;
+    if (BV_IsReceiving(player)) carry = 0; // Incoming energy is already reflected by the platform.
     bv_contact_velocity = bv_contact_velocity + bv_ball.velocity * carry;
     bv_contact_spin = bv_shot_spin * bv_contact_quality - '0 0 1' * (lateral * stretch * 8);
 };

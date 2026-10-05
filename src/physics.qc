@@ -11,14 +11,93 @@ var float autocvar_bv_wind_x = 0;
 var float autocvar_bv_wind_y = 0;
 
 vector bv_step_position, bv_step_velocity, bv_step_spin;
+float bv_step_phase;
 vector bv_landing;
 float bv_flight_time, bv_apex;
 float bv_predict_net, bv_predict_under_net;
+vector bv_visual_forward, bv_visual_up, bv_draw_angles;
 
-void(vector position, vector velocity, vector spin, float dt) BV_Integrate =
+void() BV_ResetBallRotation =
 {
-    local vector air, acceleration, wind;
-    local float drag, decay;
+    bv_visual_forward = '1 0 0';
+    bv_visual_up = '0 0 1';
+    bv_draw_angles = '0 0 0';
+};
+
+vector(vector point, vector axis, float angle) BV_RotateAxis =
+{
+    return point * cos(angle) + BV_Cross(axis, point) * sin(angle) +
+        axis * (axis * point) * (1 - cos(angle));
+};
+
+float(float angle, float previous) BV_AngleDelta =
+{
+    local float delta;
+    delta = angle - previous;
+    return delta - floor((delta + 180) / 360) * 360;
+};
+
+/* Spin is a world-axis angular velocity. Entity angles are pitch/yaw/roll,
+ * not XYZ rotations. Keep an orthonormal model basis, rotate it about the
+ * actual spin axis, then convert to Quake's model (upward pitch) convention.
+ */
+void(vector spin, float dt) BV_AdvanceBallRotation =
+{
+    local vector axis, left, direction, heading, previous, alternate, delta, other;
+    local float speed, horizontal;
+    if (vlen(bv_visual_forward) < 0.5) BV_ResetBallRotation();
+    speed = vlen(spin);
+    if (speed < 0.0001) return;
+    previous = bv_draw_angles;
+    axis = spin * (1 / speed);
+    bv_visual_forward = normalize(BV_RotateAxis(bv_visual_forward, axis, speed * dt));
+    bv_visual_up = BV_RotateAxis(bv_visual_up, axis, speed * dt);
+    left = normalize(BV_Cross(bv_visual_up, bv_visual_forward));
+    bv_visual_up = normalize(BV_Cross(bv_visual_forward, left));
+    horizontal = sqrt(bv_visual_forward_x * bv_visual_forward_x +
+        bv_visual_forward_y * bv_visual_forward_y);
+    direction = '0 0 0';
+    direction_x = horizontal;
+    direction_y = bv_visual_forward_z;
+    bv_draw_angles_x = atan2(direction_y, direction_x) * 180 / BV_PI;
+    if (horizontal > 0.0001)
+    {
+        bv_draw_angles_y = atan2(bv_visual_forward_y, bv_visual_forward_x) * 180 / BV_PI;
+        direction_x = bv_visual_up_z;
+        direction_y = left_z;
+    }
+    else
+    {
+        // At a vertical forward axis, retain yaw and solve roll horizontally.
+        heading = BV_Heading(bv_draw_angles_y);
+        direction_x = left * BV_Cross('0 0 1', heading);
+        direction_y = -(left * heading) * bv_visual_forward_z;
+    }
+    bv_draw_angles_z = atan2(direction_y, direction_x) * 180 / BV_PI;
+    // Equivalent Euler branches avoid a yaw/roll half-turn at vertical pitch.
+    alternate_x = 180 - bv_draw_angles_x;
+    alternate_y = bv_draw_angles_y + 180;
+    alternate_z = bv_draw_angles_z + 180;
+    delta_x = BV_AngleDelta(bv_draw_angles_x, previous_x);
+    delta_y = BV_AngleDelta(bv_draw_angles_y, previous_y);
+    delta_z = BV_AngleDelta(bv_draw_angles_z, previous_z);
+    other_x = BV_AngleDelta(alternate_x, previous_x);
+    other_y = BV_AngleDelta(alternate_y, previous_y);
+    other_z = BV_AngleDelta(alternate_z, previous_z);
+    if (other * other < delta * delta) bv_draw_angles = alternate;
+    bv_draw_angles_x = bv_draw_angles_x - floor(bv_draw_angles_x / 360) * 360;
+    bv_draw_angles_y = bv_draw_angles_y - floor(bv_draw_angles_y / 360) * 360;
+    bv_draw_angles_z = bv_draw_angles_z - floor(bv_draw_angles_z / 360) * 360;
+};
+
+/* A bounded wake approximation, rather than random kicks: every flight owns
+ * its phase so prediction and live play see exactly the same float movement.
+ */
+void(vector position, vector velocity, vector spin, float dt,
+     float floating, float phase) BV_IntegrateFlight =
+{
+    local vector air, acceleration, wind, lateral;
+    local float drag, decay, wake;
     wind = '0 0 0';
     wind_x = autocvar_bv_wind_x;
     wind_y = autocvar_bv_wind_y;
@@ -26,11 +105,26 @@ void(vector position, vector velocity, vector spin, float dt) BV_Integrate =
     drag = BV_Clamp(autocvar_bv_drag, 0, 0.01);
     acceleration = BV_Cross(spin, air) * BV_Clamp(autocvar_bv_magnus, 0, 0.02);
     acceleration = acceleration - air * (vlen(air) * drag);
+    lateral = air;
+    lateral_z = 0;
+    lateral = BV_Cross('0 0 1', normalize(lateral));
+    wake = BV_Clamp(floating, 0, 1) * (1 - BV_Clamp(vlen(spin) / 8, 0, 1)) *
+        BV_Clamp((air * air) / 202500, 0, 1.5);
+    acceleration = acceleration + lateral * (wake * 60 *
+        (sin(phase * 8.4) * 0.65 + sin(phase * 17.9 + 1.7) * 0.35));
+    acceleration_z = acceleration_z + wake * 45 *
+        (sin(phase * 11.3 + 0.8) * 0.65 + sin(phase * 23.1) * 0.35);
     acceleration_z = acceleration_z - BV_Clamp(autocvar_bv_gravity, 100, 800);
     bv_step_velocity = velocity + acceleration * dt;
     bv_step_position = position + (velocity + bv_step_velocity) * (0.5 * dt);
     decay = 1 - BV_Clamp(autocvar_bv_spin_decay, 0, 5) * dt;
     bv_step_spin = spin * BV_Clamp(decay, 0, 1);
+    bv_step_phase = phase + dt;
+};
+
+void(vector position, vector velocity, vector spin, float dt) BV_Integrate =
+{
+    BV_IntegrateFlight(position, velocity, spin, dt, 0, 0);
 };
 
 vector(vector start, vector target, float apex) BV_BallisticVelocity =
@@ -186,7 +280,7 @@ vector(vector velocity, vector normal, float bounce, float damping) BV_Reflect =
 /* Consider the first floor or net event, and never classify a crossing that
  * lies beyond that event. Live play additionally traces BSP surroundings.
  */
-void(vector position, vector velocity, vector spin) BV_Predict =
+void(vector position, vector velocity, vector spin, float floating, float phase) BV_PredictFlight =
 {
     local float duration, fraction, event;
     local vector old, impact, normal;
@@ -197,10 +291,11 @@ void(vector position, vector velocity, vector spin) BV_Predict =
     while (duration < BV_MAX_FLIGHT)
     {
         old = position;
-        BV_Integrate(position, velocity, spin, BV_STEP);
+        BV_IntegrateFlight(position, velocity, spin, BV_STEP, floating, phase);
         position = bv_step_position;
         velocity = bv_step_velocity;
         spin = bv_step_spin;
+        phase = bv_step_phase;
         event = 0;
         normal = '0 0 0';
         fraction = 1;
@@ -237,8 +332,14 @@ void(vector position, vector velocity, vector spin) BV_Predict =
             position = position + normal * 0.01;
             velocity = BV_Reflect(velocity, normal, 0.22, 0.65);
             spin = spin * 0.4;
+            floating = floating * 0.4;
         }
     }
     bv_landing = position;
     bv_flight_time = duration;
+};
+
+void(vector position, vector velocity, vector spin) BV_Predict =
+{
+    BV_PredictFlight(position, velocity, spin, 0, 0);
 };

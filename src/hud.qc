@@ -6,6 +6,7 @@ float bv_play_timing_reported;
 float bv_play_quality_reported;
 float bv_match_hud_reported;
 float bv_match_point_reported;
+float bv_receive_hud_reported;
 
 void(float x, float y, string text, vector color, float alpha) BV_Label =
 {
@@ -96,7 +97,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
 {
     local float x, y, width, charge, arc, side, mode, state, top, preview;
     local float result, age, alpha, reach, locked, compact, feed, serving, timing, note;
-    local float match, phase, hint, assisted, overlays;
+    local float match, phase, hint, assisted, overlays, receiving, style;
     local vector color;
     local string label, instruction;
     charge = BV_Clamp(getstatf(BV_STAT_CHARGE), 0, 1);
@@ -116,6 +117,9 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     hint = getstatf(BV_STAT_HINT);
     assisted = getstatf(BV_STAT_ASSISTED);
     overlays = getstatf(BV_STAT_OVERLAYS);
+    receiving = getstatf(BV_STAT_RECEIVING);
+    style = getstatf(BV_STAT_SERVE_STYLE);
+    if (receiving) charge = timing;
     width = BV_Clamp(virtual_size_x - 24, 0, 500);
     compact = width < 460;
     x = (virtual_size_x - width) * 0.5;
@@ -126,14 +130,24 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     if (reach) color = '0.4 1 0.75';
     BV_Box(x, y, 2, 100, color, 1);
     label = "SERVE PRACTICE";
-    if (mode == 1) label = "RECEIVE DRILL";
+    if (mode == 1)
+    {
+        label = "RECEIVE / FLOAT";
+        if (style == BV_TOPSPIN_SERVE) label = "RECEIVE / TOPSPIN";
+    }
     if (mode == 2) label = "SETTING DRILL";
     if (mode == 3) label = "ATTACK DRILL";
     if (match) label = "BEACH DOUBLES / 2V2";
+    if (!match && !mode)
+    {
+        label = "FLOAT SERVE / G SWITCH";
+        if (style == BV_TOPSPIN_SERVE) label = "JUMP TOPSPIN / G SWITCH";
+    }
     BV_Text(x + 12, y + 10, label, '0.95 1 1');
     BV_Text(x + width - 60, y + 10, "H HELP", '0.6 0.8 0.85');
     label = "POWER ";
     if (compact) label = "PWR ";
+    if (receiving) label = "TIME ";
     BV_Text(x + 12, y + 26, strcat(label, ftos(BV_Round(charge * 100)), "%"), color);
     if (compact)
     {
@@ -154,6 +168,9 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     if (serving)
         label = strcat(BV_DepthLabel(getstatf(BV_STAT_DEPTH)), " / TIMING ",
             ftos(BV_Round(timing * 100)), "%");
+    if (receiving)
+        label = strcat("CUSHION ", ftos(BV_Round((getstatf(BV_STAT_DEPTH) + 1) * 50)),
+            "% / F SOFT V FIRM");
     BV_Text(x + 12, y + 42, label, '0.9 0.97 1');
     BV_Box(x + 12, y + 56, width - 24, 4, '0.15 0.23 0.26', 1);
     if (locked) BV_Box(x + 12, y + 56, (width - 24) * charge, 4, color, 1);
@@ -162,6 +179,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     if (state == BV_LIVE) label = "HOLD A SHOT / TRACK THE BALL";
     if (state == BV_DEAD) label = "R SERVE / T FEED / 1-4 DRILLS";
     if (locked) label = "AIM STORED / SHIFT + LOOK TO ADJUST";
+    if (receiving && locked) label = "AIM PLATFORM / RELEASE AT HANDS";
     if (reach) label = "RELEASE / BALL IN REACH";
     if (reach && serving && timing >= 0.9) label = "RELEASE / SERVE SWEET SPOT";
     if (assisted && locked) label = "HOLD / MOVE HANDS INTO REACH";
@@ -182,6 +200,8 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     }
     BV_Text(x + 12, y + 70, label, color);
     label = "WHEEL ARC / Q,E SIDE / Z TOP";
+    if (state == BV_HELD) label = "G FLOAT/TOPSPIN / SPACE JUMP";
+    if (receiving) label = "WHEEL PLATFORM ARC / SHIFT REAIM";
     color = '0.65 0.8 0.85';
     if (feed > 0) label = strcat("NEXT FEED ", BV_Decimal(feed), "S / T FEED NOW");
     if (preview)
@@ -243,6 +263,10 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
             if (note == BV_NOTE_FOOTING) instruction = "GET INTO POSITION / PLANT FEET";
             if (note == BV_NOTE_DIVE) instruction = "DIG SAVED / RECOVER YOUR FEET";
             if (note == BV_NOTE_TIMING) instruction = "STRIKE NEAR THE TOSS APEX";
+            if (note == BV_NOTE_EARLY) instruction = "EARLY RELEASE / WAIT FOR HANDS";
+            if (note == BV_NOTE_LATE) instruction = "LATE RELEASE / READ IT EARLIER";
+            if (note == BV_NOTE_PLATFORM) instruction = "TURN PLATFORM INTO THE BALL";
+            if (note == BV_NOTE_ASSIST) instruction = "RELEASE MANUALLY FOR CONTROL";
         }
         if (result)
         {
@@ -310,8 +334,8 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         BV_Text(x + 12, y + 70, "C ASSIST: HOLD FOR CLOSE CONTACT", '0.4 1 0.75');
         BV_Text(x + 12, y + 86, "SHIFT + LOOK: CHANGE STORED AIM", '0.95 1 1');
         BV_Text(x + 12, y + 102, "WHEEL ARC / Q,E SIDE / Z TOP", '0.95 1 1');
-        BV_Text(x + 12, y + 118, "F SHORT / V DEEP / B MID DEPTH", '0.95 1 1');
-        BV_Text(x + 12, y + 134, "MMB RESET SPIN / SPACE JUMP", '0.95 1 1');
+        BV_Text(x + 12, y + 118, "F/V DEPTH OR RECEIVE CUSHION", '0.95 1 1');
+        BV_Text(x + 12, y + 134, "G SERVE TYPE / SPACE JUMP", '0.95 1 1');
         BV_Text(x + 12, y + 150, "CTRL DIVE / R SERVE / T FEED", '0.95 1 1');
         BV_Text(x + 12, y + 166, "1 SERVE 2 RECEIVE 3 SET 4 ATTACK", '0.95 1 1');
         BV_Text(x + 12, y + 182, "5 DOUBLES / J TRAINING OVERLAYS", '0.65 0.8 0.85');
@@ -321,7 +345,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     {
         bv_hud_ready = TRUE;
         dprint("BEACH HUD READY\n");
-        if (cvar("bv_visualtest") || cvar("bv_playtest"))
+        if (cvar("bv_visualtest") || cvar("bv_playtest") || cvar("bv_receivetest"))
             localcmd("con_notifytime 0\ncon_notifylines 0\nscr_fade 0\nscr_conspeed 100000\n");
     }
     if (cvar("bv_visualtest") && time > 2 && !bv_capture_done)
@@ -378,6 +402,11 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
             bv_play_quality_reported = TRUE;
             dprint("BEACH PLAY HUD quality\n");
         }
+    }
+    if (cvar("bv_receivetest") && receiving && locked && !bv_receive_hud_reported)
+    {
+        bv_receive_hud_reported = TRUE;
+        dprint("BEACH RECEIVE HUD timing-and-cushion\n");
     }
 };
 

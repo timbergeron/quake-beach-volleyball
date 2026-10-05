@@ -22,6 +22,8 @@ const float BV_SET = 2;
 const float BV_SPIKE = 3;
 const float BV_ROLL = 4;
 const float BV_SERVE = 5;
+const float BV_FLOAT_SERVE = 1;
+const float BV_TOPSPIN_SERVE = 2;
 
 const float BV_RESULT_TARGET = 1;
 const float BV_RESULT_IN = 2;
@@ -75,6 +77,8 @@ const float BV_STAT_OPPONENT1 = 80;
 const float BV_STAT_OPPONENT2 = 83;
 const float BV_STAT_HINT = 86;
 const float BV_STAT_POINT_REASON = 87;
+const float BV_STAT_SERVE_STYLE = 88;
+const float BV_STAT_RECEIVING = 89;
 const float BV_POINT_DOUBLE = 8;
 const float BV_POINT_FOUR = 9;
 
@@ -94,6 +98,10 @@ const float BV_NOTE_REACH = 2;
 const float BV_NOTE_FOOTING = 3;
 const float BV_NOTE_DIVE = 4;
 const float BV_NOTE_TIMING = 5;
+const float BV_NOTE_EARLY = 6;
+const float BV_NOTE_LATE = 7;
+const float BV_NOTE_PLATFORM = 8;
+const float BV_NOTE_ASSIST = 9;
 
 float(float value) BV_Round =
 {

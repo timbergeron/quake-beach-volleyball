@@ -12,24 +12,28 @@ float bv_bot_plan_at;
 void(float height) BV_Forecast =
 {
     local vector position, flight_velocity, spin, old;
-    local float age, fraction;
+    local float age, fraction, floating, phase;
     position = bv_ball.origin;
     flight_velocity = bv_ball.velocity;
     spin = bv_ball_spin;
+    floating = bv_ball_float;
+    phase = bv_ball_phase;
     age = 0;
     while (age < 4)
     {
         old = position;
-        BV_Integrate(position, flight_velocity, spin, BV_STEP * 2);
+        BV_IntegrateFlight(position, flight_velocity, spin, BV_STEP * 2, floating, phase);
         position = bv_step_position;
         flight_velocity = bv_step_velocity;
         spin = bv_step_spin;
+        phase = bv_step_phase;
         age = age + BV_STEP * 2;
         if (BV_NetSweep(old, position))
         {
             position = bv_net_position + bv_net_normal * 0.01;
             flight_velocity = BV_Reflect(flight_velocity, bv_net_normal, 0.22, 0.65);
             spin = spin * 0.4;
+            floating = floating * 0.4;
         }
         if (flight_velocity_z < 0 && position_z <= height)
         {
@@ -249,6 +253,8 @@ entity(vector position, float side) BV_SpawnBot =
     actor.bv_isplayer = TRUE;
     actor.bv_isbot = TRUE;
     actor.bv_assisted = TRUE;
+    actor.bv_arc = 0.35;
+    actor.bv_serve_style = BV_FLOAT_SERVE;
     actor.bv_footing = 1;
     actor.health = 100;
     actor.movetype = MOVETYPE_STEP;
@@ -509,7 +515,14 @@ void() BV_UpdateBots =
     if (bv_match_phase == BV_MATCH_SERVE)
     {
         if (bv_server.bv_isbot && bv_ball_state == BV_HELD && time >= bv_server.bv_plan_next)
+        {
             BV_BeginPreparation(bv_server, 1);
+            if (bv_server.bv_serve_style == BV_TOPSPIN_SERVE)
+            {
+                bv_server.velocity_z = 202;
+                bv_server.flags = bv_server.flags - (bv_server.flags & FL_ONGROUND);
+            }
+        }
         BV_Animate(bv_server);
         return;
     }

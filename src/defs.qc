@@ -178,6 +178,7 @@ void(vector position, vector direction, float color, float count) particle = #48
 float(float angle) sin = #60;
 float(float angle) cos = #61;
 float(float value) sqrt = #62;
+float(float y, float x) atan2 = #474;
 void(string name, string value) cvar_set = #72;
 void(entity e, string text) centerprint = #73;
 void(vector position, string sample, float volume, float attenuation) ambientsound = #74;

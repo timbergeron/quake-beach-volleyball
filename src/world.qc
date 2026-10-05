@@ -68,6 +68,8 @@ void() worldspawn =
     clientstat(BV_STAT_CONTACT_NOTE, 2, bv_contact_note);
     clientstat(BV_STAT_TIMING, 2, bv_timing);
     clientstat(BV_STAT_SERVING, 2, bv_serve_contact);
+    clientstat(BV_STAT_SERVE_STYLE, 2, bv_serve_style);
+    clientstat(BV_STAT_RECEIVING, 2, bv_receiving);
     globalstat(BV_STAT_MATCH, 2, "bv_match");
     globalstat(BV_STAT_HOME_SCORE, 2, "bv_home_score");
     globalstat(BV_STAT_AWAY_SCORE, 2, "bv_away_score");

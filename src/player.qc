@@ -4,6 +4,8 @@ void() BV_PlayTestInput;
 void() BV_PlayTestObserve;
 void() BV_BotTestInput;
 void() BV_BotTestObserve;
+void() BV_ReceiveTestInput;
+void() BV_ReceiveTestObserve;
 
 /* Shot recipes expose continuous power/arc/spin while sharing the forces.
  * Pitch at preparation adds a small launch-angle adjustment. Looking at the
@@ -13,6 +15,18 @@ void(entity player, vector contact) BV_BuildShot =
 {
     local vector heading, launch_velocity, spin;
     local float charge, arc, speed, angle, apex, top;
+    bv_shot_float = 0;
+    bv_shot_phase = 0;
+    if (player.bv_serve_contact)
+    {
+        BV_BuildServe(player, contact);
+        return;
+    }
+    if (BV_IsReceiving(player))
+    {
+        BV_BuildReceive(player, contact);
+        return;
+    }
     if (player.bv_isbot)
     {
         BV_BotBuildShot(player, contact);
@@ -27,13 +41,7 @@ void(entity player, vector contact) BV_BuildShot =
     arc = BV_Clamp(player.bv_arc, 0, 1);
     top = player.bv_topspin;
     bv_shot_kind = BV_PASS;
-    if (player.bv_serve_contact)
-    {
-        bv_shot_kind = BV_SERVE;
-        speed = 200 + charge * 300;
-        angle = 7 + arc * 32 + BV_Clamp(-player.bv_last_pitch, -12, 12);
-    }
-    else if (player.bv_action == 2 && !(player.flags & FL_ONGROUND) &&
+    if (player.bv_action == 2 && !(player.flags & FL_ONGROUND) &&
              contact_z > BV_NET_HEIGHT)
     {
         bv_shot_kind = BV_ROLL;
@@ -92,16 +100,24 @@ void(entity player, vector contact) BV_BuildShot =
 
 void(entity player, vector contact) BV_Contact =
 {
-    if (!BV_MatchContact(player)) return;
+    player.bv_receive_contact = BV_IsReceiving(player);
+    if (!BV_MatchContact(player))
+    {
+        player.bv_receive_contact = FALSE;
+        return;
+    }
     BV_ResolveContact(player, contact);
     player.bv_contact_latched = TRUE;
     player.bv_latch_offset = bv_hand_position - player.origin;
     player.bv_latch_radius = bv_hand_radius;
     player.bv_timing = 0;
     if (player.bv_serve_contact) player.bv_timing = BV_ServeTiming(player);
+    if (player.bv_receive_contact) player.bv_timing = BV_ReceiveTiming(player);
     setorigin(bv_ball, contact);
     bv_ball.velocity = bv_contact_velocity;
     bv_ball_spin = bv_contact_spin;
+    bv_ball_float = bv_shot_float;
+    bv_ball_phase = bv_shot_phase;
     bv_ball_state = BV_LIVE;
     bv_live_time = 0;
     bv_last_player = player;
@@ -110,6 +126,8 @@ void(entity player, vector contact) BV_Contact =
     player.bv_armed_until = 0;
     player.bv_preparing = 0;
     player.bv_serve_contact = 0;
+    player.bv_receive_contact = FALSE;
+    player.bv_receive_committed = FALSE;
     player.bv_aim_locked = FALSE;
     player.bv_kind = bv_shot_kind;
     player.bv_quality = bv_contact_quality;
@@ -139,6 +157,10 @@ void(entity player) BV_ReadyServe =
     bv_live_time = 0;
     bv_ball.velocity = '0 0 0';
     bv_ball_spin = '0 0 0';
+    bv_ball_float = 0;
+    bv_ball_phase = 0;
+    BV_ResetBallRotation();
+    bv_ball.angles = '0 0 0';
     bv_last_player = world;
     bv_feeder = player;
     bv_next_feed = 0;
@@ -148,6 +170,9 @@ void(entity player) BV_ReadyServe =
     player.bv_preparing = 0;
     player.bv_armed_until = 0;
     player.bv_serve_contact = 0;
+    player.bv_receive_contact = FALSE;
+    player.bv_receive_committed = FALSE;
+    player.bv_receiving = FALSE;
     player.bv_aim_locked = 0;
     player.bv_charge = 0;
     player.bv_timing = 0;
@@ -181,8 +206,10 @@ void(entity player) BV_ReadyServe =
 void(entity player, float automatic) BV_Feed =
 {
     local vector start, target, launch_velocity;
-    local float side;
+    local float side, angle, speed;
+    local vector heading;
     if (!player.bv_isplayer) return;
+    heading = '0 0 0';
     BV_ClearContactLatches();
     if (!player.bv_mode) player.bv_mode = 1;
     side = 1;
@@ -192,12 +219,23 @@ void(entity player, float automatic) BV_Feed =
     start = target;
     if (player.bv_mode == 1)
     {
-        start_x = side * 190;
+        start_x = side * 288;
         start_y = BV_Clamp(player.origin_y * 0.5, -100, 100);
-        start_z = 115;
-        launch_velocity = BV_BallisticVelocity(start, target, 185);
-        launch_velocity_x = launch_velocity_x * 1.15;
-        player.bv_message = "RECEIVE - get behind the ball; prepare a pass";
+        start_z = 98;
+        speed = 480;
+        angle = 15;
+        if (player.bv_serve_style == BV_TOPSPIN_SERVE)
+        {
+            start_z = 137;
+            speed = 680;
+            angle = 7;
+        }
+        heading = target - start;
+        heading_z = 0;
+        heading = normalize(heading);
+        launch_velocity = heading * (cos(angle * BV_PI / 180) * speed) +
+            '0 0 1' * (sin(angle * BV_PI / 180) * speed);
+        player.bv_message = "RECEIVE - aim platform; release at hands; F/V cushion";
     }
     else
     {
@@ -212,6 +250,16 @@ void(entity player, float automatic) BV_Feed =
     setorigin(bv_ball, start);
     bv_ball.velocity = launch_velocity;
     bv_ball_spin = '0 0 0';
+    bv_ball_float = 0;
+    bv_ball_phase = random() * 2 * BV_PI;
+    BV_ResetBallRotation();
+    bv_ball.angles = '0 0 0';
+    if (player.bv_mode == 1)
+    {
+        if (player.bv_serve_style == BV_TOPSPIN_SERVE)
+            bv_ball_spin = BV_Cross('0 0 1', heading) * 110;
+        else bv_ball_float = 1;
+    }
     bv_ball_state = BV_LIVE;
     bv_live_time = 0;
     bv_holder = world;
@@ -222,6 +270,8 @@ void(entity player, float automatic) BV_Feed =
     bv_under_net = 0;
     player.bv_armed_until = 0;
     player.bv_serve_contact = 0;
+    player.bv_receive_committed = FALSE;
+    player.bv_receive_contact = FALSE;
     player.bv_last_contact = -1;
     player.bv_timing = 0;
     player.bv_recover_until = 0;
@@ -246,13 +296,18 @@ void(entity player, float action) BV_BeginPreparation =
     player.bv_last_pitch = player.v_angle_x;
     player.bv_aim_locked = TRUE;
     player.bv_armed_until = 0;
+    player.bv_receive_committed = FALSE;
+    player.bv_read_direction = BV_ReadIncoming(player);
     if (bv_ball_state == BV_HELD && bv_holder == player)
     {
         player.bv_serve_contact = TRUE;
         bv_ball_state = BV_LIVE;
         bv_live_time = 0;
         setorigin(bv_ball, player.origin + player.bv_aim * 22 + '0 0 43');
-        bv_ball.velocity = '0 0 140';
+        bv_ball.velocity = '0 0 1' * BV_TossSpeed(player);
+        bv_ball_float = 0;
+        bv_ball_phase = 0;
+        player.bv_float_seed = random() * 2 * BV_PI;
         bv_holder = world;
     }
 };
@@ -261,6 +316,12 @@ void(entity player) BV_Release =
 {
     if (!player.bv_preparing) return;
     player.bv_charge = BV_Charge(player);
+    player.bv_receive_committed = BV_IsReceiving(player);
+    if (player.bv_receive_committed)
+    {
+        player.bv_release_error = BV_ReceiveError(player);
+        player.bv_release_timing = 1 - BV_Smooth((fabs(player.bv_release_error) - 0.035) / 0.12);
+    }
     player.bv_preparing = 0;
     player.bv_armed_until = time + 0.18;
 };
@@ -276,7 +337,7 @@ void(entity player) BV_UpdatePreview =
         BV_ContactZone(player, bv_ball.origin);
         contact = bv_hand_position;
         BV_ResolveContact(player, contact);
-        BV_Predict(contact, bv_contact_velocity, bv_contact_spin);
+        BV_PredictFlight(contact, bv_contact_velocity, bv_contact_spin, bv_shot_float, bv_shot_phase);
         player.bv_preview_landing = bv_landing;
         distance = bv_landing - contact;
         distance_z = 0;
@@ -309,6 +370,7 @@ void() PlayerPreThink =
     if (cvar("bv_playtest")) BV_PlayTestInput();
     if (cvar("bv_matchtest")) BV_MatchTestInput();
     if (cvar("bv_bottest")) BV_BotTestInput();
+    if (cvar("bv_receivetest")) BV_ReceiveTestInput();
     BV_UpdateFooting(self);
     self.gravity = BV_Clamp(autocvar_bv_gravity, 100, 800) /
                    BV_Clamp(cvar("sv_gravity"), 1, 2000);
@@ -331,6 +393,11 @@ void() PlayerPreThink =
     if (pulse == 42) self.bv_depth = 0;
     if (pulse == 43) self.bv_assisted = !self.bv_assisted;
     if (pulse == 44) self.bv_overlays = !self.bv_overlays;
+    if (pulse == 45 && !self.bv_serve_contact)
+    {
+        if (self.bv_serve_style == BV_TOPSPIN_SERVE) self.bv_serve_style = BV_FLOAT_SERVE;
+        else self.bv_serve_style = BV_TOPSPIN_SERVE;
+    }
     if (pulse == 34) BV_StartMatch(self);
     if (pulse == 30 || (pulse >= 31 && pulse <= 33)) BV_StopMatch();
     if (pulse == 30 || (pulse == 20 && !bv_match)) BV_ReadyServe(self);
@@ -362,10 +429,12 @@ void() PlayerPreThink =
         self.bv_charge = BV_Charge(self);
         self.bv_timing = 0;
         if (self.bv_serve_contact) self.bv_timing = BV_ServeTiming(self);
+        else if (BV_IsReceiving(self)) self.bv_timing = BV_ReceiveTiming(self);
         if (self.button8)
         {
             self.bv_aim = BV_Heading(self.v_angle_y);
             self.bv_last_pitch = self.v_angle_x;
+            self.bv_read_direction = BV_ReadIncoming(self);
         }
         if ((self.bv_preparing == 1 && !self.button0) ||
             (self.bv_preparing == 2 && !self.button3))
@@ -377,6 +446,7 @@ void() PlayerPreThink =
     {
         self.bv_armed_until = 0;
         self.bv_serve_contact = 0;
+        self.bv_receive_committed = FALSE;
         self.bv_aim_locked = 0;
         self.bv_message = "MISS - release when the ball is within reach";
         self.bv_last_result = BV_RESULT_MISS;
@@ -421,6 +491,7 @@ void() PlayerPreThink =
         self.velocity_y = horizontal_y;
     }
     self.bv_state = bv_ball_state;
+    self.bv_receiving = BV_IsReceiving(self);
 };
 
 void() PlayerPostThink =
@@ -458,6 +529,7 @@ void() PlayerPostThink =
     if (cvar("bv_playtest")) BV_PlayTestObserve();
     if (cvar("bv_matchtest")) BV_MatchTestObserve();
     if (cvar("bv_bottest")) BV_BotTestObserve();
+    if (cvar("bv_receivetest")) BV_ReceiveTestObserve();
 };
 
 void() PutClientInServer =
@@ -477,6 +549,7 @@ void() PutClientInServer =
     self.items = 0;
     self.bv_arc = 0.35;
     self.bv_topspin = 0.35;
+    self.bv_serve_style = BV_FLOAT_SERVE;
     self.bv_contact_side = -1;
     self.bv_last_contact = -1;
     self.bv_footing = 1;
