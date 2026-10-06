@@ -69,6 +69,8 @@ def package_game():
     shutil.copyfile(HERE / "server.cfg", GAME / "server.cfg")
     (GAME / "autoexec.cfg").write_text("exec beach.cfg\n")
     documents = ("README.md", "LICENSE", "THIRD_PARTY.md", "docs/court.png", "docs/ball.png", "docs/net.png", "docs/player.md", "docs/player.png")
+    documents += tuple(path.relative_to(HERE).as_posix()
+                       for path in sorted((HERE / "docs/releases").glob("*.md")))
     for name in documents:
         (GAME / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(HERE / name, GAME / name)

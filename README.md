@@ -21,7 +21,7 @@ gameplay values rather than a calibrated sports simulation.
 ## Play the built version
 
 Download `beachvolley.zip` from the
-[releases page](https://github.com/timbergeron/quake-beach-volleyball/releases),
+[v0.6.0 release](https://github.com/timbergeron/quake-beach-volleyball/releases/tag/v0.6.0),
 unpack it into your Quake directory, and launch
 [QSS-M](https://github.com/timbergeron/QSS-M):
 
@@ -32,6 +32,11 @@ quakespasm -game beachvolley -fsaa 4 +exec beach.cfg +map beach
 You need an installed copy of Quake, including `id1/pak0.pak`. The archive
 contains mod assets and compiled QC; base Quake data comes
 from your installation.
+
+This release includes the MD3 ball, animated net, prepared court textures,
+Norwegian-inspired players and first-person arms. See the
+[release notes](docs/releases/v0.6.0.md) for the asset inventory, animation review
+download and validation details.
 
 To play a source build, run this from the mod repository root after building:
 
