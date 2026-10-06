@@ -45,6 +45,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
         "bv_receivetest": {"receive-float": 1, "receive-topspin": 2,
                            "receive-early": 3, "receive-late": 4}.get(profile, 0),
         "bv_netview": netview,
+        "bv_handview": 0,
     }
     command = [str(binary), "-basedir", str(runtime), "-game", "beachvolley",
                "-nohome", "-nolan", "-noudp", "-nosound", "+exec", "fixture.cfg"]
@@ -175,7 +176,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                     shutil.copyfile(images[0], artifacts / "compact-help.tga")
     else:
         completed = re.search(r"BEACH DONE pass=(\d+) fail=(\d+)", result.stdout)
-        if not completed or int(completed[2]) or int(completed[1]) < 249:
+        if not completed or int(completed[2]) or int(completed[1]) < 257:
             errors.append("missing or failed gameplay completion marker")
     if errors:
         raise RuntimeError(f"{name}: {', '.join(errors)}\n{result.stdout[-6000:]}")

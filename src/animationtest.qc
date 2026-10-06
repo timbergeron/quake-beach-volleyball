@@ -82,6 +82,57 @@ void(entity player) BV_RunAnimationTests =
         BV_ANIM_RUN_COUNT, 1, TRUE) == BV_ANIM_RUN);
     BV_Assert("animation-hold-clamps-to-clip-end", BV_AnimationFrame(BV_ANIM_SET_LOAD,
         BV_ANIM_SET_LOAD_COUNT, 100, FALSE) == BV_ANIM_SET_LOAD + BV_ANIM_SET_LOAD_COUNT - 1);
+
+    BV_TestReset(player);
+    BV_ResetAnimation(player);
+    bv_ball_state = BV_LIVE;
+    bv_holder = world;
+    player.bv_dive_until = 0;
+    BV_BeginPreparation(player, 1);
+    BV_Assert("animation-stores-initial-swing-heading", player.bv_swing_aim == player.bv_aim);
+    player.flags = player.flags - (player.flags & FL_ONGROUND);
+    player.bv_depth = -0.5;
+    player.bv_aim = normalize('1 1 0');
+    BV_Contact(player, player.origin + '18 0 64');
+    BV_Animate(player);
+    BV_Assert("animation-short-angled-contact-selects-cut", player.bv_kind == BV_SPIKE &&
+        player.bv_anim_cut == 1 && player.bv_anim_clip == BV_ANIM_CUT);
+    player.v_angle_y = 180;
+    time = time + 0.11;
+    BV_Animate(player);
+    BV_Assert("animation-cut-persists-after-looking-away", player.bv_anim_clip == BV_ANIM_CUT);
+    player.bv_swing_aim = '1 0 0';
+    player.bv_aim = normalize('1 -1 0');
+    BV_Contact(player, player.origin + '18 0 64');
+    BV_Animate(player);
+    BV_Assert("animation-wrist-away-uses-extra-hand-frames", player.bv_anim_cut == -1 &&
+        player.weaponframe == BV_VIEW_ANIM_CUT_AWAY + player.frame - BV_ANIM_CUT);
+    player.bv_aim = '1 0 0';
+    player.bv_sidespin = 1;
+    BV_Contact(player, player.origin + '18 0 64');
+    BV_Animate(player);
+    BV_Assert("animation-spin-alone-keeps-straight-spike", !player.bv_anim_cut &&
+        player.bv_anim_clip == BV_ANIM_SPIKE);
+    player.bv_aim = normalize('1 1 0');
+    player.bv_depth = 0.5;
+    BV_Contact(player, player.origin + '18 0 64');
+    BV_Animate(player);
+    BV_Assert("animation-deep-angled-attack-keeps-spike", !player.bv_anim_cut &&
+        player.bv_anim_clip == BV_ANIM_SPIKE);
+    player.bv_recover_until = 0;
+    player.bv_preparing = 1;
+    player.bv_serve_contact = TRUE;
+    player.bv_serve_style = BV_FLOAT_SERVE;
+    player.bv_prepare_started = time;
+    BV_Animate(player);
+    BV_Assert("animation-float-serve-loads-dedicated-palm", player.bv_anim_clip == BV_ANIM_FLOAT_LOAD);
+    player.bv_preparing = 0;
+    player.bv_kind = BV_SERVE;
+    player.bv_last_contact = time;
+    player.bv_recovery = 0.45;
+    player.bv_recover_until = time + 0.45;
+    BV_Animate(player);
+    BV_Assert("animation-float-contact-uses-firm-palm-follow-through", player.bv_anim_clip == BV_ANIM_FLOAT_SERVE);
     time = saved_time;
     frametime = saved_frametime;
     BV_TestReset(player);

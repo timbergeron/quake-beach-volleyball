@@ -12,9 +12,10 @@ The rest silhouette is approximately 1.95 metres tall at 32 units per metre.
 X points forward, Y left and Z up. The entity origin matches the game's existing
 player origin: bare soles are about -24 units. Gameplay hulls remain separate
 from visual geometry. No animation drives entity translation or contacts.
-The first-person rig brings the upper arms in from below and behind the camera
-so shoulder caps do not obscure the ball. It shares the body's stroke timing
-and hand poses, with camera-space framing for its wrists and elbows.
+The first-person rig uses detailed CC0 anatomical hands with individual finger
+joints and its own skin atlas. It shares the body's core frame ranges and stroke
+timing, with dedicated camera-space hand poses and an extra wrist-away cut.
+See [the first-person hand notes](hands.md) for source data, rebuilding and review.
 
 ## Rebuild
 
@@ -28,7 +29,7 @@ python3 player_review.py
 ```
 
 The first command writes home/away body MD3s, the first-person arm MD3, two
-512×512 original RGBA atlases, and `bv_athlete.animations.json` under
+512×512 original body RGBA atlases, a 512×2048 hand atlas, and body/hand manifests under
 `dist/beachvolley/progs/`. It writes strict quality reports under
 `build/player-quality/`. `--output` takes a game root, not a `progs/` directory.
 The normal mod build invokes this same generator.
@@ -53,7 +54,7 @@ Preparation holds the final loaded pose; recovery clips start at contact.
 | block_load, block_pike, block_l, block_r, peel | Raised/spread palms, hip pike and forward feet, lateral press, retreat to defense |
 | dive, pancake, getup, land | Committed low platform, one-hand pancake, push-up recovery and bent-knee landing |
 
-Core pass, set, attack, roll, serve, dive and locomotion animations are connected
+Core pass, set, attack, cut, roll, serve, dive and locomotion animations are connected
 to existing human/bot states in `src/animations.qc`. The remaining variants are
 authored assets for review and future mechanics. A library clip does not add
 block touches, a new input, or a ball-contact rule.

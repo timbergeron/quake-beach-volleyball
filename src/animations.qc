@@ -31,6 +31,7 @@ void(entity player) BV_ResetAnimation =
     player.bv_anim_phase = 0;
     player.bv_anim_air = FALSE;
     player.bv_anim_air_started = time;
+    player.bv_anim_cut = FALSE;
 };
 
 void(entity player) BV_Animate =
@@ -62,9 +63,13 @@ void(entity player) BV_Animate =
         start = BV_ANIM_PASS; count = BV_ANIM_PASS_COUNT;
         if (player.bv_kind == BV_SET) { start = BV_ANIM_SET; count = BV_ANIM_SET_COUNT; }
         if (player.bv_kind == BV_SPIKE) { start = BV_ANIM_SPIKE; count = BV_ANIM_SPIKE_COUNT; }
+        if (player.bv_kind == BV_SPIKE && player.bv_anim_cut)
+        { start = BV_ANIM_CUT; count = BV_ANIM_CUT_COUNT; }
         if (player.bv_kind == BV_ROLL) { start = BV_ANIM_ROLL; count = BV_ANIM_ROLL_COUNT; }
         if (player.bv_kind == BV_SERVE) { start = BV_ANIM_FLOAT_SERVE; count = BV_ANIM_FLOAT_SERVE_COUNT; }
         BV_Animation(player, start, count, elapsed / player.bv_recovery, FALSE);
+        if (start == BV_ANIM_CUT && player.bv_anim_cut < 0)
+            player.weaponframe = BV_VIEW_ANIM_CUT_AWAY + player.frame - BV_ANIM_CUT;
         return;
     }
     if (player.bv_preparing || player.bv_armed_until > time)

@@ -100,6 +100,7 @@ void(entity player, vector contact) BV_BuildShot =
 
 void(entity player, vector contact) BV_Contact =
 {
+    local vector cut_direction;
     player.bv_receive_contact = BV_IsReceiving(player);
     if (!BV_MatchContact(player))
     {
@@ -130,6 +131,19 @@ void(entity player, vector contact) BV_Contact =
     player.bv_receive_committed = FALSE;
     player.bv_aim_locked = FALSE;
     player.bv_kind = bv_shot_kind;
+    /* A cut is a short angled attack, authored from the change in stored
+     * heading during this preparation. Spin controls alone do not select it.
+     * Capture at contact so looking around during recovery cannot change it.
+     */
+    player.bv_anim_cut = FALSE;
+    if (player.bv_kind == BV_SPIKE && player.bv_depth < -0.2 &&
+        player.bv_swing_aim * player.bv_aim < 0.94)
+    {
+        player.bv_anim_cut = 1;
+        cut_direction = BV_Cross(player.bv_swing_aim, player.bv_aim);
+        if (cut_direction_z < 0)
+            player.bv_anim_cut = -1;
+    }
     player.bv_quality = bv_contact_quality;
     player.bv_contact_note = bv_contact_reason;
     player.bv_feedback_at = time;
@@ -296,6 +310,7 @@ void(entity player, float action) BV_BeginPreparation =
     player.bv_prepare_started = time;
     player.bv_charge = 0;
     player.bv_aim = BV_Heading(player.v_angle_y);
+    player.bv_swing_aim = player.bv_aim;
     player.bv_last_pitch = player.v_angle_x;
     player.bv_aim_locked = TRUE;
     player.bv_armed_until = 0;
@@ -368,6 +383,8 @@ void(entity player) BV_UpdatePreview =
 void(entity player) BV_NetVisualSetup;
 void() BV_NetVisualInput;
 void() BV_NetVisualObserve;
+void(entity player) BV_HandVisualSetup;
+void() BV_HandVisualObserve;
 
 void() PlayerPreThink =
 {
@@ -539,6 +556,7 @@ void() PlayerPostThink =
     if (cvar("bv_bottest")) BV_BotTestObserve();
     if (cvar("bv_receivetest")) BV_ReceiveTestObserve();
     if (cvar("bv_netview")) BV_NetVisualObserve();
+    if (cvar("bv_handview")) BV_HandVisualObserve();
 };
 
 void() PutClientInServer =
@@ -585,6 +603,7 @@ void() PutClientInServer =
         self.bv_topspin = -1;
     }
     if (cvar("bv_netview")) BV_NetVisualSetup(self);
+    if (cvar("bv_handview")) BV_HandVisualSetup(self);
 };
 
 void() ClientConnect = {};

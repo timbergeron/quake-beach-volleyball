@@ -64,3 +64,5 @@ float BV_ANIM_GETUP = 364;
 float BV_ANIM_GETUP_COUNT = 17;
 float BV_ANIM_LAND = 381;
 float BV_ANIM_LAND_COUNT = 8;
+// Extra first-person wrist-away variant; body uses CUT.
+float BV_VIEW_ANIM_CUT_AWAY = 389;

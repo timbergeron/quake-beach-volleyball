@@ -68,7 +68,7 @@ def package_game():
     shutil.copyfile(HERE / "beach.cfg", GAME / "beach.cfg")
     shutil.copyfile(HERE / "server.cfg", GAME / "server.cfg")
     (GAME / "autoexec.cfg").write_text("exec beach.cfg\n")
-    documents = ("README.md", "LICENSE", "THIRD_PARTY.md", "docs/court.png", "docs/ball.png", "docs/net.png", "docs/player.md", "docs/player.png")
+    documents = ("README.md", "LICENSE", "THIRD_PARTY.md", "docs/court.png", "docs/ball.png", "docs/net.png", "docs/player.md", "docs/player.png", "docs/hands.md", "docs/hands.png", "resources/hands/LICENSE.CC0.txt")
     documents += tuple(path.relative_to(HERE).as_posix()
                        for path in sorted((HERE / "docs/releases").glob("*.md")))
     for name in documents:
@@ -85,6 +85,7 @@ def package_game():
         members.extend(p for p in (GAME / directory).rglob("*") if p.suffix in (".bsp", ".lit", ".mdl", ".md3", ".wav", ".tga")
                        and p.relative_to(GAME).as_posix() not in obsolete)
     members.append(GAME / "progs/bv_athlete.animations.json")
+    members.append(GAME / "progs/bv_hands.animations.json")
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as output:
         for path in sorted(members):
             output.write(path, path.relative_to(GAME.parent))

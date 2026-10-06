@@ -102,7 +102,7 @@ void() BV_VisualCapture =
     {
         bv_hud_ready = TRUE;
         dprint("BEACH HUD READY\n");
-        if (cvar("bv_visualtest") || cvar("bv_playtest") || cvar("bv_receivetest"))
+        if (cvar("bv_visualtest") || cvar("bv_playtest") || cvar("bv_receivetest") || cvar("bv_handview"))
             localcmd("con_notifytime 0\ncon_notifylines 0\nscr_fade 0\nscr_conspeed 100000\n");
     }
     if (cvar("bv_visualtest") && time > 2 && !bv_capture_done)
@@ -131,7 +131,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     local float match, phase, hint, assisted, overlays, receiving, style;
     local vector color;
     local string label, instruction;
-    if (cvar("bv_netview") > 0 && cvar("bv_netview") != 6)
+    if ((cvar("bv_netview") > 0 && cvar("bv_netview") != 6) || cvar("bv_handview"))
     {
         BV_VisualCapture();
         return;

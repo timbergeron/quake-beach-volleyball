@@ -658,6 +658,8 @@ def qc_constants():
     for c in CLIPS:
         prefix = "BV_ANIM_"+c.name.upper()
         lines += [f"float {prefix} = {c.start};", f"float {prefix}_COUNT = {c.count};"]
+    lines += ["// Extra first-person wrist-away variant; body uses CUT.",
+              f"float BV_VIEW_ANIM_CUT_AWAY = {FRAME_COUNT};"]
     return "\n".join(lines)+"\n"
 
 
@@ -695,13 +697,8 @@ def generate_players(game, reports=None):
 
 
 def generate_hands(game, reports=None):
-    game = Path(game)
-    cli = harness()
-    report = cli.export_scene(scene(True), game / "progs/bv_hands.md3", game,
-        dict(frames=FRAME_COUNT, triangle_budget=5000), strict=True)
-    if reports:
-        cli.save_json(Path(reports) / "hands.report.json", report)
-    return report
+    from hand_assets import generate_hands as generate_anatomical_hands
+    return generate_anatomical_hands(game, reports)
 
 
 def main():

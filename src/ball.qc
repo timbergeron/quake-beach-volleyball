@@ -30,6 +30,8 @@
 .vector bv_read_direction;
 .float bv_anim_clip, bv_anim_started, bv_anim_next, bv_anim_phase;
 .float bv_anim_air, bv_anim_air_started;
+.float bv_anim_cut;
+.vector bv_swing_aim;
 
 entity bv_match_owner, bv_partner, bv_opponent1, bv_opponent2, bv_server;
 float bv_match, bv_home_score, bv_away_score, bv_match_phase;

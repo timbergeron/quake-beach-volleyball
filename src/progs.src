@@ -18,6 +18,7 @@ nettest.qc
 feeltest.qc
 matchrules.qc
 animationtest.qc
+handview.qc
 bottest.qc
 servetest.qc
 receivetest.qc

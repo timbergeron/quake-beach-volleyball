@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>First-person hands · animation review</title>
+<style>
+*{box-sizing:border-box}body{margin:0;color:#e6edf2;background:#101920;font:15px system-ui,sans-serif}
+main{display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:100vh}canvas{width:100%;height:100vh;display:block;touch-action:none;background:radial-gradient(at 50% 35%,#314b5b,#142530)}
+aside{padding:28px;background:#18252e;overflow:auto;height:100vh}h1{font-size:23px;line-height:1.2;margin:8px 0 12px}p{color:#aabcc9;line-height:1.6}label{display:block;margin:22px 0 8px;color:#aabcc9;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+select,button{color:#e6edf2;background:#253a47;border:1px solid #436274;border-radius:5px;padding:10px;font:inherit}select{width:100%}button{cursor:pointer}.row{display:flex;gap:10px;margin-top:16px}.row>*{flex:1}.badge{font-size:12px;color:#7fdadf;text-transform:uppercase;letter-spacing:.1em}input{width:100%;accent-color:#61c7d8}#note{min-height:76px}code{font-size:10px;word-break:break-all;color:#819baa}small{color:#9aacb9}#pose{font-variant-numeric:tabular-nums}a{color:#89d5e3}
+@media(max-width:760px){main{grid-template-columns:1fr}canvas{height:65vh}aside{height:auto;padding:22px}}
+</style>
+<main><canvas id="view" aria-label="Anatomical volleyball hands in the first-person camera"></canvas><aside>
+<div class="badge">MD3 · anatomical hand rig</div><h1>Volleyball hands</h1><p>Deep dish setting, float serve, and cut-shot wrist motion. Use First person to check the playing view, or Inspect to orbit the hands.</p>
+<label for="clip">Movement</label><select id="clip"></select><p id="note"></p>
+<div class="row"><button id="play">Pause</button><select id="speed" aria-label="Playback speed"><option value="1">1× speed</option><option value=".5">½ speed</option><option value=".25">¼ speed</option></select></div>
+<label for="scrub">Timeline <span id="pose"></span></label><input id="scrub" type="range" min="0" max="1" step=".001" value="0">
+<select id="kit" hidden><option value="bv_hands">Anatomical skin</option></select>
+<div class="row"><button id="front">First person</button><button id="quarter">Inspect</button><button id="side">Palm detail</button></div>
+<p><small id="stats"></small></p><p><small>Continuous anatomical mesh with three joints per finger, opposed thumbs, and a dedicated skin atlas. Poses are authored; game physics controls ball contacts.</small></p>
+<label>Exact model SHA-256</label><code id="hash"></code><p><small>The separate QSS-M studio captures verify the target renderer.</small></p>
+<p id="error" role="alert"></p>
+</aside></main>
+<script>
+const manifest=__MANIFEST__, textures=__TEXTURES__, raw=(()=>{const data=atob('__MODEL__'),bytes=new Uint8Array(data.length);for(let i=0;i<data.length;i++)bytes[i]=data.charCodeAt(i);return bytes})();
+const dv=new DataView(raw.buffer), i32=o=>dv.getInt32(o,true), f32=o=>dv.getFloat32(o,true);
+const canvas=document.getElementById('view'), gl=canvas.getContext('webgl',{antialias:true,preserveDrawingBuffer:true});
+const fail=e=>{document.getElementById('error').textContent=e.message;throw e};
+if(!gl)fail(new Error('This review needs a browser with WebGL enabled.'));
+let surfaces=[], off=i32(100), nv=0, triangles=[];
+for(let s=0;s<i32(84);s++){
+ const n=i32(off+80), nt=i32(off+84), tri=off+i32(off+88), tex=off+i32(off+96), xyz=off+i32(off+100);
+ surfaces.push({n,xyz,tex,base:nv});
+ for(let t=0;t<nt;t++)triangles.push(nv+i32(tri+t*12),nv+i32(tri+t*12+4),nv+i32(tri+t*12+8));
+ nv+=n;off+=i32(off+104);
+}
+// A neutral sand-colored studio floor, using the same geometry pipeline.
+const floorBase=nv;nv+=4;
+const positions=new Float32Array(nv*3), normals=new Float32Array(nv*3), texcoords=new Float32Array(nv*2), floor=new Float32Array(nv);
+for(const s of surfaces)for(let j=0;j<s.n;j++){texcoords[(s.base+j)*2]=f32(s.tex+j*8);texcoords[(s.base+j)*2+1]=f32(s.tex+j*8+4)}
+for(let j=0;j<4;j++){positions.set([j===0||j===3?-45:45,j<2?-45:45,-24.2],(floorBase+j)*3);normals[(floorBase+j)*3+2]=1;floor[floorBase+j]=1}
+const vertex=`attribute vec3 position;attribute vec3 normal;attribute vec2 uv;attribute float floor;
+uniform mat4 projection;uniform mat4 view;varying vec3 n;varying vec3 p;varying vec2 t;varying float ground;
+void main(){n=normal;p=position;t=uv;ground=floor;gl_Position=projection*view*vec4(position,1.);}`;
+const fragment=`precision mediump float;varying vec3 n;varying vec3 p;varying vec2 t;varying float ground;uniform sampler2D atlas;
+void main(){vec3 normal=normalize(n);float light=.64+.36*max(0.,dot(normal,normalize(vec3(.8,-.5,1.))));
+vec3 color=texture2D(atlas,t).rgb;if(ground>.5){float line=step(.965,fract(p.x/8.))*0.035+step(.965,fract(p.y/8.))*0.035;
+float shadow=exp(-dot(p.xy,p.xy)/90.)*.24;color=vec3(.66,.60,.48)-line-shadow;light=1.;}
+gl_FragColor=vec4(color*light,1.);}`;
+function shader(type,source){const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))fail(new Error(gl.getShaderInfoLog(sh)));return sh}
+const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vertex));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);
+if(!gl.getProgramParameter(program,gl.LINK_STATUS))fail(new Error(gl.getProgramInfoLog(program)));gl.useProgram(program);
+function attribute(name,size,data,dynamic){const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,dynamic?gl.DYNAMIC_DRAW:gl.STATIC_DRAW);const loc=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,size,gl.FLOAT,false,0,0);return buffer}
+const pb=attribute('position',3,positions,true),nb=attribute('normal',3,normals,true);attribute('uv',2,texcoords);attribute('floor',1,floor);
+const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(triangles),gl.STATIC_DRAW);
+gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.frontFace(gl.CW);
+const projection=gl.getUniformLocation(program,'projection'), view=gl.getUniformLocation(program,'view');
+let textureLoaded=false,textureTicket=0;
+function setTexture(name){const ticket=++textureTicket,img=new Image();img.onload=()=>{if(ticket!==textureTicket)return;const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);textureLoaded=true};img.src='data:image/png;base64,'+textures[name]}
+setTexture('bv_hands');
+const byName=Object.fromEntries(manifest.clips.map(c=>[c.name,c]));
+const sequences={
+ 'Attack · approach → bow → swing':['approach','attack_load','spike'],
+ 'Deep dish · load → set':['set_load','set'],
+ 'Pike block · load → press → land':['block_load','block_pike','land'],
+ 'Emergency dig · dive → get up':['dive','getup'],
+ 'Float serve · toss → strike':['float_load','float_serve'],
+ 'Cut shot · bow → wrist turn':['attack_load','cut']
+};
+const choices=[...Object.entries(sequences).map(([name,clips])=>({name,clips:clips.map(n=>byName[n]).filter(Boolean)})),...manifest.clips.map(c=>({name:c.name.replaceAll('_',' '),clips:[c]}))].filter(c=>c.clips.length);
+const select=document.getElementById('clip');choices.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.name;select.append(o)});
+let selected=1,time=0,playing=true,last=0,yaw=2.8,elevation=.3,distance=36,drag=null,firstPerson=true;
+function choose(index){selected=index;select.value=index;time=0;document.getElementById('note').textContent=choices[index].clips.map(c=>c.note).filter(Boolean).join(' ')}choose(1);
+select.onchange=()=>choose(Number(select.value));document.getElementById('kit').onchange=e=>setTexture(e.target.value);
+document.getElementById('play').onclick=()=>{playing=!playing;document.getElementById('play').textContent=playing?'Pause':'Play'};
+document.getElementById('scrub').oninput=e=>{time=Number(e.target.value)*duration();playing=false;document.getElementById('play').textContent='Play'};
+document.getElementById('front').onclick=()=>{firstPerson=true};document.getElementById('quarter').onclick=()=>{firstPerson=false;yaw=2.8;elevation=.3;distance=36};document.getElementById('side').onclick=()=>{firstPerson=false;yaw=3.14;elevation=-.9;distance=24};
+canvas.onpointerdown=e=>{drag=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId)};canvas.onpointerup=()=>drag=null;canvas.onpointermove=e=>{if(!drag)return;yaw-=(e.clientX-drag[0])*.006;elevation=Math.max(-1.2,Math.min(1.2,elevation+(e.clientY-drag[1])*.006));drag=[e.clientX,e.clientY]};
+canvas.onwheel=e=>{e.preventDefault();distance=Math.max(8,Math.min(180,distance+e.deltaY*.07))};
+const norm=v=>{const d=Math.hypot(...v);return v.map(x=>x/d)},cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0);
+function camera(){if(firstPerson)return new Float32Array([0,0,-1,0,-1,0,0,0,0,1,0,0,0,0,0,1]);const target=[17,0,-2],eye=[17+distance*Math.cos(yaw)*Math.cos(elevation),distance*Math.sin(yaw)*Math.cos(elevation),-2+distance*Math.sin(elevation)];
+const z=norm(eye.map((x,i)=>x-target[i])),x=norm(cross([0,0,1],z)),y=cross(z,x);
+return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1])}
+function duration(){return choices[selected].clips.reduce((s,c)=>s+c.seconds,0)}
+function sample(){let age=time;const clips=choices[selected].clips;for(let index=0;index<clips.length;index++){const c=clips[index];if(age<=c.seconds||index===clips.length-1){const frame=Math.min(c.count-1,age/c.seconds*(c.loop?c.count:c.count-1));const a=Math.floor(frame),b=c.loop?(a+1)%c.count:Math.min(c.count-1,a+1);return {c,a:c.start+a,b:c.start+b,t:frame-a}}age-=c.seconds}}
+let lastPose='';
+function updatePose(a,b,t){const key=a+':'+b+':'+t;if(key===lastPose)return;lastPose=key;
+for(const s of surfaces)for(let j=0;j<s.n;j++){
+const aa=s.xyz+(a*s.n+j)*8,bb=s.xyz+(b*s.n+j)*8,index=(s.base+j)*3;
+for(let k=0;k<3;k++){const pa=dv.getInt16(aa+k*2,true)/64,pb=dv.getInt16(bb+k*2,true)/64;positions[index+k]=pa+(pb-pa)*t}
+const polarA=raw[aa+6]*Math.PI*2/255,azA=raw[aa+7]*Math.PI*2/255,polarB=raw[bb+6]*Math.PI*2/255,azB=raw[bb+7]*Math.PI*2/255;
+const na=[Math.sin(polarA)*Math.cos(azA),Math.sin(polarA)*Math.sin(azA),Math.cos(polarA)],nn=[Math.sin(polarB)*Math.cos(azB),Math.sin(polarB)*Math.sin(azB),Math.cos(polarB)];
+for(let k=0;k<3;k++)normals[index+k]=na[k]+(nn[k]-na[k])*t}
+gl.bindBuffer(gl.ARRAY_BUFFER,pb);gl.bufferSubData(gl.ARRAY_BUFFER,0,positions);gl.bindBuffer(gl.ARRAY_BUFFER,nb);gl.bufferSubData(gl.ARRAY_BUFFER,0,normals)}
+function render(now){const delta=last?Math.min(.1,(now-last)/1000):0;last=now;const total=duration();if(playing)time=(time+delta*Number(document.getElementById('speed').value))%total;
+const s=sample();updatePose(s.a,s.b,s.t);document.getElementById('pose').textContent='· '+s.a;document.getElementById('scrub').value=time/total;
+const w=Math.round(canvas.clientWidth*devicePixelRatio),h=Math.round(canvas.clientHeight*devicePixelRatio);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}gl.viewport(0,0,w,h);gl.clearColor(.10,.17,.22,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+const aspect=w/h,f=firstPerson?aspect:1/Math.tan(Math.PI/7),near=.5,far=400;gl.uniformMatrix4fv(projection,false,new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0]));gl.uniformMatrix4fv(view,false,camera());
+if(textureLoaded)gl.drawElements(gl.TRIANGLES,triangles.length,gl.UNSIGNED_SHORT,0);requestAnimationFrame(render)}
+document.getElementById('stats').textContent=manifest.clips.length+' clips · '+manifest.frames+' sampled poses · '+manifest.fps+' Hz · '+manifest.triangles.toLocaleString()+' triangles';document.getElementById('hash').textContent=manifest.sha256;
+window.review={manifest,choose,setFirstPerson:value=>firstPerson=value,renderPose:(name,t)=>{const index=choices.findIndex(c=>c.clips.length===1&&c.clips[0].name===name);select.value=index;choose(index);time=t*duration();playing=false;document.getElementById('play').textContent='Play'},getFrame:()=>sample(),getPositions:()=>positions};requestAnimationFrame(render);
+</script></html>
