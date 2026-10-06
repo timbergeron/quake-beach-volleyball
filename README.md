@@ -1,11 +1,33 @@
 # Quake beach volleyball
 
-A playable first-person QuakeC prototype for QSS-M. It includes a beach court,
-serve tosses, passes, sets, spikes, roll shots, continuous power and arc controls,
-sidespin and topspin/backspin, jumps, dives, landing previews, and repeatable
-training feeds. Press **5** for a local 2v2 match: you and a blue AI teammate
-against two red opponents. Animated athletes and detailed first-person hands
-show preparation, contact and recovery. The design takes inspiration from
+A playable first-person beach volleyball mod for
+[QSS-M](https://github.com/timbergeron/QSS-M), written in QuakeC. Play training
+drills or press **5** for local doubles: you and a blue AI teammate against two
+red opponents. Position your feet, prepare your hands, and time the contact.
+
+![Local doubles with the current athletes, anatomical hands and match HUD in QSS-M](docs/screenshots/doubles.png)
+
+## Current development build — October 6, 2026
+
+- **Anatomical first-person hands:** textured skin, knuckles, nail beds, palm
+  contours and three joints per finger. Deep-dish setting spreads and flexes
+  the fingers, opposes the thumbs, and yields through the wrists before release.
+- **Distinct volleyball strokes:** firm-palm float toss/contact, inward and
+  wrist-away cuts, two-arm approach backswing, bow-and-arrow loading, spike and
+  roll follow-through, forearm passes, dives and recovery.
+- **Norway-inspired athletes:** Mol/Sørum-inspired proportions, navy/red kit,
+  sun caps, bare feet and full mirrored shield sunglasses. Bodies have 31 clips
+  and 389 poses; first-person hands have 32 clips and 402 poses, sampled at 24 Hz.
+- **Playable rallies and practice:** local doubles, float and jump-topspin serves,
+  timed receiving, short/deep placement, spin, emergency digs, target drills,
+  landing previews, and net/post/antenna collisions with animated net recoil.
+
+The screenshots show the current `main` build. The latest published
+[v0.6.0 ZIP](https://github.com/timbergeron/quake-beach-volleyball/releases/tag/v0.6.0)
+contains the earlier first-person arms; build from source for the anatomical
+hands and directional cut animations shown here.
+
+The design takes inspiration from
 Virtua Tennis's preparation and positioning controls, described in Sega's
 [Dreamcast manual](https://www.dreamcast.es/descargas/manuales/Virtua_Tennis.pdf).
 The contact and flight code is an original QuakeC implementation.
@@ -15,8 +37,6 @@ same-player double-contact faults. Complete beach rules (including blocks,
 service rotation and side changes), network doubles and match difficulty tiers
 remain future work. Ball aerodynamics and contact assistance are tunable
 gameplay values rather than a calibrated sports simulation.
-
-![The beach court and first-person contact feedback](docs/court.png)
 
 ## Play the built version
 
@@ -33,7 +53,7 @@ You need an installed copy of Quake, including `id1/pak0.pak`. The archive
 contains mod assets and compiled QC; base Quake data comes
 from your installation.
 
-This release includes the MD3 ball, animated net, prepared court textures,
+The v0.6.0 release includes the MD3 ball, animated net, prepared court textures,
 Norwegian-inspired players and first-person arms. See the
 [release notes](docs/releases/v0.6.0.md) for the asset inventory, animation review
 download and validation details.
@@ -51,6 +71,10 @@ configs in this mod's `.runtime` and `dist` directories and reads the base
 PAKs through symlinks. It does not install files into your Quake directory.
 The launcher enables 4× anti-aliasing to keep the fine net cords smooth. Use
 `--samples 0` to disable it, or `--samples 2` / `--samples 8` to choose another level.
+
+For a first session, press **1** for serve practice, **R** to ready a ball,
+then hold and release **LMB** around the toss apex. Try **3** for setting, or
+**5** for doubles. **H** opens help; **J** toggles the training overlays.
 
 ## Controls
 
@@ -79,8 +103,10 @@ The launcher enables 4× anti-aliasing to keep the fine net cords smooth. Use
 
 Aim before holding a shot button. Preparation stores your direction, allowing
 you to look upward and track the ball. Hold Shift while preparing to change
-that direction for a cut or wrist-away shot. Spin controls the subsequent curve
-separately from the launch direction.
+that direction. For a cut, use **F** to bias an attack short, then turn the
+stored heading more than about 20° with **Shift + mouse** during preparation.
+Turning to the hitting side selects the wrist-away follow-through; the other
+direction selects the inward cut. Spin controls the subsequent curve separately.
 
 Release when the ball reaches your hands. With C assistance enabled, you can
 keep holding: contact happens automatically only in the centre of physical hand
@@ -202,10 +228,22 @@ This mode is for one local human player; it does not provide network 2v2 slots.
 
 ## Build
 
-Requires Python 3, FTEQCC, and the `qbsp`, `vis`, and `light` tools from
+Requires Python 3.10+, [md3harness](https://github.com/timbergeron/md3harness),
+FTEQCC, and the `qbsp`, `vis`, and `light` tools from
 [ericw-tools](https://github.com/ericwa/ericw-tools). FTEQCC source is available
 from the [FTE project](https://github.com/fte-team/fteqw); build its CLI with
 `make -C engine/qclib qcc`. The prototype was built with ericw-tools v0.18.1.
+
+Clone md3harness beside this repository, or install its Python package. From
+the beach repository root, the sibling checkout is:
+
+```sh
+git clone https://github.com/timbergeron/md3harness.git ../md3harness
+```
+
+If that checkout already exists, use it. Normal asset builds use the prepared
+source data and Python's standard library; Blender and Pillow are not required.
+Pillow is only needed to repeat the optional anatomical source extraction.
 
 ```sh
 python3 build.py \
@@ -218,7 +256,8 @@ Tools can be omitted from the arguments if they are on PATH. The build generates
 the editable court MAP, a texture WAD, original MDL/MD3 models and sounds, and RGB
 texture companions. It then compiles version-6 server QC, a simple CSQC HUD, and
 the lit/visible BSP. Outputs go into `dist/beachvolley` and an install ZIP.
-Build outputs are ignored by Git; all source is in this directory.
+Build outputs are ignored by Git. Asset generation code, prepared source data,
+textures and validated MD3s are committed here; the exporter is in md3harness.
 
 The court uses the supplied sand and water artwork, resized from 1254×1254 to
 1024×1024 with Lanczos resampling. Ready-to-use uncompressed RGBA TGA files live
@@ -270,7 +309,7 @@ the game copies automatically, using only Python's standard library.
 
 ![The regulation-sized MD3 net, cloth, padding and tension fittings in QSS-M](docs/net.png)
 
-## Norwegian-inspired player and volleyball animations
+## Athletes and volleyball animations
 
 The male athlete takes visual inspiration from **Anders Mol and Christian
 Sørum**: tall athletic proportions, Norway navy/red/white kit with a flag and
@@ -280,9 +319,8 @@ original textures and no sponsor logos or downloaded character geometry.
 
 ![The Norwegian-inspired male athlete and full mirrored shield in QSS-M](docs/player.png)
 
-`player_assets.py` authors 31 clips / 389 vertex poses at 24 samples per second
-through [md3harness](https://github.com/timbergeron/md3harness). Clone that toolkit
-as `../md3harness`, or install its Python package, before building the mod. The
+`player_assets.py` authors 31 body clips / 389 vertex poses at 24 samples per second
+through [md3harness](https://github.com/timbergeron/md3harness). The
 generator uses only the Python standard library and validates every exported
 pose, normal, triangle, attachment tag, bound and texture with strict checks.
 Two-bone IK preserves body arm and leg lengths as the poses change. The first
@@ -290,15 +328,14 @@ Two-bone IK preserves body arm and leg lengths as the poses change. The first
 
 Ready-to-use [home body](resources/models/bv_athlete.md3),
 [away body](resources/models/bv_athlete_away.md3),
-[first-person arms](resources/models/bv_hands.md3),
+[first-person hands](resources/models/bv_hands.md3),
 [home atlas](resources/models/bv_athlete.tga),
 [away atlas](resources/models/bv_athlete_away.tga), and
 [clip manifest](resources/models/bv_athlete.animations.json) are in
 `resources/models`. Copy them into `progs/` to preserve the shader paths.
 The anatomical hand model also needs its [skin atlas](resources/hands/bv_hands.tga)
-copied to `progs/bv_hands.tga`. See [first-person hands](docs/hands.md).
-
-![The deep-dish setting cradle in the first-person QSS-M view](docs/hands.png)
+copied to `progs/bv_hands.tga` and has a separate
+[hand clip manifest](resources/models/bv_hands.animations.json).
 
 ```sh
 python3 player_assets.py --write-qc
@@ -328,6 +365,46 @@ and pancakes. These can be reviewed now; their separate gameplay actions and
 block rules are not implemented yet. The clips contain no entity translation:
 game physics supplies jump height and court movement.
 
+## Anatomical first-person hands
+
+The hand model has 6,808 triangles and 402 poses across 32 clips. Continuous
+geometry, dual quaternion skinning, opposed thumbs and individual finger joints
+preserve the palm and knuckle shapes during deep flexion. A separate 512×2048
+skin atlas supplies the texture. The mesh, anatomy target, weights and skin are
+trimmed CC0 MakeHuman assets; camera framing, skinning and volleyball motions
+are authored here.
+
+![Deep-dish setting with flexed fingers and opposed thumbs in QSS-M](docs/hands.png)
+
+| Firm-palm float contact | Live float serve with contact feedback |
+| --- | --- |
+| ![The float-serve contact pose in QSS-M](docs/screenshots/float-contact.png) | ![A live float serve with anatomical hands and CLEAN SERVE feedback](docs/screenshots/serve-contact.png) |
+
+| Inward cut | Wrist-away cut |
+| --- | --- |
+| ![The inward cut follow-through in QSS-M](docs/screenshots/cut-inward.png) | ![The wrist-away cut follow-through in QSS-M](docs/screenshots/cut-away.png) |
+
+These are actual QSS-M captures from the October 6 hand build. The doubles and
+serve feedback images come from live gameplay fixtures; the setting, float
+pose and cut images use fixed poses to show the anatomy clearly.
+[Capture metadata](docs/screenshots/review.json) records image, model, skin and
+engine hashes. The first 389 hand frames retain the body ranges; 13 appended
+frames provide the wrist-away cut.
+
+To rebuild and review only the hands:
+
+```sh
+python3 hand_assets.py --output build/hand-candidate --reports build/hand-quality
+python3 hand_review.py --game build/hand-candidate --reports build/hand-quality
+```
+
+Open `build/hand-review/hands.html` to play clips, scrub contact and recovery,
+slow the animation, or orbit the palm detail. The reviewer embeds the exported
+MD3 and texture. See [the hand notes](docs/hands.md) for motion details, source
+extraction and native capture commands. Reusable hand-production lessons,
+render evidence and packed-frame tools are also in
+[md3harness](https://github.com/timbergeron/md3harness/blob/01ff02a05f785caedd1c224d4be3a1a4d1613fd5/docs/anatomical-hands.md).
+
 ## Physics and tuning
 
 The court uses 32 units per metre: 16×8 metres, a 2.43-metre net, and a
@@ -350,6 +427,21 @@ using the same equipment response as live play; other surroundings are traced
 during live play.
 
 ## Verify
+
+The October 6 anatomical-hand build passed strict checks in **all 402 poses**,
+**18 Python asset/launcher tests**, **257 gameplay assertions** in the actual
+QC VM, a live float serve, and a live receive/set/attack rally. Seven native
+hand captures cover ready, setting load/release, float toss/contact and both
+cuts. The hand reviewer exercised all 32 clips without browser errors.
+The [hand quality report](docs/player-quality/hands.report.json) identifies the
+delivered model and skin bytes.
+
+```sh
+python3 -m unittest -v \
+  test_ball_assets test_net_assets test_player_assets test_hand_assets test_launcher
+```
+
+Run the full gameplay and engine fixture suite after building:
 
 ```sh
 python3 test_mod.py \
@@ -395,7 +487,9 @@ engine config behavior and applies the bindings in `beach.cfg`.
 
 ## License
 
-Copyright © 2026 timbergeron. Source and generated mod assets are available under
-the GNU General Public License, version 2 or later. See [LICENSE](LICENSE) and
+Copyright © 2026 timbergeron. Original source and generated assets are available
+under the GNU General Public License, version 2 or later. The trimmed MakeHuman
+hand source and skin are CC0, with the [CC0 text](resources/hands/LICENSE.CC0.txt)
+included. See [LICENSE](LICENSE) and
 [THIRD_PARTY.md](THIRD_PARTY.md) for the license and upstream credits. Quake game
 data is required separately and is not included in this repository or releases.

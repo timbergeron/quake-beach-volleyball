@@ -71,6 +71,9 @@ def package_game():
     documents = ("README.md", "LICENSE", "THIRD_PARTY.md", "docs/court.png", "docs/ball.png", "docs/net.png", "docs/player.md", "docs/player.png", "docs/hands.md", "docs/hands.png", "resources/hands/LICENSE.CC0.txt")
     documents += tuple(path.relative_to(HERE).as_posix()
                        for path in sorted((HERE / "docs/releases").glob("*.md")))
+    documents += tuple(path.relative_to(HERE).as_posix()
+                       for path in sorted((HERE / "docs/screenshots").glob("*"))
+                       if path.suffix in (".png", ".json"))
     for name in documents:
         (GAME / name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(HERE / name, GAME / name)

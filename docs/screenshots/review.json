@@ -1,0 +1,72 @@
+{
+  "schema": "beachvolley.screenshots.v1",
+  "captured_on": "2026-10-06",
+  "source_commit": "14b88be45b47213390830268c499e7a97b358cca",
+  "engine_sha256": "fdcaea200f1dbb2a05ffca8edeccab41988ea6d2d218dd72243ef272bb1b8d3d",
+  "hands_sha256": "328cc74c500233f56ec5403a0a0544595b290fb7a3190a9e44c6408cc3c2d56d",
+  "skin_sha256": "d38c24379e85d135b986f33172746ed023dffd0b28018a8bcac4605a063f4e97",
+  "captures": [
+    {
+      "name": "float-contact",
+      "frame": 239,
+      "image": "float-contact.png",
+      "sha256": "ba2e5f04f858fa0471a21c989a304987453c0e2cd919cf2929006c86ec24fd3c",
+      "kind": "fixed first-person pose",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "cut-inward",
+      "frame": 207,
+      "image": "cut-inward.png",
+      "sha256": "7aa3bf6e0481ad3f0603ca26e267897982e42f9c8dd19fd5ca508749ba5a6db6",
+      "kind": "fixed first-person pose",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "cut-away",
+      "frame": 392,
+      "image": "cut-away.png",
+      "sha256": "cdfb74f2adb68e046d170cffd46b716f15c0cfd26c2f7da03bbb9a97374485cd",
+      "kind": "fixed first-person pose",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "doubles",
+      "image": "doubles.png",
+      "kind": "live receive/set/attack rally",
+      "width": 960,
+      "height": 540,
+      "sha256": "f0cb3112c876e00a114a9b477e7c1da216adbf595e49a2989e87bf73448a2d6c",
+      "source_tga_sha256": "278db767512e58af65fd6682437243f6697d347d80e153c024a775ad6a71579d",
+      "progs_sha256": "61ffe01017e82dfd5da1b526623d8a77ca2c8441227b7bc93cc716d14547cf5b",
+      "csprogs_sha256": "b9d9d91e6b8ab2c46457c2c012f0b2375946adf27c0421c42a7f889cd4225d8e",
+      "athlete_sha256": "dc737eb50abf4d2c7ae6ef560702bbd851401a891f3e24aa87f31471b9e56b0c",
+      "athlete_away_sha256": "635a594d101a0bf2e02866638d041bc1997ef49e5ad824901814ce2d731aa66e"
+    },
+    {
+      "name": "serve-contact",
+      "image": "serve-contact.png",
+      "kind": "live float-serve contact",
+      "width": 960,
+      "height": 540,
+      "sha256": "d2315f4cdbeb7a3dec6d9e4fffe047b2694fc2f2f1e494593b95b6a14ac1605f",
+      "source_tga_sha256": "b40708dd1c8d0e5793eaa16fb6df5404f16a56e0d44b93698f7616ff9d91b35f",
+      "progs_sha256": "61ffe01017e82dfd5da1b526623d8a77ca2c8441227b7bc93cc716d14547cf5b",
+      "csprogs_sha256": "b9d9d91e6b8ab2c46457c2c012f0b2375946adf27c0421c42a7f889cd4225d8e",
+      "athlete_sha256": "dc737eb50abf4d2c7ae6ef560702bbd851401a891f3e24aa87f31471b9e56b0c",
+      "athlete_away_sha256": "635a594d101a0bf2e02866638d041bc1997ef49e5ad824901814ce2d731aa66e"
+    },
+    {
+      "name": "deep-dish",
+      "frame": 121,
+      "image": "../hands.png",
+      "sha256": "4889937b4754c46dd180a4f6f8df791e1daa41687d618d011ecb61cd8ba84a19",
+      "kind": "fixed first-person pose",
+      "width": 1280,
+      "height": 720
+    }
+  ]
+}
