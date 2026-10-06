@@ -305,6 +305,7 @@ void() BV_RunSelfTests =
     BV_RunNetTests(player);
     BV_RunFeelTests(player);
     BV_RunMatchRules(player);
+    BV_RunAnimationTests(player);
     BV_RunBotTests(player);
     BV_RunServeTests(player);
     self = player;

@@ -197,7 +197,8 @@ void() BV_BotTestObserve =
         time > self.bv_bot_test_started + 0.12)
     {
         self.bv_bot_test_capture = TRUE;
-        if (bv_opponent1.frame == 11 && bv_opponent1.origin_x > 98)
+        if (bv_opponent1.frame >= BV_ANIM_DIVE &&
+            bv_opponent1.frame < BV_ANIM_DIVE + BV_ANIM_DIVE_COUNT && bv_opponent1.origin_x > 98)
             dprint("BEACH BOT PASS physical-dive-and-pose\n");
         else dprint("BEACH BOT FAIL dive-movement\n");
         localcmd("screenshot tga\n");

@@ -28,6 +28,8 @@
 .float bv_serve_style, bv_float_seed, bv_receive_contact, bv_receiving;
 .float bv_receive_committed, bv_release_timing, bv_release_error;
 .vector bv_read_direction;
+.float bv_anim_clip, bv_anim_started, bv_anim_next, bv_anim_phase;
+.float bv_anim_air, bv_anim_air_started;
 
 entity bv_match_owner, bv_partner, bv_opponent1, bv_opponent2, bv_server;
 float bv_match, bv_home_score, bv_away_score, bv_match_phase;
@@ -47,6 +49,8 @@ float(entity player) BV_Team;
 void(entity player, vector contact) BV_BotBuildShot;
 void() BV_UpdateMatch;
 void(entity player) BV_Animate;
+void(entity player) BV_ResetAnimation;
+void(entity player) BV_RunAnimationTests;
 void() BV_MatchTestInput;
 void() BV_MatchTestObserve;
 

@@ -271,7 +271,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         ftos(getstatf(BV_STAT_ATTEMPTS)));
     if (match)
     {
-        label = "YOU + BLUE / VS ORANGE";
+        label = "YOU + BLUE / VS RED";
         instruction = strcat("SCORE ", ftos(getstatf(BV_STAT_HOME_SCORE)), " - ",
             ftos(getstatf(BV_STAT_AWAY_SCORE)));
         if (phase == BV_MATCH_RALLY && getstatf(BV_STAT_TOUCH_TEAM) < 0)
@@ -340,8 +340,8 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         if (match)
         {
             BV_MapPoint(x, 12, BV_STAT_PARTNER, '0.3 0.7 1', FALSE);
-            BV_MapPoint(x, 12, BV_STAT_OPPONENT1, '1 0.45 0.2', FALSE);
-            BV_MapPoint(x, 12, BV_STAT_OPPONENT2, '1 0.45 0.2', FALSE);
+            BV_MapPoint(x, 12, BV_STAT_OPPONENT1, '1 0.25 0.25', FALSE);
+            BV_MapPoint(x, 12, BV_STAT_OPPONENT2, '1 0.25 0.25', FALSE);
         }
         BV_Text(x + 12, 84, "YOU", '0.95 1 1');
         BV_Text(x + 68, 84, "BALL", '1 0.8 0.35');

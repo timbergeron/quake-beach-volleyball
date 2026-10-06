@@ -1,6 +1,7 @@
 ../dist/beachvolley/progs.dat
 defs.qc
 shared.qc
+animation_frames.qc
 physics.qc
 ball.qc
 net.qc
@@ -16,6 +17,7 @@ regressions.qc
 nettest.qc
 feeltest.qc
 matchrules.qc
+animationtest.qc
 bottest.qc
 servetest.qc
 receivetest.qc

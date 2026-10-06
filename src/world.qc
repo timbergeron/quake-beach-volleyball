@@ -23,8 +23,9 @@ void() worldspawn =
     precache_model("progs/bv_ball.md3");
     precache_model("progs/bv_net.md3");
     precache_model("progs/bv_marker.mdl");
-    precache_model("progs/bv_athlete.mdl");
-    precache_model("progs/bv_hands.mdl");
+    precache_model("progs/bv_athlete.md3");
+    precache_model("progs/bv_athlete_away.md3");
+    precache_model("progs/bv_hands.md3");
     precache_model("progs/bv_shadow.mdl");
     precache_sound("beach/pass.wav");
     precache_sound("beach/set.wav");

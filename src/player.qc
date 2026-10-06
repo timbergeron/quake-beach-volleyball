@@ -183,6 +183,7 @@ void(entity player) BV_ReadyServe =
     player.bv_preview_next = 0;
     if (player.bv_marker != world) player.bv_marker.modelindex = 0;
     player.bv_dive_until = 0;
+    BV_ResetAnimation(player);
     player.bv_last_contact = -1;
     player.bv_recover_until = 0;
     player.view_ofs = '0 0 27';
@@ -552,7 +553,8 @@ void() PutClientInServer =
     self.solid = SOLID_BBOX;
     self.flags = 8;
     self.view_ofs = '0 0 27';
-    self.weaponmodel = "progs/bv_hands.mdl";
+    self.weaponmodel = "progs/bv_hands.md3";
+    BV_ResetAnimation(self);
     self.weapon = 0;
     self.items = 0;
     self.bv_arc = 0.35;
@@ -563,7 +565,7 @@ void() PutClientInServer =
     self.bv_footing = 1;
     self.bv_overlays = TRUE;
     self.bv_message = "R SERVE | T FEED | 1-4 DRILLS | H HELP";
-    setmodel(self, "progs/bv_athlete.mdl");
+    setmodel(self, "progs/bv_athlete.md3");
     setsize(self, '-16 -16 -24', '16 16 32');
     setorigin(self, '-288 0 24');
     self.angles = '0 0 0';

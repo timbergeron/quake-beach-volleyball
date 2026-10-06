@@ -17,7 +17,7 @@ from pathlib import Path
 from run import HERE, stage_runtime
 
 
-def run_case(binary, basedir, game, workspace, visual, play=False, profile="default"):
+def run_case(binary, basedir, game, workspace, visual, play=False, profile="default", artifacts=None):
     name = "play" if play else "visual" if visual else "gameplay"
     if profile != "default":
         name = profile
@@ -65,7 +65,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
         "".join(f"set {key} {value}\n" for key, value in settings.items()) + "map beach\n")
     env = {**os.environ, "SDL_VIDEO_DRIVER": "offscreen", "SDL_AUDIO_DRIVER": "dummy",
            "LIBGL_ALWAYS_SOFTWARE": "1", "LP_NUM_THREADS": "2"}
-    artifacts = HERE / "artifacts"
+    artifacts = Path(artifacts) if artifacts is not None else HERE / "artifacts"
     artifacts.mkdir(exist_ok=True)
     try:
         result = subprocess.run(command, cwd=runtime, env=env,
@@ -175,7 +175,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                     shutil.copyfile(images[0], artifacts / "compact-help.tga")
     else:
         completed = re.search(r"BEACH DONE pass=(\d+) fail=(\d+)", result.stdout)
-        if not completed or int(completed[2]) or int(completed[1]) < 234:
+        if not completed or int(completed[2]) or int(completed[1]) < 249:
             errors.append("missing or failed gameplay completion marker")
     if errors:
         raise RuntimeError(f"{name}: {', '.join(errors)}\n{result.stdout[-6000:]}")
@@ -189,6 +189,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bin", type=Path, required=True)
     parser.add_argument("--basedir", type=Path, required=True)
+    parser.add_argument("--artifacts", type=Path, default=HERE / "artifacts",
+                        help="directory for logs, captures and the provenance summary")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--skip-visual", action="store_true")
     selection.add_argument("--case", action="append", choices=("gameplay", "visual", "play", "opposite",
@@ -211,8 +213,11 @@ def main():
                "map_sha256": hashlib.sha256((game / "maps/beach.bsp").read_bytes()).hexdigest(),
                "net_sha256": hashlib.sha256((game / "progs/bv_net.md3").read_bytes()).hexdigest(),
                "net_skin_sha256": hashlib.sha256((game / "progs/bv_net.tga").read_bytes()).hexdigest(),
+               "athlete_sha256": hashlib.sha256((game / "progs/bv_athlete.md3").read_bytes()).hexdigest(),
+               "athlete_away_sha256": hashlib.sha256((game / "progs/bv_athlete_away.md3").read_bytes()).hexdigest(),
+               "hands_sha256": hashlib.sha256((game / "progs/bv_hands.md3").read_bytes()).hexdigest(),
                "complete": False, "results": []}
-    artifacts = HERE / "artifacts"
+    artifacts = args.artifacts.expanduser().resolve()
     artifacts.mkdir(exist_ok=True)
     def save_summary():
         (artifacts / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -241,7 +246,7 @@ def main():
         for name, visual, play, profile in cases:
             if name not in selected:
                 continue
-            result = run_case(binary, basedir, game, workspace, visual, play, profile)
+            result = run_case(binary, basedir, game, workspace, visual, play, profile, artifacts)
             summary["results"].append(result)
             save_summary()
             print(f"{result['name']}: PASS ({len(result['passes'])} gameplay assertions)", flush=True)

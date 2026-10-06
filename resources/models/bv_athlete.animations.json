@@ -1,0 +1,288 @@
+{
+  "schema": "beachvolley.animations.v1",
+  "fps": 24,
+  "frames": 389,
+  "axes": "X forward, Y athlete left, Z up; soles -24; entity motion owns translation",
+  "reference": "Anders Mol / Christian S\u00f8rum: Norway kit, athletic silhouette, full mirrored sun shield",
+  "clips": [
+    {
+      "name": "ready",
+      "start": 0,
+      "count": 29,
+      "seconds": 1.2,
+      "loop": true,
+      "contact": null,
+      "note": ""
+    },
+    {
+      "name": "run",
+      "start": 29,
+      "count": 15,
+      "seconds": 0.64,
+      "loop": true,
+      "contact": null,
+      "note": "In-place; pace follows horizontal travel."
+    },
+    {
+      "name": "shuffle_l",
+      "start": 44,
+      "count": 15,
+      "seconds": 0.64,
+      "loop": true,
+      "contact": null,
+      "note": "In-place; pace follows horizontal travel."
+    },
+    {
+      "name": "shuffle_r",
+      "start": 59,
+      "count": 15,
+      "seconds": 0.64,
+      "loop": true,
+      "contact": null,
+      "note": "In-place; pace follows horizontal travel."
+    },
+    {
+      "name": "backpedal",
+      "start": 74,
+      "count": 15,
+      "seconds": 0.64,
+      "loop": true,
+      "contact": null,
+      "note": "In-place; pace follows horizontal travel."
+    },
+    {
+      "name": "split_step",
+      "start": 89,
+      "count": 10,
+      "seconds": 0.36,
+      "loop": false,
+      "contact": null,
+      "note": ""
+    },
+    {
+      "name": "pass_load",
+      "start": 99,
+      "count": 7,
+      "seconds": 0.25,
+      "loop": false,
+      "contact": null,
+      "note": "Join thumbs; rotate straight forearms into a level platform."
+    },
+    {
+      "name": "pass",
+      "start": 106,
+      "count": 7,
+      "seconds": 0.24,
+      "loop": false,
+      "contact": 0,
+      "note": ""
+    },
+    {
+      "name": "set_load",
+      "start": 113,
+      "count": 9,
+      "seconds": 0.32,
+      "loop": false,
+      "contact": null,
+      "note": "Deep dish under the forehead; palms cup inward, thumbs behind the ball."
+    },
+    {
+      "name": "set",
+      "start": 122,
+      "count": 8,
+      "seconds": 0.28,
+      "loop": false,
+      "contact": 0,
+      "note": "Coordinated ankle/knee/hip extension, then elbows/wrists; no held ball."
+    },
+    {
+      "name": "back_set",
+      "start": 130,
+      "count": 11,
+      "seconds": 0.42,
+      "loop": false,
+      "contact": 0,
+      "note": ""
+    },
+    {
+      "name": "jump_set",
+      "start": 141,
+      "count": 12,
+      "seconds": 0.46,
+      "loop": false,
+      "contact": 0.2,
+      "note": ""
+    },
+    {
+      "name": "approach",
+      "start": 153,
+      "count": 14,
+      "seconds": 0.55,
+      "loop": false,
+      "contact": null,
+      "note": "Right-left closing steps: BOTH arms sweep behind hips before driving upward."
+    },
+    {
+      "name": "takeoff",
+      "start": 167,
+      "count": 7,
+      "seconds": 0.26,
+      "loop": false,
+      "contact": null,
+      "note": ""
+    },
+    {
+      "name": "attack_load",
+      "start": 174,
+      "count": 7,
+      "seconds": 0.27,
+      "loop": false,
+      "contact": null,
+      "note": "Guide arm tracks the ball; hitting elbow draws back independently."
+    },
+    {
+      "name": "spike",
+      "start": 181,
+      "count": 13,
+      "seconds": 0.5,
+      "loop": false,
+      "contact": 0,
+      "note": "Trunk rotation, elbow extension, wrist snap; hitting arm follows across the body."
+    },
+    {
+      "name": "roll",
+      "start": 194,
+      "count": 10,
+      "seconds": 0.36,
+      "loop": false,
+      "contact": 0,
+      "note": ""
+    },
+    {
+      "name": "cut",
+      "start": 204,
+      "count": 13,
+      "seconds": 0.5,
+      "loop": false,
+      "contact": 0,
+      "note": ""
+    },
+    {
+      "name": "poke",
+      "start": 217,
+      "count": 9,
+      "seconds": 0.34,
+      "loop": false,
+      "contact": 0,
+      "note": "Closed knuckles for a beach pokey; no open-finger tip."
+    },
+    {
+      "name": "float_load",
+      "start": 226,
+      "count": 11,
+      "seconds": 0.4,
+      "loop": false,
+      "contact": null,
+      "note": ""
+    },
+    {
+      "name": "float_serve",
+      "start": 237,
+      "count": 12,
+      "seconds": 0.45,
+      "loop": false,
+      "contact": 0,
+      "note": ""
+    },
+    {
+      "name": "jump_serve",
+      "start": 249,
+      "count": 19,
+      "seconds": 0.75,
+      "loop": false,
+      "contact": 1,
+      "note": ""
+    },
+    {
+      "name": "block_load",
+      "start": 268,
+      "count": 8,
+      "seconds": 0.28,
+      "loop": false,
+      "contact": null,
+      "note": ""
+    },
+    {
+      "name": "block_pike",
+      "start": 276,
+      "count": 16,
+      "seconds": 0.62,
+      "loop": false,
+      "contact": 0.47,
+      "note": "Hips close into a pike; feet forward, shoulders and spread palms penetrate over the tape."
+    },
+    {
+      "name": "block_l",
+      "start": 292,
+      "count": 16,
+      "seconds": 0.62,
+      "loop": false,
+      "contact": 0.47,
+      "note": ""
+    },
+    {
+      "name": "block_r",
+      "start": 308,
+      "count": 16,
+      "seconds": 0.62,
+      "loop": false,
+      "contact": 0.47,
+      "note": ""
+    },
+    {
+      "name": "peel",
+      "start": 324,
+      "count": 14,
+      "seconds": 0.55,
+      "loop": false,
+      "contact": null,
+      "note": "Drop off the net into a defensive platform."
+    },
+    {
+      "name": "dive",
+      "start": 338,
+      "count": 13,
+      "seconds": 0.48,
+      "loop": false,
+      "contact": null,
+      "note": ""
+    },
+    {
+      "name": "pancake",
+      "start": 351,
+      "count": 13,
+      "seconds": 0.48,
+      "loop": false,
+      "contact": 0.7,
+      "note": ""
+    },
+    {
+      "name": "getup",
+      "start": 364,
+      "count": 17,
+      "seconds": 0.67,
+      "loop": false,
+      "contact": null,
+      "note": ""
+    },
+    {
+      "name": "land",
+      "start": 381,
+      "count": 8,
+      "seconds": 0.3,
+      "loop": false,
+      "contact": null,
+      "note": ""
+    }
+  ]
+}

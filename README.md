@@ -4,7 +4,7 @@ A playable first-person QuakeC prototype for QSS-M. It includes a beach court,
 serve tosses, passes, sets, spikes, roll shots, continuous power and arc controls,
 sidespin and topspin/backspin, jumps, dives, landing previews, and repeatable
 training feeds. Press **5** for a local 2v2 match: you and a blue AI teammate
-against two orange opponents. Original animated athletes and first-person hands
+against two red opponents. Original animated athletes and first-person hands
 show preparation, contact and recovery. The design takes inspiration from
 Virtua Tennis's preparation and positioning controls, described in Sega's
 [Dreamcast manual](https://www.dreamcast.es/descargas/manuales/Virtua_Tennis.pdf).
@@ -265,6 +265,57 @@ the game copies automatically, using only Python's standard library.
 
 ![The regulation-sized MD3 net, cloth, padding and tension fittings in QSS-M](docs/net.png)
 
+## Norwegian-inspired player and volleyball animations
+
+The male athlete takes visual inspiration from **Anders Mol and Christian
+Sørum**: tall athletic proportions, Norway navy/red/white kit with a flag and
+`NOR` marking, bare feet, a sun cap, and a broad blue mirrored shield that wraps
+around the eyes and across the nose. It is an original stylized mesh, with
+original textures and no sponsor logos or downloaded character geometry.
+
+![The Norwegian-inspired male athlete and full mirrored shield in QSS-M](docs/player.png)
+
+`player_assets.py` authors 31 clips / 389 vertex poses at 24 samples per second
+through [md3harness](https://github.com/timbergeron/md3harness). Clone that toolkit
+as `../md3harness`, or install its Python package, before building the mod. The
+generator uses only the Python standard library and validates every exported
+pose, normal, triangle, attachment tag, bound and texture with strict checks.
+Two-bone IK preserves arm and leg lengths as the poses change. Body and
+first-person arm models share the same frame ranges.
+
+Ready-to-use [home body](resources/models/bv_athlete.md3),
+[away body](resources/models/bv_athlete_away.md3),
+[first-person arms](resources/models/bv_hands.md3),
+[home atlas](resources/models/bv_athlete.tga),
+[away atlas](resources/models/bv_athlete_away.tga), and
+[clip manifest](resources/models/bv_athlete.animations.json) are in
+`resources/models`. Copy them into `progs/` to preserve the shader paths.
+
+```sh
+python3 player_assets.py --write-qc
+python3 player_review.py
+```
+
+Open `build/player-review/animation.html` for an offline animated review. Choose
+a clip or complete stroke, orbit the model, scrub the timeline, slow it down,
+or switch kit colors. The review embeds the exported MD3 bytes and records
+their hash; it requires a browser with WebGL. See [the player asset notes](docs/player.md)
+for target-engine review commands and the animation inventory.
+
+Live play selects ready movement, forward running, lateral shuffles,
+backpedaling, forearm preparation/contact, deep hand setting, attack approach,
+two-arm backswing, takeoff, bow-and-arrow preparation, spike/roll follow-through,
+standing float and jump topspin serving, diving, getting up and landing. The
+game sends poses at Quake's 0.1-second alias interpolation cadence, selecting
+from the more densely sampled clips. Stride phase follows distance traveled.
+Contact physics and collision still determine when a shot happens.
+
+The library additionally includes back sets, jump sets, cut shots, closed-knuckle
+pokeys, split steps, pike blocks with left/right presses, peeling into defense,
+and pancakes. These can be reviewed now; their separate gameplay actions and
+block rules are not implemented yet. The clips contain no entity translation:
+game physics supplies jump height and court movement.
+
 ## Physics and tuning
 
 The court uses 32 units per metre: 16×8 metres, a 2.43-metre net, and a
@@ -294,7 +345,7 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 234 assertions inside the actual QC VM, captures the court and compact
+It runs 249 assertions inside the actual QC VM, captures the court and compact
 help/HUD through SDL's offscreen renderer, and performs standing serves from
 both baselines through the normal input, toss, release, collision, flight,
 scoring, and HUD update paths. Additional live serves check the sweet timing

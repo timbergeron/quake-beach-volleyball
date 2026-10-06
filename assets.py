@@ -12,6 +12,7 @@ from pathlib import Path
 
 from hud_font import pixels as font_pixels
 from ball_assets import generate_ball
+from player_assets import generate_players
 from net_assets import generate_net, POST_Y, POST_RADIUS, POST_HEIGHT
 
 
@@ -198,100 +199,6 @@ def mesh_normals(vertices, triangles):
             accumulated[index] = [x + y for x, y in zip(accumulated[index], normal)]
     return [max(range(len(directions)), key=lambda i: sum(x * y for x, y in
                 zip(normal, directions[i]))) for normal in accumulated]
-
-
-def athlete_models(game, palette):
-    """Twelve original athletic poses, with corresponding first-person hands.
-
-    Capsules use consistent topology so QSS-M interpolates between poses.
-    Blue and orange jerseys identify teams without relying on debug markers.
-    """
-    skins = []
-    for jersey in ((35, 105, 180), (230, 100, 35)):
-        colors = [(184, 133, 95), jersey, (35, 42, 58), (50, 34, 24),
-                  (230, 218, 190), (22, 22, 25)]
-        pixels = bytearray(nearest(palette, colors[x // 8]) for _y in range(8)
-                           for x in range(48))
-        pixels[0] = 255
-        skins.append(pixels)
-
-    def limb(mesh, start, end, radius, color, width=1):
-        vertices, uvs, triangles = mesh
-        delta = [b - a for a, b in zip(start, end)]
-        length = math.sqrt(sum(x * x for x in delta))
-        axis = [x / max(length, 0.001) for x in delta]
-        helper = (0, 0, 1) if abs(axis[2]) < .9 else (1, 0, 0)
-        right = [axis[1] * helper[2] - axis[2] * helper[1],
-                 axis[2] * helper[0] - axis[0] * helper[2],
-                 axis[0] * helper[1] - axis[1] * helper[0]]
-        size = math.sqrt(sum(x * x for x in right))
-        right = [x / max(size, .001) for x in right]
-        up = [axis[1] * right[2] - axis[2] * right[1],
-              axis[2] * right[0] - axis[0] * right[2],
-              axis[0] * right[1] - axis[1] * right[0]]
-        offset = len(vertices)
-        for centre in (start, end):
-            for i in range(8):
-                angle = math.tau * i / 8
-                vertices.append(tuple(centre[j] + radius * (
-                    math.cos(angle) * right[j] * width + math.sin(angle) * up[j])
-                    for j in range(3)))
-                uvs.append((color * 8 + 4, 4))
-        for i in range(8):
-            j = (i + 1) % 8
-            triangles.extend(((offset + i, offset + j, offset + 8 + i),
-                              (offset + j, offset + 8 + j, offset + 8 + i)))
-        for i in range(1, 7):
-            triangles.extend(((offset, offset + i + 1, offset + i),
-                              (offset + 8, offset + 8 + i, offset + 8 + i + 1)))
-
-    body_frames, hand_frames = [], []
-    for pose in range(12):
-        body, hands = ([], [], []), ([], [], [])
-        for side in (-1, 1):
-            swing = side * (5 if pose == 1 else -5 if pose == 2 else 0)
-            limb(body, (0, side * 4, 0), (swing, side * 4, -11), 3, 0)
-            limb(body, (swing, side * 4, -11), (-swing, side * 5, -22), 2.4, 0)
-            limb(body, (-swing - 2, side * 5, -22), (-swing + 4, side * 5, -22), 2, 0)
-            elbow, hand = (1, side * 12, 7), (3, side * 12, -1)
-            if pose in (1, 2): elbow, hand = (swing, side * 11, 9), (swing * 2, side * 10, 2)
-            if pose in (3, 7, 11): elbow, hand = (9, side * 7, 11), (19, side * 2, 14)
-            if pose in (4, 8): elbow, hand = (7, side * 10, 27), (12, side * 5, 35)
-            if pose in (5, 6): elbow, hand = (-3, side * 10, 29), (-7, side * 6, 37)
-            if pose == 9: elbow, hand = (7, side * 8, 31), (18, side * 4, 36)
-            if pose == 10: elbow, hand = (10, side * 8, 19), (18, side * 3, 18)
-            limb(body, (0, side * 8, 19), elbow, 2.7, 0)
-            limb(body, elbow, hand, 2, 0)
-            limb(body, hand, (hand[0] + 3, hand[1], hand[2]), 2.6, 0)
-            # View-model coordinates: X forward, Z below the eye at rest.
-            wrist = (19, side * 10, -13)
-            if pose in (3, 7, 11): wrist = (25, side * 2.5, -9 if pose != 7 else -5)
-            if pose in (4, 8): wrist = (19, side * 6, 1 if pose == 4 else 5)
-            if pose in (5, 6): wrist = (8, side * 9, 0)
-            if pose == 9: wrist = (26, side * 4, 5)
-            if pose == 10: wrist = (22, side * 5, -6)
-            limb(hands, (1, side * 13, -21), (10, side * 10, -15), 2.8, 0)
-            limb(hands, (10, side * 10, -15), wrist, 2.1, 0)
-            limb(hands, wrist, (wrist[0] + 4, wrist[1], wrist[2]), 2.7, 0)
-            # A thumb and four short fingers make hand silhouettes legible.
-            limb(hands, wrist, (wrist[0] + 2, wrist[1] - side * 3, wrist[2] + 1), .9, 0)
-            for finger in range(4):
-                start = (wrist[0] + 3, wrist[1] + (finger - 1.5) * 1.25, wrist[2] + .4)
-                limb(hands, start, (start[0] + 3, start[1], start[2]), .65, 0)
-        limb(body, (0, 0, -2), (0, 0, 5), 7, 2, 1.1)
-        limb(body, (0, 0, 5), (0, 0, 20), 7, 1, 1.2)
-        limb(body, (0, 0, 21), (0, 0, 25), 2.5, 0)
-        limb(body, (0, 0, 25), (0, 0, 33), 4.6, 0)
-        limb(body, (0, 0, 32), (0, 0, 35), 4.7, 3)
-        for side in (-1, 1):
-            limb(body, (4.3, side * 1.8, 30), (4.9, side * 1.8, 30), .7, 5)
-        limb(body, (4.2, 0, 28), (5.8, 0, 28), 1, 0)
-        body_frames.append(body[0])
-        hand_frames.append(hands[0])
-    write_mdl(game / "progs/bv_athlete.mdl", body_frames[0], body[1], body[2],
-              skins[0], (48, 8), frames=body_frames, skins=skins)
-    write_mdl(game / "progs/bv_hands.mdl", hand_frames[0], hands[1], hands[2],
-              skins[0], (48, 8), frames=hand_frames)
 
 
 def shadow_model(path, palette):
@@ -519,7 +426,7 @@ def generate(base, build, game):
     generate_ball(game / "progs")
     generate_net(game / "progs")
     marker_model(game / "progs/bv_marker.mdl", palette)
-    athlete_models(game, palette)
+    generate_players(game, build / "player-quality")
     shadow_model(game / "progs/bv_shadow.mdl", palette)
     external_textures(game, court)
     daylight_skybox(game)

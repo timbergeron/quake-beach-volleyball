@@ -268,10 +268,11 @@ entity(vector position, float side) BV_SpawnBot =
     if (side > 0)
     {
         actor.v_angle_y = 180;
-        actor.skin = 1;
     }
     actor.angles_y = actor.v_angle_y;
-    setmodel(actor, "progs/bv_athlete.mdl");
+    BV_ResetAnimation(actor);
+    setmodel(actor, "progs/bv_athlete.md3");
+    if (side > 0) setmodel(actor, "progs/bv_athlete_away.md3");
     setsize(actor, '-14 -14 -24', '14 14 32');
     setorigin(actor, position);
     return actor;

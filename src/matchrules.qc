@@ -82,9 +82,10 @@ void(entity player) BV_RunMatchRules =
     BV_UpdatePreview(player);
     BV_Assert("overlays-hide-landing-marker", player.bv_marker.modelindex == 0 && player.bv_preview_result == 0);
     player.bv_overlays = TRUE;
-    BV_Assert("hands-model-and-preparation-pose", player.weaponmodel == "progs/bv_hands.mdl");
+    BV_Assert("hands-model-and-preparation-pose", player.weaponmodel == "progs/bv_hands.md3");
     BV_Animate(player);
-    BV_Assert("serve-preparation-visible", player.weaponframe == 6);
+    BV_Assert("serve-preparation-visible", player.weaponframe >= BV_ANIM_FLOAT_LOAD &&
+        player.weaponframe < BV_ANIM_FLOAT_LOAD + BV_ANIM_FLOAT_LOAD_COUNT);
     BV_StartMatch(player);
     bv_home_score = bv_match_goal;
     bv_away_score = bv_match_goal - 1;

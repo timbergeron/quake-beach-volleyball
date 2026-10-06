@@ -57,6 +57,7 @@ void(entity actor, vector position) BV_ResetActor =
     actor.bv_footing = 1;
     actor.bv_aim_locked = 0;
     actor.bv_plan_next = 0;
+    BV_ResetAnimation(actor);
 };
 
 void() BV_MatchServe =
