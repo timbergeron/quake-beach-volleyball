@@ -616,7 +616,7 @@ void() PutClientInServer =
     self.bv_last_contact = -1;
     self.bv_footing = 1;
     self.bv_assisted = FALSE;
-    self.bv_overlays = TRUE;
+    self.bv_overlays = FALSE;
     self.bv_message = "R SERVE | T FEED | 1-4 DRILLS | H HELP";
     setmodel(self, "progs/bv_athlete.md3");
     setsize(self, '-16 -16 -24', '16 16 32');

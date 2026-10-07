@@ -36,7 +36,7 @@ void(float page) BV_MenuPage =
     bv_menu_page = page;
     bv_menu_count = 0;
     bv_menu_focus = 4;
-    if (page == 2) bv_menu_focus = 6;
+    if (page == 2) bv_menu_focus = 7;
     if (page < 4)
         if (bv_menu_page_focus[page] >= 0) bv_menu_focus = bv_menu_page_focus[page];
     if (page >= 4) bv_menu_focus = 0;
@@ -159,6 +159,11 @@ void(float x, float y, float width, float height, string title,
         BV_RoundBox(x + 10, y + height - 2, width - 20, 2, 1, BV_UI_ACCENT, bv_menu_alpha);
 };
 
+float(float setting) BV_MenuSettingToggle =
+{
+    return setting <= 2 || setting >= 6;
+};
+
 float(float setting) BV_MenuSettingValue =
 {
     local float actual;
@@ -177,11 +182,15 @@ float(float setting) BV_MenuSettingValue =
     if (setting == 2) return cvar("bv_contact_kick") > 0;
     if (setting == 3) return cvar("volume");
     if (setting == 4) return cvar("sensitivity");
+    if (setting == 6) return autocvar_bv_court_map != 0;
+    if (setting == 7) return autocvar_bv_coaching != 0;
+    if (setting == 8) return autocvar_bv_shot_details != 0;
     return cvar("fov");
 };
 
 void(float setting, float value) BV_MenuSettingSet =
 {
+    local string name;
     if (setting == 0 || setting == 1)
     {
         value = value != 0;
@@ -198,13 +207,23 @@ void(float setting, float value) BV_MenuSettingSet =
     if (setting == 3) cvar_set("volume", ftos(BV_Clamp(value, 0, 1)));
     if (setting == 4) cvar_set("sensitivity", ftos(BV_Clamp(value, 0.5, 10)));
     if (setting == 5) cvar_set("fov", ftos(BV_Clamp(value, 80, 120)));
+    name = "";
+    if (setting == 6) name = "bv_court_map";
+    if (setting == 7) name = "bv_coaching";
+    if (setting == 8) name = "bv_shot_details";
+    if (name != "")
+    {
+        value = value != 0;
+        cvar_set(name, ftos(value));
+        localcmd(strcat("seta ", name, " ", ftos(value), "\n"));
+    }
 };
 
 void(float setting, float direction) BV_MenuAdjust =
 {
     local float value;
     value = BV_MenuSettingValue(setting);
-    if (setting <= 2) value = !value;
+    if (BV_MenuSettingToggle(setting)) value = !value;
     if (setting == 3) value = value + direction * 0.1;
     if (setting == 4) value = value + direction * 0.5;
     if (setting == 5) value = value + direction * 5;
@@ -291,7 +310,7 @@ void(float x, float y, float width, float height, string title, string detail, f
     BV_MenuText(x + 10, y + height * 0.5 - 12, title, 12, BV_UI_TEXT, width * 0.53 - 16);
     BV_MenuText(x + 10, y + height * 0.5 + 4, detail, 9, BV_UI_MUTED, width * 0.53 - 16);
     value = BV_MenuSettingValue(setting);
-    if (setting <= 2)
+    if (BV_MenuSettingToggle(setting))
     {
         label = "Off"; if (value) label = "On";
         BV_MenuText(x + width - 79, y + (height - 10) * 0.5, label, 10, BV_UI_MUTED, 28);
@@ -498,21 +517,29 @@ float(vector viewport) BV_MenuDraw =
     }
     if (bv_menu_page == 2)
     {
-        BV_MenuChoice(x + pad, top, column, 24, "Gameplay", BV_MENU_CATEGORY, 0, !bv_menu_settings_page);
-        BV_MenuChoice(x + pad + column + gap, top, column, 24, "Sound & look", BV_MENU_CATEGORY, 1, bv_menu_settings_page);
+        tab = (inner - gap * 2) / 3;
+        BV_MenuChoice(x + pad, top, tab, 24, "Gameplay", BV_MENU_CATEGORY, 0, bv_menu_settings_page == 0);
+        BV_MenuChoice(x + pad + tab + gap, top, tab, 24, "Sound & look", BV_MENU_CATEGORY, 1, bv_menu_settings_page == 1);
+        BV_MenuChoice(x + pad + (tab + gap) * 2, top, tab, 24, "HUD", BV_MENU_CATEGORY, 2, bv_menu_settings_page == 2);
         top = top + 31;
         row = (bottom - top) / 3;
         if (!bv_menu_settings_page)
         {
             BV_MenuSetting(x + pad, top, inner, row - 4, "Contact assist", "Auto contact while holding a shot.", 0);
-            BV_MenuSetting(x + pad, top + row, inner, row - 4, "Training guides", "Show landing preview and court map.", 1);
+            BV_MenuSetting(x + pad, top + row, inner, row - 4, "Landing guide", "Preview where your shot will land.", 1);
             BV_MenuSetting(x + pad, top + row * 2, inner, row - 4, "Contact motion", "A small camera pulse on contact.", 2);
         }
-        else
+        else if (bv_menu_settings_page == 1)
         {
             BV_MenuSetting(x + pad, top, inner, row - 4, "Sound volume", "Adjust the game's sound level.", 3);
             BV_MenuSetting(x + pad, top + row, inner, row - 4, "Mouse speed", "How quickly the camera turns.", 4);
             BV_MenuSetting(x + pad, top + row * 2, inner, row - 4, "Field of view", "Wider shows more of the court.", 5);
+        }
+        else
+        {
+            BV_MenuSetting(x + pad, top, inner, row - 4, "Court map", "Show player and ball positions.", 6);
+            BV_MenuSetting(x + pad, top + row, inner, row - 4, "Coaching tips", "Show guidance during each rally.", 7);
+            BV_MenuSetting(x + pad, top + row * 2, inner, row - 4, "Shot details", "Show spin, placement and shot stats.", 8);
         }
     }
     if (bv_menu_page == 3)
@@ -699,7 +726,7 @@ float(float event, float key, float character, float device) CSQC_InputEvent =
         if (bv_menu_count && bv_menu_action[bv_menu_focus] == BV_MENU_SETTING &&
             (key == K_LEFTARROW || key == K_RIGHTARROW))
         {
-            if (bv_menu_value[bv_menu_focus] <= 2) BV_MenuSettingSet(bv_menu_value[bv_menu_focus], hit > 0);
+            if (BV_MenuSettingToggle(bv_menu_value[bv_menu_focus])) BV_MenuSettingSet(bv_menu_value[bv_menu_focus], hit > 0);
             else BV_MenuActivate(bv_menu_focus, hit);
         }
         else BV_MenuMoveFocus(key);

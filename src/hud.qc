@@ -6,6 +6,10 @@ float bv_play_timing_reported, bv_play_quality_reported;
 float bv_match_hud_reported, bv_match_point_reported;
 float bv_ui_font, bv_ui_rounded;
 var float bv_ui_scale = 1;
+// Extra training information is opt-in and independent of the landing guide.
+var float autocvar_bv_court_map = 0;
+var float autocvar_bv_coaching = 0;
+var float autocvar_bv_shot_details = 0;
 float bv_net_hud_reported, bv_receive_hud_reported;
 float(vector viewport) BV_MenuDraw;
 void() BV_MenuInit;
@@ -221,7 +225,7 @@ void(vector viewport) BV_Help =
     BV_HelpRow(x + 24 + column, y + row_y + gap * 3, "F / V", "Depth/cushion", column, compact);
     BV_HelpRow(x + 24 + column, y + row_y + gap * 4, "B", "Reset depth", column, compact);
     BV_HelpRow(x + 24 + column, y + row_y + gap * 5, "C", "Auto contact", column, compact);
-    BV_HelpRow(x + 24 + column, y + row_y + gap * 6, "J", "Court overlay", column, compact);
+    BV_HelpRow(x + 24 + column, y + row_y + gap * 6, "J", "Landing guide", column, compact);
     BV_HelpRow(x + 24 + column, y + row_y + gap * 7, "G", "Serve type", column, compact);
     BV_Box(x + 16, y + height - 41, width - 32, 0.5, '0.3 0.4 0.43', 0.5);
     BV_Type(x + 16, y + height - 34, "1-4 Drills    5 Doubles    R Serve    T Feed", 11, BV_UI_TEXT, 1, width - 32);
@@ -280,13 +284,243 @@ void() BV_VisualCapture =
     }
 };
 
+// On-court surfaces stay small and quiet; the menu owns persistent controls.
+void(float x, float y, float width, float height, float alpha) BV_HudSurface =
+{
+    BV_RoundBox(x, y, width, height, 7, '0.025 0.045 0.06', 0.82 * alpha);
+};
+
+void(vector viewport) BV_HudScore =
+{
+    local float width, team;
+    local string label;
+    if (getstatf(BV_STAT_MATCH))
+    {
+        BV_HudSurface(12, 12, 148, 30, 1);
+        BV_Type(24, 22, "YOU", 9, '0.49 0.76 1', 1, 24);
+        BV_Type(52, 17, ftos(getstatf(BV_STAT_HOME_SCORE)), 19, BV_UI_TEXT, 1, 30);
+        BV_Type(84, 22, "-", 10, BV_UI_MUTED, 1, 8);
+        BV_Type(96, 17, ftos(getstatf(BV_STAT_AWAY_SCORE)), 19, BV_UI_TEXT, 1, 30);
+        BV_Type(128, 22, "RED", 9, BV_UI_OPPONENT, 1, 24);
+        team = getstatf(BV_STAT_SERVE_TEAM);
+        // The small team-coloured dot marks the side serving next.
+        if (team < 0) BV_RoundBox(24, 36, 3, 3, 1.5, BV_UI_ACCENT, 1);
+        else BV_RoundBox(128, 36, 3, 3, 1.5, BV_UI_OPPONENT, 1);
+        return;
+    }
+    label = BV_ModeLabel(getstatf(BV_STAT_MODE));
+    width = BV_TextWidth(label, 11) + 24;
+    if (autocvar_bv_shot_details)
+    {
+        BV_HudSurface(12, 12, width, 43, 1);
+        BV_Type(24, 20, label, 11, BV_UI_TEXT, 1, width - 24);
+        label = strcat(ftos(getstatf(BV_STAT_TARGETS)), " / ",
+            ftos(getstatf(BV_STAT_ATTEMPTS)), " targets");
+        BV_Type(24, 36, label, 9, BV_UI_MUTED, 1, width - 24);
+    }
+    else
+    {
+        BV_HudSurface(12, 12, width, 27, 1);
+        BV_Type(24, 20, label, 11, BV_UI_MUTED, 1, width - 24);
+    }
+};
+
+void(vector viewport) BV_HudCue =
+{
+    local float match, phase, state, locked, receiving, reach, serving, assisted;
+    local float age, result, kind, note, width, height, x, y, row, charge, alpha;
+    local vector color;
+    local string label, instruction, values, forecast;
+    match = getstatf(BV_STAT_MATCH);
+    phase = getstatf(BV_STAT_PHASE);
+    state = getstatf(BV_STAT_STATE);
+    locked = getstatf(BV_STAT_AIM_LOCKED);
+    receiving = getstatf(BV_STAT_RECEIVING);
+    reach = getstatf(BV_STAT_REACH);
+    serving = getstatf(BV_STAT_SERVING);
+    assisted = getstatf(BV_STAT_ASSISTED);
+    age = getstatf(BV_STAT_FEEDBACK_AGE);
+    result = getstatf(BV_STAT_RESULT);
+    kind = getstatf(BV_STAT_KIND);
+    color = BV_UI_TEXT;
+    alpha = 1;
+    label = instruction = values = forecast = "";
+    // Ordinary rallies need no instruction card. Coaching is a separate opt-in.
+    if (autocvar_bv_coaching)
+    {
+        label = "Prepare your shot";
+        instruction = "Hold LMB to pass or RMB to set.";
+        if (match)
+        {
+            label = "Cover your partner";
+            instruction = "Move into space and watch the ball.";
+            if (getstatf(BV_STAT_HINT) == BV_HINT_RECEIVE)
+            { label = "Receive"; instruction = "Aim toward your blue partner."; }
+            if (getstatf(BV_STAT_HINT) == BV_HINT_SET)
+            { label = "Set your partner"; instruction = "Hold RMB. Lift toward your partner."; }
+            if (getstatf(BV_STAT_HINT) == BV_HINT_ATTACK)
+            { label = "Attack"; instruction = "Jump + LMB to spike. RMB to roll."; }
+        }
+    }
+    if (state == BV_HELD)
+    {
+        label = "Your serve";
+        instruction = "Hold LMB to toss. Release near the top.";
+        if (getstatf(BV_STAT_SERVE_STYLE) == BV_TOPSPIN_SERVE) label = "Jump serve";
+    }
+    if (!match && state == BV_DEAD && getstatf(BV_STAT_FEED_DELAY) <= 0)
+    { label = "Ready for another?"; instruction = "R to serve. T to feed a ball."; }
+    if (locked)
+    {
+        label = "Track the ball";
+        instruction = "Aim saved. Shift + look to adjust.";
+        color = BV_UI_GOLD;
+        if (receiving)
+        { label = "Meet the ball"; instruction = "Release as it reaches your hands."; }
+        if (assisted)
+        { label = "Hold for contact"; instruction = "Move into the ball. Keep holding."; }
+    }
+    if (reach && locked)
+    {
+        label = "Release to hit";
+        color = BV_UI_GOOD;
+        if (assisted) label = "Hold for contact";
+        if (serving && getstatf(BV_STAT_TIMING) >= 0.9) label = "Release now";
+    }
+    if (!autocvar_bv_coaching) instruction = "";
+    // Practice feedback shares the same slot as the action cue. It never
+    // creates a second card across the flight of the ball or the net.
+    if (!match && !locked && state != BV_HELD && age < 2.4 && (result || kind))
+    {
+        alpha = BV_Clamp((2.4 - age) / 0.45, 0, 1);
+        label = "Clean contact";
+        color = BV_UI_GOOD;
+        instruction = "";
+        if (getstatf(BV_STAT_QUALITY) < 0.9)
+        {
+            label = "Reaching contact";
+            color = BV_UI_GOLD;
+            if (getstatf(BV_STAT_QUALITY) < 0.7) label = "Glancing contact";
+            if (autocvar_bv_coaching)
+            {
+                instruction = "Prepare early and meet the ball.";
+                note = getstatf(BV_STAT_CONTACT_NOTE);
+                if (note == BV_NOTE_REACH) instruction = "Move your hands under the ball.";
+                if (note == BV_NOTE_FOOTING) instruction = "Get into position. Plant your feet.";
+                if (note == BV_NOTE_DIVE) instruction = "Dig saved. Recover your feet.";
+                if (note == BV_NOTE_TIMING) instruction = "Strike near the top of the toss.";
+                if (note == BV_NOTE_EARLY) instruction = "Early. Wait for it to reach your hands.";
+                if (note == BV_NOTE_LATE) instruction = "Late. Read the ball earlier.";
+                if (note == BV_NOTE_PLATFORM) instruction = "Turn your platform into the ball.";
+                if (note == BV_NOTE_ASSIST) instruction = "Release manually for more control.";
+            }
+        }
+        if (result)
+        {
+            label = BV_ResultLabel(result);
+            color = BV_ResultColor(result);
+            if (autocvar_bv_coaching)
+            {
+                instruction = "Keep it inside the court.";
+                if (result == BV_RESULT_TARGET) instruction = "Good placement.";
+                if (result == BV_RESULT_OUT) instruction = "Try less power or a shorter placement.";
+                if (result == BV_RESULT_OWN) instruction = "Set again or clear the net.";
+                if (result == BV_RESULT_ANTENNA) instruction = "Keep it inside the antennas.";
+                if (result == BV_RESULT_MISS) instruction = "Release as it reaches your hands.";
+                if (result == BV_RESULT_NET || result == BV_RESULT_UNDER) instruction = "Add arc or raise your contact.";
+            }
+        }
+        if (autocvar_bv_shot_details && kind)
+            values = strcat(BV_ShotName(kind), "   ", BV_Decimal(getstatf(BV_STAT_SPEED)), " m/s");
+    }
+    if (match && phase == BV_MATCH_POINT)
+    {
+        label = BV_PointLabel(getstatf(BV_STAT_POINT_REASON));
+        instruction = "";
+        color = BV_UI_TEXT;
+    }
+    if (match && phase == BV_MATCH_OVER)
+    {
+        label = "Match complete";
+        if (getstatf(BV_STAT_HOME_SCORE) > getstatf(BV_STAT_AWAY_SCORE)) label = "You win!";
+        instruction = "Esc  Match options";
+        color = BV_UI_GOOD;
+    }
+    if (locked && autocvar_bv_shot_details)
+    {
+        values = strcat("Arc ", ftos(BV_Round(getstatf(BV_STAT_ARC) * 100)), "   ",
+            BV_SideLabel(getstatf(BV_STAT_SIDE)), "   ", BV_TopLabel(getstatf(BV_STAT_TOP)), "   ",
+            BV_DepthLabel(getstatf(BV_STAT_DEPTH)));
+        if (receiving)
+            values = strcat("Arc ", ftos(BV_Round(getstatf(BV_STAT_ARC) * 100)),
+                "   Cushion ", ftos(BV_Round((getstatf(BV_STAT_DEPTH) + 1) * 50)), "%");
+        if (getstatf(BV_STAT_OVERLAYS) && getstatf(BV_STAT_PREVIEW_RESULT))
+            forecast = strcat(BV_ResultLabel(getstatf(BV_STAT_PREVIEW_RESULT)), "   ",
+                BV_Decimal(getstatf(BV_STAT_PREVIEW_RANGE)), "m   Apex ",
+                BV_Decimal(getstatf(BV_STAT_PREVIEW_HEIGHT)), "m");
+    }
+    if (label == "") return;
+    width = BV_TextWidth(label, 14) + 24;
+    if (instruction != "") width = BV_Clamp(BV_TextWidth(instruction, 10) + 24, width, 268);
+    if (values != "") width = BV_Clamp(BV_TextWidth(values, 10) + 24, width, 268);
+    if (forecast != "") width = BV_Clamp(BV_TextWidth(forecast, 10) + 24, width, 268);
+    width = BV_Clamp(width, 124, viewport_x - 24);
+    height = 28;
+    if (instruction != "") height = height + 15;
+    if (values != "") height = height + 15;
+    if (forecast != "") height = height + 15;
+    if (locked) height = height + 8;
+    x = (viewport_x - width) * 0.5;
+    y = viewport_y - height - 12;
+    BV_HudSurface(x, y, width, height, alpha);
+    BV_Type(x + 12, y + 7, label, 14, color, alpha, width - 24);
+    row = y + 25;
+    if (instruction != "")
+    { BV_Type(x + 12, row, instruction, 10, BV_UI_MUTED, alpha, width - 24); row = row + 15; }
+    if (values != "")
+    { BV_Type(x + 12, row, values, 10, BV_UI_MUTED, alpha, width - 24); row = row + 15; }
+    if (forecast != "") BV_Type(x + 12, row, forecast, 10, BV_UI_MUTED, alpha, width - 24);
+    if (locked)
+    {
+        charge = BV_Clamp(getstatf(BV_STAT_CHARGE), 0, 1);
+        if (receiving) charge = BV_Clamp(getstatf(BV_STAT_TIMING), 0, 1);
+        BV_RoundBox(x + 12, y + height - 9, width - 24, 3, 1.5, '0.2 0.27 0.29', alpha);
+        BV_RoundBox(x + 12, y + height - 9, (width - 24) * charge, 3, 1.5, color, alpha);
+    }
+};
+
+void(vector viewport) BV_HudMap =
+{
+    local float x, match, preview;
+    if (!autocvar_bv_court_map || viewport_x < 320 || viewport_y < 220) return;
+    x = viewport_x - 132;
+    match = getstatf(BV_STAT_MATCH);
+    preview = getstatf(BV_STAT_PREVIEW_RESULT);
+    BV_HudSurface(x, 12, 120, 82, 1);
+    BV_Type(x + 12, 21, "COURT", 9, BV_UI_MUTED, 1, 96);
+    BV_Box(x + 12, 38, 96, 48, '0.27 0.3 0.28', 1);
+    if (!match) BV_MapTargets(x, 24);
+    BV_Box(x + 12, 38, 96, 0.7, '0.5 0.64 0.65', 1);
+    BV_Box(x + 12, 85.3, 96, 0.7, '0.5 0.64 0.65', 1);
+    BV_Box(x + 12, 38, 0.7, 48, '0.5 0.64 0.65', 1);
+    BV_Box(x + 107.3, 38, 0.7, 48, '0.5 0.64 0.65', 1);
+    BV_Box(x + 59.5, 38, 1, 48, BV_UI_TEXT, 1);
+    if (preview && getstatf(BV_STAT_OVERLAYS)) BV_MapPoint(x, 24, BV_STAT_PREVIEW, BV_ResultColor(preview), TRUE);
+    BV_MapPoint(x, 24, BV_STAT_PLAYER, BV_UI_TEXT, FALSE);
+    BV_MapPoint(x, 24, BV_STAT_BALL, BV_UI_GOLD, FALSE);
+    if (match)
+    {
+        BV_MapPoint(x, 24, BV_STAT_PARTNER, '0.49 0.76 1', FALSE);
+        BV_MapPoint(x, 24, BV_STAT_OPPONENT1, BV_UI_OPPONENT, FALSE);
+        BV_MapPoint(x, 24, BV_STAT_OPPONENT2, BV_UI_OPPONENT, FALSE);
+    }
+};
+
 void(vector virtual_size, float showscores) CSQC_DrawHud =
 {
-    local float x, y, width, charge, arc, side, mode, state, top, preview;
-    local float result, age, alpha, reach, locked, compact, feed, serving, timing, note;
-    local float match, phase, hint, assisted, overlays, column, hud_y, receiving, style;
+    local float x, y, preview, result, age, reach, locked, serving, timing;
+    local float match, phase, receiving;
     local vector color;
-    local string label, instruction, footer;
     BV_MenuTestFrame();
     if (BV_MenuDraw(virtual_size)) return;
     if ((cvar("bv_netview") > 0 && cvar("bv_netview") != 6) || cvar("bv_handview"))
@@ -294,283 +528,24 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         BV_VisualCapture();
         return;
     }
-    charge = BV_Clamp(getstatf(BV_STAT_CHARGE), 0, 1);
-    arc = getstatf(BV_STAT_ARC);
-    side = getstatf(BV_STAT_SIDE);
-    state = getstatf(BV_STAT_STATE);
-    mode = getstatf(BV_STAT_MODE);
-    top = getstatf(BV_STAT_TOP);
-    preview = getstatf(BV_STAT_PREVIEW_RESULT);
+    // Cap the size on small windows and large engine HUD scales. The help
+    // overlay shares the transform so it still fits when explicitly opened.
+    bv_ui_scale = BV_Clamp(virtual_size_y / 240, 0.1, 1);
+    bv_ui_scale = BV_Clamp(virtual_size_x / 360, 0.1, bv_ui_scale);
+    virtual_size = virtual_size / bv_ui_scale;
     reach = getstatf(BV_STAT_REACH);
     locked = getstatf(BV_STAT_AIM_LOCKED);
-    feed = getstatf(BV_STAT_FEED_DELAY);
     serving = getstatf(BV_STAT_SERVING);
     timing = getstatf(BV_STAT_TIMING);
     match = getstatf(BV_STAT_MATCH);
     phase = getstatf(BV_STAT_PHASE);
-    hint = getstatf(BV_STAT_HINT);
-    assisted = getstatf(BV_STAT_ASSISTED);
-    overlays = getstatf(BV_STAT_OVERLAYS);
     receiving = getstatf(BV_STAT_RECEIVING);
-    style = getstatf(BV_STAT_SERVE_STYLE);
-    if (receiving) charge = timing;
+    preview = getstatf(BV_STAT_PREVIEW_RESULT);
     result = getstatf(BV_STAT_RESULT);
     age = getstatf(BV_STAT_FEEDBACK_AGE);
-    width = BV_Clamp(virtual_size_x - 24, 0, 396);
-    compact = width < 360;
-    x = (virtual_size_x - width) * 0.5;
-    y = virtual_size_y - 130;
-    hud_y = y;
-    BV_Panel(x, y, width, 118, 1);
-    label = BV_ModeLabel(mode);
-    if (!mode)
-    {
-        label = "Float serve / G";
-        if (style == BV_TOPSPIN_SERVE) label = "Jump topspin / G";
-    }
-    if (mode == 1)
-    {
-        label = "Receive / float";
-        if (style == BV_TOPSPIN_SERVE) label = "Receive / topspin";
-    }
-    if (match) label = "Beach doubles";
-    BV_Type(x + 14, y + 10, label, 11, BV_UI_MUTED, 1, width - 89);
-    BV_Key(x + width - 61, y + 8, "H", 18, 16);
-    BV_Type(x + width - 37, y + 10, "Help", 11, BV_UI_MUTED, 1, 28);
-
-    // Strategy is useful between contacts; hand reach always gets priority
-    // during preparation, including in doubles.
-    label = "Prepare your shot";
-    instruction = "Hold LMB to pass or RMB to set.";
-    color = BV_UI_TEXT;
-    if (state == BV_HELD)
-    {
-        label = "Hold LMB to toss";
-        instruction = "Aim first. Release near the top of the toss.";
-    }
-    if (state == BV_DEAD)
-    {
-        label = "Ready for another?";
-        instruction = "R to serve. T to feed a ball.";
-    }
-    if (match)
-    {
-        label = "Cover your partner";
-        instruction = "Move into space and watch the ball.";
-        if (hint == BV_HINT_RECEIVE)
-        {
-            label = "Receive the ball";
-            instruction = "Hold LMB. Aim toward your blue partner.";
-        }
-        if (hint == BV_HINT_SET)
-        {
-            label = "Set your partner";
-            instruction = "Hold RMB. Aim toward your blue partner.";
-        }
-        if (hint == BV_HINT_ATTACK)
-        {
-            label = "Go for the attack";
-            instruction = "Jump + LMB to spike. RMB for a roll shot.";
-        }
-        if (phase == BV_MATCH_SERVE)
-        {
-            label = "Get ready to receive";
-            instruction = "Red is serving. Watch the toss.";
-            if (getstatf(BV_STAT_SERVE_TEAM) < 0)
-            {
-                label = "Your serve";
-                instruction = "Hold LMB to toss. Release near the top.";
-            }
-        }
-    }
-    if (locked)
-    {
-        label = "Track the ball";
-        instruction = "Aim saved. Shift + look to adjust.";
-        if (receiving) instruction = "Aim platform. Release at your hands.";
-        color = BV_UI_GOLD;
-        if (assisted)
-        {
-            label = "Move into the ball";
-            instruction = "Keep holding. Contact is automatic in reach.";
-        }
-    }
-    if (reach)
-    {
-        label = "Release to hit";
-        instruction = "Ball in reach. Meet it with your hands.";
-        color = BV_UI_GOOD;
-        if (assisted && locked)
-        {
-            label = "Hold for contact";
-            instruction = "Keep the ball centred in your hands.";
-        }
-        if (serving && timing >= 0.9)
-        {
-            label = "Release now";
-            instruction = "Sweet spot. Strike at the top of the toss.";
-        }
-    }
-    if (match && phase == BV_MATCH_POINT)
-    {
-        label = BV_PointLabel(getstatf(BV_STAT_POINT_REASON));
-        instruction = "Take your position for the next serve.";
-        color = BV_UI_TEXT;
-    }
-    if (match && phase == BV_MATCH_OVER)
-    {
-        label = "Match complete";
-        if (getstatf(BV_STAT_HOME_SCORE) > getstatf(BV_STAT_AWAY_SCORE)) label = "You win!";
-        instruction = "Press 5 to play again. 1-4 for practice.";
-        color = BV_UI_GOOD;
-    }
-    BV_RoundBox(x + 14, y + 31, 4, 17, 2, color, 1);
-    BV_Type(x + 26, y + 27, label, 22, color, 1, width - 40);
-    BV_Type(x + 14, y + 53, instruction, 12, BV_UI_MUTED, 1, width - 28);
-    label = "Power ";
-    if (receiving) label = "Timing ";
-    BV_Type(x + 14, y + 72, strcat(label, ftos(BV_Round(charge * 100)), "%"),
-        11, BV_UI_TEXT, 1, 75);
-    BV_RoundBox(x + 94, y + 76, width - 108, 4, 2, '0.17 0.23 0.26', 1);
-    if (locked)
-        BV_RoundBox(x + 94, y + 76, (width - 108) * charge, 4, 2, color, 1);
-    column = (width - 28) / 4;
-    BV_Type(x + 14, y + 88, strcat("Arc ", ftos(BV_Round(arc * 100))), 11,
-        BV_UI_MUTED, 1, column - 3);
-    BV_Type(x + 14 + column, y + 88, BV_SideLabel(side), 11, BV_UI_MUTED, 1, column - 3);
-    BV_Type(x + 14 + column * 2, y + 88, BV_TopLabel(top), 11, BV_UI_MUTED, 1, column - 3);
-    label = BV_DepthLabel(getstatf(BV_STAT_DEPTH));
-    if (receiving)
-        label = strcat("Cushion ", ftos(BV_Round((getstatf(BV_STAT_DEPTH) + 1) * 50)), "%");
-    BV_Type(x + 14 + column * 3, y + 88, label, 11, BV_UI_MUTED, 1, column);
-    footer = "Wheel Arc    Q / E Side spin    Z Top spin";
-    if (state == BV_HELD) footer = "G Serve type    Space Jump";
-    if (receiving) footer = "Wheel Platform arc    F Soft    V Firm";
-    color = BV_UI_MUTED;
-    if (feed > 0) footer = strcat("Next ball in ", BV_Decimal(feed), "s. T to feed now.");
-    if (preview && overlays)
-    {
-        footer = strcat("Prediction: ", BV_ResultLabel(preview), "   ",
-            BV_Decimal(getstatf(BV_STAT_PREVIEW_RANGE)), "m   Apex ",
-            BV_Decimal(getstatf(BV_STAT_PREVIEW_HEIGHT)), "m");
-        color = BV_ResultColor(preview);
-    }
-    if (match && !preview)
-    {
-        footer = "C Auto contact off    J Court overlay";
-        if (assisted) footer = "C Auto contact on    J Court overlay";
-    }
-    // Short viewports reuse this line for feedback instead of stacking a
-    // toast over the scoreboard or the action card.
-    if (virtual_size_y < 300 && age < 3 && result && !locked)
-    {
-        footer = BV_ResultLabel(result);
-        color = BV_ResultColor(result);
-    }
-    BV_Type(x + 14, y + 103, footer, 11, color, 1, width - 28);
-
-    width = 164;
-    if (compact) width = 148;
-    BV_Panel(12, 12, width, 70, 1);
-    if (!match)
-    {
-        BV_Type(26, 22, "SOLO PRACTICE", 10, BV_UI_MUTED, 1, width - 28);
-        label = strcat(ftos(getstatf(BV_STAT_TARGETS)), " / ", ftos(getstatf(BV_STAT_ATTEMPTS)));
-        BV_Type(26, 40, label, 28, BV_UI_TEXT, 1, width - 66);
-        BV_Type(12 + width - 54, 54, "targets", 11, BV_UI_ACCENT, 1, 45);
-    }
-    else
-    {
-        BV_Type(26, 21, "BEACH DOUBLES", 10, BV_UI_MUTED, 1, width - 28);
-        BV_Type(26, 36, "You + blue", 10, '0.49 0.76 1', 1, 68);
-        BV_Type(12 + width - 60, 36, "Red", 10, BV_UI_OPPONENT, 1, 48);
-        BV_Type(26, 49, ftos(getstatf(BV_STAT_HOME_SCORE)), 26, BV_UI_TEXT, 1, 49);
-        BV_Type(12 + width - 60, 49, ftos(getstatf(BV_STAT_AWAY_SCORE)), 26, BV_UI_TEXT, 1, 49);
-        BV_Type(12 + width * 0.5 - 6, 54, "-", 15, BV_UI_MUTED, 1, 12);
-        if (phase == BV_MATCH_RALLY && getstatf(BV_STAT_TOUCH_TEAM) < 0)
-        {
-            BV_RoundBox(26, 74, 5, 2, 1, BV_UI_ACCENT, 1);
-            if (getstatf(BV_STAT_TOUCHES) >= 2) BV_RoundBox(34, 74, 5, 2, 1, BV_UI_ACCENT, 1);
-            if (getstatf(BV_STAT_TOUCHES) >= 3) BV_RoundBox(42, 74, 5, 2, 1, BV_UI_ACCENT, 1);
-        }
-    }
-    if (virtual_size_x >= 480 && overlays)
-    {
-        x = virtual_size_x - 132;
-        BV_Panel(x, 12, 120, 96, 1);
-        BV_Type(x + 12, 21, "COURT", 10, BV_UI_MUTED, 1, 68);
-        BV_Type(x + 99, 21, "J", 10, BV_UI_MUTED, 1, 10);
-        BV_Box(x + 12, 38, 96, 48, '0.27 0.3 0.28', 1);
-        if (!match) BV_MapTargets(x, 24);
-        BV_Box(x + 12, 38, 96, 0.7, '0.5 0.64 0.65', 1);
-        BV_Box(x + 12, 85.3, 96, 0.7, '0.5 0.64 0.65', 1);
-        BV_Box(x + 12, 38, 0.7, 48, '0.5 0.64 0.65', 1);
-        BV_Box(x + 107.3, 38, 0.7, 48, '0.5 0.64 0.65', 1);
-        BV_Box(x + 59.5, 38, 1, 48, BV_UI_TEXT, 1);
-        if (preview) BV_MapPoint(x, 24, BV_STAT_PREVIEW, BV_ResultColor(preview), TRUE);
-        BV_MapPoint(x, 24, BV_STAT_PLAYER, BV_UI_TEXT, FALSE);
-        BV_MapPoint(x, 24, BV_STAT_BALL, BV_UI_GOLD, FALSE);
-        if (match)
-        {
-            BV_MapPoint(x, 24, BV_STAT_PARTNER, '0.49 0.76 1', FALSE);
-            BV_MapPoint(x, 24, BV_STAT_OPPONENT1, BV_UI_OPPONENT, FALSE);
-            BV_MapPoint(x, 24, BV_STAT_OPPONENT2, BV_UI_OPPONENT, FALSE);
-        }
-        BV_RoundBox(x + 12, 96, 3, 3, 1.5, BV_UI_TEXT, 1);
-        BV_Type(x + 20, 92, "You", 10, BV_UI_MUTED, 1, 28);
-        BV_RoundBox(x + 66, 96, 3, 3, 1.5, BV_UI_GOLD, 1);
-        BV_Type(x + 74, 92, "Ball", 10, BV_UI_MUTED, 1, 30);
-    }
-
-    if (virtual_size_y >= 300 && age < 3 && (result || getstatf(BV_STAT_KIND)))
-    {
-        alpha = BV_Clamp((3 - age) / 0.6, 0, 1);
-        label = "Clean contact";
-        color = BV_UI_GOOD;
-        instruction = strcat(BV_ShotName(getstatf(BV_STAT_KIND)), "   ",
-            BV_Decimal(getstatf(BV_STAT_SPEED)), " m/s");
-        if (getstatf(BV_STAT_QUALITY) < 0.9)
-        {
-            label = "Reaching contact";
-            if (getstatf(BV_STAT_QUALITY) < 0.7) label = "Glancing contact";
-            color = BV_UI_GOLD;
-            instruction = "Prepare early and meet the ball.";
-            note = getstatf(BV_STAT_CONTACT_NOTE);
-            if (note == BV_NOTE_REACH) instruction = "Move your hands under the ball.";
-            if (note == BV_NOTE_FOOTING) instruction = "Get into position. Plant your feet.";
-            if (note == BV_NOTE_DIVE) instruction = "Dig saved. Recover your feet.";
-            if (note == BV_NOTE_TIMING) instruction = "Strike near the top of the toss.";
-            if (note == BV_NOTE_EARLY) instruction = "Early release. Wait for your hands.";
-            if (note == BV_NOTE_LATE) instruction = "Late release. Read the ball earlier.";
-            if (note == BV_NOTE_PLATFORM) instruction = "Turn your platform into the ball.";
-            if (note == BV_NOTE_ASSIST) instruction = "Release manually for control.";
-        }
-        if (result)
-        {
-            label = BV_ResultLabel(result);
-            color = BV_ResultColor(result);
-            instruction = "Keep it inside the court.";
-            if (virtual_size_x >= 480 && overlays && !match)
-                instruction = "Aim for the HUD target zones.";
-            if (result == BV_RESULT_TARGET) instruction = "Good placement.";
-            if (result == BV_RESULT_OUT) instruction = "Try less power or a shorter placement.";
-            if (result == BV_RESULT_OWN) instruction = "Set again or clear the net.";
-            if (result == BV_RESULT_ANTENNA) instruction = "Keep the ball inside the antennas.";
-            if (result == BV_RESULT_MISS) instruction = "Release when the ball reaches your hands.";
-            if (result == BV_RESULT_NET || result == BV_RESULT_UNDER)
-                instruction = "Add arc or raise your contact.";
-        }
-        width = BV_Clamp(virtual_size_x - 24, 0, 284);
-        x = (virtual_size_x - width) * 0.5;
-        y = 94;
-        if (y + 56 < hud_y - 8)
-        {
-            BV_Panel(x, y, width, 56, alpha);
-            BV_RoundBox(x + 14, y + 15, 4, 14, 2, color, alpha);
-            BV_Type(x + 26, y + 10, label, 19, color, alpha, width - 40);
-            BV_Type(x + 14, y + 35, instruction, 12, BV_UI_TEXT, alpha, width - 28);
-        }
-    }
+    BV_HudScore(virtual_size);
+    BV_HudMap(virtual_size);
+    BV_HudCue(virtual_size);
     color = BV_UI_TEXT;
     if (locked) color = BV_UI_GOLD;
     if (reach) color = BV_UI_GOOD;
@@ -585,6 +560,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         BV_RoundBox(x - 1, y + 4, 2, 3, 1, color, 0.75);
     }
     if (showscores || cvar("bv_help")) BV_Help(virtual_size);
+    bv_ui_scale = 1;
     if (match)
     {
         if (!bv_match_hud_reported && cvar("bv_matchtest"))

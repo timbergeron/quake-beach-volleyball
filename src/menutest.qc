@@ -68,7 +68,7 @@ void() BV_MenuTestFrame =
     // Keep the page unchanged until the engine has read back the frame.
     // A queued screenshot followed by a page change captures the next page.
     if ((stage == 1 || stage == 2 || stage == 4 || stage == 6 || stage == 9 || stage == 10 ||
-         stage == 24 || stage == 25) &&
+         stage == 24 || stage == 25 || stage == 32 || stage == 33 || stage == 34 || stage == 36) &&
         bv_menu_test_captured_stage != stage)
     {
         bv_menu_test_captured_stage = stage;
@@ -84,6 +84,9 @@ void() BV_MenuTestFrame =
         }
         else BV_MenuTestKey(K_ESCAPE);
         BV_MenuAssert(bv_menu_open && getcursormode(), "escape-opens-and-releases-cursor");
+        BV_MenuAssert(!autocvar_bv_court_map && !autocvar_bv_coaching && !autocvar_bv_shot_details,
+            "fresh-hud-starts-with-training-information-hidden");
+        BV_MenuAssert(!getstatf(BV_STAT_OVERLAYS), "landing-guide-starts-disabled");
     }
     if (stage == 1)
     {
@@ -150,6 +153,9 @@ void() BV_MenuTestFrame =
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 0));
         BV_MenuAssert(!BV_MenuSettingValue(0), "rapid-toggle-reversal-is-not-lost");
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 0));
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 1));
+        BV_MenuAssert(BV_MenuSettingValue(1) && !autocvar_bv_court_map,
+            "landing-guide-does-not-enable-court-map");
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 1));
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 2));
         BV_MenuAssert(!cvar("bv_contact_kick"), "camera-pulse-toggle-applies");
@@ -315,6 +321,54 @@ void() BV_MenuTestFrame =
     if (stage == 30)
     {
         BV_MenuAssert(!bv_menu_open && cvar("bv_help"), "full-controls-opens-court-help");
+        BV_MenuTestKey(K_F1);
+        BV_MenuTestKey(101); BV_MenuTestKey(101);
+    }
+    if (stage == 31) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_CATEGORY, 2));
+    if (stage == 32)
+    {
+        BV_MenuAssert(bv_menu_settings_page == 2, "hud-options-have-a-dedicated-settings-group");
+        BV_MenuTestBounds();
+        BV_MenuAssert(!BV_MenuSettingValue(6) && !BV_MenuSettingValue(7) && !BV_MenuSettingValue(8),
+            "hud-options-stay-off-until-chosen");
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 6));
+        BV_MenuAssert(autocvar_bv_court_map && !autocvar_bv_coaching && !autocvar_bv_shot_details &&
+            !getstatf(BV_STAT_OVERLAYS), "court-map-toggle-is-immediate-and-independent");
+        BV_MenuTestKey(K_LEFTARROW);
+        BV_MenuAssert(!autocvar_bv_court_map, "left-arrow-disables-court-map");
+        BV_MenuTestKey(K_RIGHTARROW); BV_MenuTestKey(K_RIGHTARROW);
+        BV_MenuAssert(autocvar_bv_court_map == 1, "right-arrow-enables-map-without-slider-values");
+        BV_MenuTestKey(K_F1);
+    }
+    if (stage == 33)
+    {
+        BV_MenuAssert(!bv_menu_open && autocvar_bv_court_map, "chosen-court-map-remains-on-during-play");
+        BV_MenuSettingSet(7, TRUE); BV_MenuSettingSet(8, TRUE);
+        localcmd("+attack\n");
+    }
+    if (stage == 34)
+    {
+        BV_MenuAssert(getstatf(BV_STAT_AIM_LOCKED) && autocvar_bv_coaching && autocvar_bv_shot_details,
+            "optional-training-information-works-during-real-preparation");
+        BV_MenuTestKey(K_F1); BV_MenuTestKey(101); BV_MenuTestKey(101);
+    }
+    if (stage == 35)
+    {
+        BV_MenuAssert(bv_menu_settings_page == 2 && BV_MenuSettingValue(6) &&
+            BV_MenuSettingValue(7) && BV_MenuSettingValue(8), "hud-preferences-survive-menu-reopening");
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 6));
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 7));
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 8));
+        BV_MenuTestKey(K_F1);
+    }
+    if (stage == 36)
+    {
+        BV_MenuAssert(!bv_menu_open && !autocvar_bv_court_map && !autocvar_bv_coaching &&
+            !autocvar_bv_shot_details && !getstatf(BV_STAT_AIM_LOCKED),
+            "disabling-extras-restores-clean-hud-and-court-input");
+    }
+    if (stage == 37)
+    {
         dprint("BEACH MENU DONE pass=", ftos(bv_menu_test_pass), " fail=", ftos(bv_menu_test_fail), "\n");
         localcmd("quit\n");
     }

@@ -12,7 +12,7 @@ your hands.
 
 ![First-person doubles with a blue teammate, red opponents, and the rounded match HUD](docs/screenshots/doubles.png)
 
-*Native QSS-M captures: rounded HUD, clearer court, and updated hands. The
+*Native QSS-M captures: compact HUD, clearer court, and updated hands. The
 latest source also adds the game menu below. The v0.7.0 download predates these
 changes.*
 
@@ -71,7 +71,7 @@ net and jump to attack.
 
 You choose the direction before preparing, so you can look up and track the
 ball. **C** toggles assisted contact within physical hand reach. **J** toggles
-training overlays. [Full controls, serve timing, and shot shaping →](docs/gameplay.md#controls)
+the optional landing guide. [Full controls, serve timing, and shot shaping →](docs/gameplay.md#controls)
 
 Doubles is one local player plus three bots: receive, set, attack, cover. Games
 default to seven points, win by two; the latest menu also offers 11 or 21.
@@ -89,19 +89,20 @@ focus work with a mouse or keyboard, including smaller windows and large HUD sca
 
 ![The native CSQC game menu with Play, Practice, Settings, and Learn tabs](docs/screenshots/menu.png)
 
-| Resume your match | Clear settings · 640 × 480 |
+| Resume your match | Choose your HUD · 640 × 480 |
 | --- | --- |
-| ![The Resume match action with the live score and separate new-session choices](docs/screenshots/menu-resume.png) | ![Compact gameplay settings with explanations and switches](docs/screenshots/menu-settings.png) |
+| ![The Resume match action with the live score and separate new-session choices](docs/screenshots/menu-resume.png) | ![Optional court map, coaching tips, and shot details, all off by default](docs/screenshots/menu-settings.png) |
 
-**A clear court. A clear next action.** The current HUD keeps score and court
-position in the corners, with one prominent cue for what to do next. Practice
-targets live on the minimap; blue lines frame the sand.
+**More court. Less HUD.** A compact score, a small aiming dot, and a brief cue
+when you need it. The power or timing bar appears only while preparing a shot.
+The court map, coaching tips, and shot statistics start off; enable each in
+**Settings → HUD**. The landing guide is a separate option under **Gameplay**.
 
-![Serve practice with clear sand, blue court lines, and a rounded next-action panel](docs/court.png)
+![Serve practice with open sand, blue court lines, and a compact serve cue](docs/court.png)
 
 | Read the receive | Time the jump serve |
 | --- | --- |
-| ![Receiving an incoming serve with platform timing and cushion cues](docs/screenshots/receive.png) | ![Preparing a jump topspin serve with the toss and timing HUD](docs/screenshots/jump-serve.png) |
+| ![Receiving an incoming serve with a compact contact cue and timing bar](docs/screenshots/receive.png) | ![Preparing a jump topspin serve with a compact timing bar](docs/screenshots/jump-serve.png) |
 
 **Help when you need it.** Controls are grouped by movement and shot shaping.
 The compact layout keeps them readable on a smaller viewport.

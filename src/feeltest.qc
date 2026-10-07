@@ -24,7 +24,7 @@ void(entity player) BV_RunFeelTests =
 {
     local vector centre, clean_velocity, other_velocity, landing, aim;
     local float clean, middle, edge, i, height, short_range, speed, footing;
-    local float peak, started, saved_gravity, saved_kick;
+    local float peak, started, saved_gravity, saved_kick, saved_overlays;
     saved_gravity = autocvar_bv_gravity;
     saved_kick = autocvar_bv_contact_kick;
 
@@ -188,6 +188,8 @@ void(entity player) BV_RunFeelTests =
     BV_TestContactSetup(player, 2);
     player.bv_preparing = 2;
     player.bv_quality = 0.73;
+    saved_overlays = player.bv_overlays;
+    player.bv_overlays = TRUE;
     player.bv_preview_next = 0;
     BV_UpdatePreview(player);
     landing = player.bv_preview_landing;
@@ -209,6 +211,7 @@ void(entity player) BV_RunFeelTests =
     while (bv_ball_state == BV_LIVE && i < 1000) { BV_BallStep(BV_STEP); i = i + 1; }
     BV_Assert("graded-preview-matches-centred-live-shot", bv_ball_state == BV_DEAD &&
         vlen(landing - bv_ball.origin) < 0.1);
+    player.bv_overlays = saved_overlays;
 
     BV_TestContactSetup(player, 1);
     BV_ContactZone(player, '-271 0 44');

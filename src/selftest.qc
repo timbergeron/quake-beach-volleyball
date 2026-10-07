@@ -41,6 +41,7 @@ void() BV_RunSelfTests =
     player = spawn();
     self = player;
     PutClientInServer();
+    BV_Assert("training-guide-defaults-to-off", !player.bv_overlays && !player.bv_marker.modelindex);
     player.flags = player.flags | FL_ONGROUND;
     player.bv_aim = '1 0 0';
     player.bv_action = 1;
@@ -316,6 +317,8 @@ void() BV_RunSelfTests =
     player.bv_topspin = 0.35;
     player.flags = player.flags | FL_ONGROUND;
     player.bv_preview_next = 0;
+    // Prediction is an opt-in feature; exercise it with the guide enabled.
+    player.bv_overlays = TRUE;
     time = time + 0.35;
     player.bv_charge = BV_Charge(player);
     BV_UpdatePreview(player);

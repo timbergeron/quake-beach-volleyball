@@ -252,10 +252,20 @@ The fixture drives the actual CSQC input entry point and checks server-side
 session changes and player options. It tests navigation, drag cancellation,
 slider limits, confirmation/back behavior, cursor restoration, input capture,
 and widget bounds at 1280×720, 640×480, a large HUD scale, and 1600×900. Logs,
-eight page captures per case, and executable hashes go to `artifacts/menu`. Use `--case`
+twelve native captures per case, and executable hashes go to `artifacts/menu`. Use `--case`
 to select `desktop`, `compact`, `large-hud`, or `wide`. The fixtures also check
 visible match-length choices, spatial focus, rapid toggle reversal, modal
 input containment, direct first-serve practice, and the default Resume action.
+They also check the clean HUD defaults, independent map/landing-guide toggles,
+and restoration of the clean court after disabling optional information.
+
+`src/hud.qc` draws a compact scoreboard and one context-sensitive cue. The
+charge/timing bar exists only during preparation; ordinary rallies have no
+instruction card. The client cvars `bv_court_map`, `bv_coaching`, and
+`bv_shot_details` default to zero and are archived when changed through
+**Settings → HUD**. The server's per-player `bv_overlays` controls the separate
+landing guide and starts off. The HUD and help share a minimum 360×240 canvas
+so large engine HUD scales remain usable.
 
 ## Verify
 

@@ -1,14 +1,14 @@
 {
   "schema": "beachvolley.menu-captures.v1",
   "captured_on": "2026-10-07",
-  "source_base_commit": "6519006a0e49ca83afe175d93e24e779cc62c9f8",
+  "source_base_commit": "81cf729008aa372a1f247a0a5945191d86d85f6d",
   "render_source_matches_commit": false,
-  "source_note": "Native captures after the menu UI/UX polish. Source files are newer than source_base_commit and identified by the hashes below. The v0.7.0 release predates this menu.",
+  "source_note": "Native captures of the compact HUD and independent HUD settings. Source files newer than the base commit are identified by hashes. The v0.7.0 release predates these changes.",
   "renderer": "QSS-M native OpenGL with SDL offscreen and Mesa software rendering",
   "image_processing": "Lossless TGA to PNG conversion; no retouching, compositing, or generated imagery.",
   "engine_sha256": "3dd6a53728053816168c0adcaffb99bb52b7aeb2ecea4d104ddd4d3458105a16",
-  "progs_sha256": "f66a569df6001fa62f1bcc565d04d30f72258a59003e12323347c6c95faa22af",
-  "csprogs_sha256": "cfc1f23d3b5ef2590ce1d90f862f23389dc490f86bbfd8bda4f2656e13752f3d",
+  "progs_sha256": "db0fced56f81402a04b3b707311409fe170521d9a71c0c07b0c5c69c3da83445",
+  "csprogs_sha256": "ef65f67052c09e98565dbd5ff92e71d1732ddca2cb4274169776bb6ec32e0700",
   "map_sha256": "7f12c9520e07a4fa3c8ae352b470ddeb016b9b82d9d7c6d3d49d21c6cf2c6972",
   "font_sha256": "562829d8a4cf1b9f9f639bf4b9e5798860bf7e4e11795444f3aeaff7fa941e1a",
   "source_files_sha256": {
@@ -22,17 +22,17 @@
     "src/feel.qc": "f7bdaf339dd5fb6555d613b6414c980a8f828ee27aa419b7e8b4be8244cc33e0",
     "src/feeltest.qc": "080a332229f6c3ee07880f7a25f04acfc735b4ed417451028556b1179b088947",
     "src/handview.qc": "1b5b853c8e4bd356416b4d4a61e1825155f1910d9ae1531c34ff9cb4dfe8ad50",
-    "src/hud.qc": "bb7d46f90879fad07e4b8e095698ad854737eb33d0f8afeb4a439a18d2157d29",
+    "src/hud.qc": "995187cf315b5a52d32bfc79a462b782e3a1a1c5732f679c8fb91f0412a0554e",
     "src/hud_metrics.qc": "242acfcc9c3cc0d86702231897660b73d142d62bf76c44d09d7af78ce37ff7f1",
     "src/match.qc": "1a28a03cecda4770fc6e74cfdd53989a7a9716011a80c7bbb772a8fed6354976",
     "src/matchrules.qc": "fb862544f6e2896e86aed2f824aa46fe6222d5add2ae759b2b0489c274972ee1",
     "src/matchtest.qc": "b7a1cfe9bb5c5701a14eb65e1237888134adc4132f542d7f714b7216fa30c2db",
-    "src/menu.qc": "60bbe504b9166204d3eafa26d06348e59173b9ad8b63afe5a84af76ffeceef63",
-    "src/menutest.qc": "a7c6d453b146bfdc6aa17e8875756a55c43ba7fefc12f7f88b404bdef5eba45f",
+    "src/menu.qc": "1babe5662264bc125c2475e14db3af4071aff133bc1c738e133460ae6dd481a3",
+    "src/menutest.qc": "3533caf01fe7c4d33252e70e9b5640fcb25764be432f2b453db4842d582ac6c1",
     "src/net.qc": "554b07696601659f85c703ac8ee879ed7a7188c2bd744f859cdaf6cfe1306db6",
     "src/nettest.qc": "17ba5ed470489af6c9810eaadfbda969666cc8e92faee5cb607f6d2718473b0e",
     "src/physics.qc": "4ce6a8e84a02140f76f85dab84505127764d00a8ee861c6b9c746d6185e41e80",
-    "src/player.qc": "45a7c687d8560a9cc6f7adb34c6d3093f4da1274fc85b47298711ed28c3326ee",
+    "src/player.qc": "519b7c4e20ccad7be2d4ad174783a909c902cad78013c1f7162d3ee9c43ac507",
     "src/playtest.qc": "3563c8dfef79a7b1b64c3fa1e944cdcf8ef572783865d675d5274ec5ceb07631",
     "src/receive.qc": "e80c8b5bc460631bb1b4aea23b18d2ff872a930ead0922f89b24aeae591dafd7",
     "src/receivetest.qc": "37a279f65a6acc85b066b2514671f7e6ec17c76211ac9ca120ff7f51af46b8b5",
@@ -46,33 +46,33 @@
     "src/progs.src": "7644a06e597843947fc4cf7cd2447dd59f7681b39aae3deb7abb86aaebdbaa29",
     "beach.cfg": "521497138f0819e28b5b45a661329b21420ca94bf78660cc4ad4183dbacc1a97",
     "server.cfg": "70af8dc1889b0f452f554e612ff2cc8fadaf00e9a3b7dee45003972533d78ece",
-    "test_menu.py": "a0f1f9abbb31449591817af3a82059897a3fa155204f10b9f187ed794636f16f"
+    "test_menu.py": "ec87849fbee77fe0d5fde90ffabb3210640f1ae14b21f52564e4b3b2b5bf3290"
   },
   "validation": {
     "complete": true,
     "profiles": [
       {
         "name": "desktop",
-        "assertions": 74
+        "assertions": 87
       },
       {
         "name": "compact",
-        "assertions": 74
+        "assertions": 87
       },
       {
         "name": "large-hud",
-        "assertions": 74
+        "assertions": 87
       },
       {
         "name": "wide",
-        "assertions": 74
+        "assertions": 87
       }
     ]
   },
   "captures": [
     {
       "image": "menu.png",
-      "kind": "live CSQC arrival menu",
+      "kind": "native CSQC arrival menu",
       "width": 1280,
       "height": 720,
       "sha256": "0fd87cded5307b878fd14e0a38d30691bcb4646a177ed998d7a7f8aadeb55784",
@@ -104,7 +104,7 @@
     },
     {
       "image": "menu-resume.png",
-      "kind": "live CSQC menu during doubles",
+      "kind": "native CSQC menu during doubles",
       "width": 1280,
       "height": 720,
       "sha256": "c399f10028de6a76aa1fac92a21527c21fdc6b3f357b372ede6b6ad12c4d9a0a",
@@ -136,10 +136,10 @@
     },
     {
       "image": "menu-settings.png",
-      "kind": "live CSQC gameplay settings at 640x480",
+      "kind": "optional HUD settings at 640x480; all extras off",
       "width": 640,
       "height": 480,
-      "sha256": "d6e4fd4c64deaf2f8bef36b1b0ae30f4684641f38f4c22f64e97f044e49a03fc",
+      "sha256": "86c5dbabaf190972434a1127573087448f9fd4abc87103d220893763c50dcf66",
       "fsaa": 4,
       "settings": {
         "developer": 1,

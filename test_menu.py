@@ -86,7 +86,8 @@ def capture_case(binary, basedir, output, name, width, height, scale, timeout):
         if int(completion[1]) < 35:
             raise RuntimeError(f"{name}: too few assertions: {completion[1]}")
         images = sorted((target / "screenshots").glob("*.tga"))
-        labels = ("home", "practice", "settings", "learn", "resume", "confirm", "look", "first-serve")
+        labels = ("home", "practice", "settings", "learn", "resume", "confirm", "look", "first-serve",
+                  "hud-settings", "map-on", "hud-details", "hud-clean")
         if len(images) != len(labels):
             raise RuntimeError(f"{name}: expected {len(labels)} captures, got {len(images)}")
         records = []

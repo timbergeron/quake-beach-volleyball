@@ -20,11 +20,13 @@ click or drag. Left turns a switch off; right turns it on.
   match. After entering the court, **Resume** becomes the default action and
   your live doubles score appears above it. Starting a new match is separate.
 - **Practice:** serve, receive, set, or attack without a match score.
-- **Settings:** **Gameplay** groups contact assistance, training guides, and
+- **Settings:** **Gameplay** groups contact assistance, the landing guide, and
   contact camera motion. **Sound & look** groups volume, mouse speed, and field
   of view. Each option explains its effect; changes appear immediately. Court
   options apply to your current player, and another session keeps them. New
-  players start with manual contact.
+  players start with manual contact and the landing guide off. **HUD** has
+  separate switches for the court map, coaching tips, and shot details. All
+  three start off; your HUD choices are saved for future launches.
 - **Learn:** a three-step first serve guide, with **Try a serve** taking you
   directly into serve practice. **All controls** returns to court with the
   full control overlay open.
@@ -58,7 +60,7 @@ that console. Use `seta bv_menu_auto 1` to restore it.
 | 1 / 2 / 3 / 4 | Leave doubles and enter serve / receive / setting / attack practice |
 | 5 | Start or restart local doubles |
 | C | Toggle assisted contact while holding a shot |
-| J | Toggle landing preview and training minimap |
+| J | Toggle the landing guide |
 | H / Tab | Toggle help / hold for help |
 | Escape / F1 | Open the game menu |
 | F12 | Console |
@@ -106,18 +108,28 @@ change forward travel; sets retain their selected vertical lift. B restores
 neutral depth. This is a placement bias, so movement, spin, net collisions,
 and contact quality still affect the actual landing.
 
-The gold ring previews a centred contact using your current preparation,
-footing, depth and serve timing; reaching for the ball can change the outcome.
-The HUD predicts range, apex height, and target/in/out/net outcomes. Its overhead
-court shows you in white, the ball in gold, and the predicted landing as an
-outlined green or orange marker. Spin labels use L/R for sidespin and TOP/BACK
-for vertical spin. CLEAN, REACH, and GLANCE feedback identifies contact quality
-and gives a cue about preparation, reaching, footing, digging, or serve timing.
-Recent contact quality and landing feedback remain visible
-for three seconds, including across automatic training feeds. The HUD uses smooth
-proportional DejaVu Sans lettering, a prominent next-action cue, and quieter shot
-settings. H or Tab opens grouped controls. Short viewports keep landing feedback
-inside the action card so panels do not overlap. QSS-M's `drawroundedrect` named
+The default HUD keeps the court open: a compact score or practice badge, a
+small aiming dot, and one short cue when serving, preparing, or finishing a
+point. A thin power or timing bar appears only while preparing. Ordinary
+doubles rallies have no permanent instruction panel. Practice contact and
+landing feedback share the bottom cue and fade after 2.4 seconds; preparing
+the next shot takes priority.
+
+Open **Settings → HUD** to add information when you need it:
+
+- **Court map** shows you in white, the ball in gold, your partner in blue,
+  and opponents in red. Practice target zones appear here.
+- **Coaching tips** adds preparation and positioning advice during play.
+- **Shot details** adds arc, spin, placement, practice counts, and shot speed.
+  Prediction range and apex appear while preparing with the landing guide on.
+
+These options are independent and off by default. **Gameplay → Landing guide**
+or **J** enables the gold landing ring without turning on the map. The ring
+previews a centred contact using your preparation, footing, depth and serve
+timing; reaching for the ball can change the outcome. With both map and landing
+guide on, an outlined green or orange marker shows that prediction on the map.
+
+**H** or **Tab** opens grouped controls on demand. QSS-M's `drawroundedrect` named
 CSQC extension supplies native antialiased corners; older engines retain square
 panels. The original bitmap font and normal Quake font provide text fallbacks.
 
@@ -152,10 +164,10 @@ the feed preserves your preparation and aim. R and manual feeds clear the old
 contact window. A flight that lasts longer than eight seconds expires so a ball
 caught on the tape cannot stall practice. Expired flights count as misses.
 The sand stays clear inside the blue boundary, with a matching center line
-under the net. Practice target zones appear on the overhead HUD instead of
-being painted on the court. The HUD shows shot speed
-in metres per second and reports target hits, in/out, misses, and under-net
-faults. Consecutive self contacts are allowed for practice.
+under the net. Practice target zones appear on the optional court map instead
+of being painted on the court. Brief feedback reports target hits, in/out,
+misses, and under-net faults; optional shot details show speed in metres per
+second. Consecutive self contacts are allowed for practice.
 
 ![Clear sand inside the blue court boundary and a center line under the net in QSS-M](court.png)
 
@@ -163,8 +175,8 @@ faults. Consecutive self contacts are allowed for practice.
 
 Press **5** to start. The opponents serve first; move into the incoming ball,
 prepare LMB toward your blue teammate and release at the hands, then get forward
-for their set. The HUD
-calls out receive, set, attack or cover and shows your team's touch count. Both
+for their set. The compact scoreboard shows both teams and a serving-side dot.
+Optional coaching tips call out receive, set, attack or cover. Both
 opponents use the same physical receive–set–attack sequence. Bots forecast the
 ball's flight, move with collision-aware feet, prepare and strike only within
 hand reach. Poor positioning can cause a miss.

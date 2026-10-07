@@ -3,7 +3,7 @@
   "captured_on": "2026-10-07",
   "source_base_commit": "63e49e49bcd6e3e85be282b826a08e45c7db4b9c",
   "render_source_matches_commit": true,
-  "source_note": "Game code and render assets match the source commit. Only documentation is being changed. Downloadable v0.7.0 predates this HUD and court.",
+  "source_note": "Unchanged model and equipment captures use source_base_commit. Refreshed HUD captures select their exact source and executable hashes through capture_build. Downloadable v0.7.0 predates these changes.",
   "engine_commit": "77c32e3b3370bbe9c7c5010c7dc3a62cac582f5b",
   "engine_sha256": "3dd6a53728053816168c0adcaffb99bb52b7aeb2ecea4d104ddd4d3458105a16",
   "renderer": "QSS-M native OpenGL with SDL offscreen and Mesa software rendering",
@@ -100,18 +100,17 @@
     {
       "name": "doubles",
       "image": "doubles.png",
-      "kind": "live doubles setting preparation",
+      "kind": "live doubles receive preparation with the compact default HUD",
       "width": 1280,
       "height": 720,
-      "sha256": "a640120ddd661a8af6a57b0e211075575985a4db8ea7563ea951c5dbd524dc27",
-      "source_tga_sha256": "3eb9a77026b47a56fe9f7d47c098c52696a21e0ff08b45077c229045c6db15d1",
+      "sha256": "6127f1e3ae5eebea83ebd5754b5190529e5fa91c37cefea0a4b5b8ee04865b32",
       "fixture": "doubles-set",
       "settings": {
         "developer": 1,
         "bv_selftest": 0,
         "bv_visualtest": 0,
         "bv_playtest": 0,
-        "bv_matchtest": 2,
+        "bv_matchtest": 1,
         "bv_receivetest": 0,
         "bv_netview": 0,
         "bv_handview": 0,
@@ -125,20 +124,21 @@
         "con_notifytime": 0,
         "con_notifylines": 0,
         "scr_fade": 0,
-        "scr_conspeed": 100000
+        "scr_conspeed": 100000,
+        "bv_menu_auto": 0
       },
       "samples": 4,
       "stopped_after_capture": true,
-      "log_markers_checked": true
+      "log_markers_checked": true,
+      "capture_build": "hud-polish"
     },
     {
       "name": "court",
       "image": "../court.png",
-      "kind": "serve practice and rounded HUD",
+      "kind": "serve practice with the compact default HUD",
       "width": 1280,
       "height": 720,
-      "sha256": "84745209c2b75ec386bd7ad552d61cabe65590dbab38a6748ba1ad9e57a6c8cf",
-      "source_tga_sha256": "b35c21c2e2204c16ff6c45b0f32f32f102c954559d646d21ac5278a7db36aff9",
+      "sha256": "132fe72b7adecf9e318e28b0c734b4719cd4ab6536041a605e817c511ae24ca4",
       "fixture": "court",
       "settings": {
         "developer": 1,
@@ -159,20 +159,21 @@
         "con_notifytime": 0,
         "con_notifylines": 0,
         "scr_fade": 0,
-        "scr_conspeed": 100000
+        "scr_conspeed": 100000,
+        "bv_menu_auto": 0
       },
       "samples": 4,
       "stopped_after_capture": true,
-      "log_markers_checked": true
+      "log_markers_checked": true,
+      "capture_build": "hud-polish"
     },
     {
       "name": "receive",
       "image": "receive.png",
-      "kind": "live receive timing and platform preparation",
+      "kind": "live receive preparation with a compact timing bar",
       "width": 1280,
       "height": 720,
-      "sha256": "26878047e90e5c6fa2e338a5296bc2bfa87c9348090079b8ba295c42297c98a5",
-      "source_tga_sha256": "6f7c52950fcce33d8cfc6aec3691ba3dd47610b6879371ba827177db87f1310c",
+      "sha256": "aa11d8f2ab6e02c2f776f576deb40b802ec8de3785358ab0bc651fce05985d8e",
       "fixture": "receive",
       "settings": {
         "developer": 1,
@@ -193,20 +194,21 @@
         "con_notifytime": 0,
         "con_notifylines": 0,
         "scr_fade": 0,
-        "scr_conspeed": 100000
+        "scr_conspeed": 100000,
+        "bv_menu_auto": 0
       },
       "samples": 4,
       "stopped_after_capture": true,
-      "log_markers_checked": true
+      "log_markers_checked": true,
+      "capture_build": "hud-polish"
     },
     {
       "name": "jump-serve",
       "image": "jump-serve.png",
-      "kind": "live jump topspin serve preparation",
+      "kind": "live jump topspin serve preparation with a compact timing bar",
       "width": 1280,
       "height": 720,
-      "sha256": "a388b15a0284bbca5f3690b27d38cc4365c65950dd7bb0229c865254eb97407f",
-      "source_tga_sha256": "b3ab4dddcd90ee1092e1759ec069e2b9c9c47f4d9587401cadbcc557f8c4ccd7",
+      "sha256": "0b517837ef717ddd2234ee8ff665fa1486b10bbeef6bd8c64551a0db8053bafd",
       "fixture": "jump-serve",
       "settings": {
         "developer": 1,
@@ -227,20 +229,21 @@
         "con_notifytime": 0,
         "con_notifylines": 0,
         "scr_fade": 0,
-        "scr_conspeed": 100000
+        "scr_conspeed": 100000,
+        "bv_menu_auto": 0
       },
       "samples": 4,
       "stopped_after_capture": true,
-      "log_markers_checked": true
+      "log_markers_checked": true,
+      "capture_build": "hud-polish"
     },
     {
       "name": "help",
       "image": "help.png",
-      "kind": "grouped controls",
+      "kind": "grouped controls opened on demand",
       "width": 1280,
       "height": 720,
-      "sha256": "75236b0fe43d28f52972be4d14e32376b68c6cb4d565dda081249a39da3171a8",
-      "source_tga_sha256": "f5e30203018fbf558589db4be65cf28e26cbb09779f9142ad8d787dea8c9e875",
+      "sha256": "5d346476e6d65c9a56fd2b76e6c5fe3f2f5fd6321de9af4f04d78972f028659c",
       "fixture": "help",
       "settings": {
         "developer": 1,
@@ -261,20 +264,21 @@
         "con_notifytime": 0,
         "con_notifylines": 0,
         "scr_fade": 0,
-        "scr_conspeed": 100000
+        "scr_conspeed": 100000,
+        "bv_menu_auto": 0
       },
       "samples": 4,
       "stopped_after_capture": true,
-      "log_markers_checked": true
+      "log_markers_checked": true,
+      "capture_build": "hud-polish"
     },
     {
       "name": "compact-help",
       "image": "compact-help.png",
-      "kind": "compact grouped controls",
+      "kind": "compact controls opened on demand",
       "width": 640,
       "height": 480,
-      "sha256": "f4c7187e95ac0c0e732f9278d2cc4d6cf1d7fe57efe6a6fb073b6b0316b03072",
-      "source_tga_sha256": "5016f8a8100d405abcc3d60845236530f584f37e0278863537bc3ec6142a9bbf",
+      "sha256": "3c5d588ebb2692062660a7a14a13af26e2b61654df222a5949ab16de2a725970",
       "fixture": "compact",
       "settings": {
         "developer": 1,
@@ -295,11 +299,13 @@
         "con_notifytime": 0,
         "con_notifylines": 0,
         "scr_fade": 0,
-        "scr_conspeed": 100000
+        "scr_conspeed": 100000,
+        "bv_menu_auto": 0
       },
       "samples": 4,
       "stopped_after_capture": true,
-      "log_markers_checked": true
+      "log_markers_checked": true,
+      "capture_build": "hud-polish"
     },
     {
       "name": "hands",
@@ -374,11 +380,10 @@
     {
       "name": "serve-contact",
       "image": "serve-contact.png",
-      "kind": "live float serve contact and feedback",
+      "kind": "live float serve contact with brief feedback",
       "width": 1280,
       "height": 720,
-      "sha256": "2758fb8eda70e85ab774113726dd17bc4a392d2014e1af599cc1c69764d9889b",
-      "source_tga_sha256": "399e1c88186f40fb7de8db824939d52203c81011fb8403839fbd8e7fc5c516da",
+      "sha256": "7b42f52e723dc5c735fafcbba9e2cf8fb57e66f0588d4bced3c3426f50c478bc",
       "fixture": "serve",
       "settings": {
         "developer": 1,
@@ -399,11 +404,13 @@
         "con_notifytime": 0,
         "con_notifylines": 0,
         "scr_fade": 0,
-        "scr_conspeed": 100000
+        "scr_conspeed": 100000,
+        "bv_menu_auto": 0
       },
       "samples": 4,
       "stopped_after_capture": true,
-      "log_markers_checked": true
+      "log_markers_checked": true,
+      "capture_build": "hud-polish"
     },
     {
       "name": "cut-inward",
@@ -665,5 +672,56 @@
       "stopped_after_capture": true,
       "log_markers_checked": true
     }
-  ]
+  ],
+  "capture_builds": {
+    "hud-polish": {
+      "source_base_commit": "81cf729008aa372a1f247a0a5945191d86d85f6d",
+      "render_source_matches_commit": false,
+      "source_note": "Native captures of the compact HUD and independent HUD settings. Source files newer than the base commit are identified by hashes. The v0.7.0 release predates these changes.",
+      "renderer": "QSS-M native OpenGL with SDL offscreen and Mesa software rendering",
+      "image_processing": "Lossless TGA to PNG conversion; no retouching, compositing, or generated imagery.",
+      "engine_sha256": "3dd6a53728053816168c0adcaffb99bb52b7aeb2ecea4d104ddd4d3458105a16",
+      "progs_sha256": "db0fced56f81402a04b3b707311409fe170521d9a71c0c07b0c5c69c3da83445",
+      "csprogs_sha256": "ef65f67052c09e98565dbd5ff92e71d1732ddca2cb4274169776bb6ec32e0700",
+      "map_sha256": "7f12c9520e07a4fa3c8ae352b470ddeb016b9b82d9d7c6d3d49d21c6cf2c6972",
+      "font_sha256": "562829d8a4cf1b9f9f639bf4b9e5798860bf7e4e11795444f3aeaff7fa941e1a",
+      "source_files_sha256": {
+        "src/animation_frames.qc": "8119a4f4005b92786caaf7280ec1ac212154c80cdc91fa0e41dfca07cb38671f",
+        "src/animations.qc": "0ed1931bee9f17c7a0f62b4a986bcf0a56ba77de13e9de47c1f541c6cc3337b3",
+        "src/animationtest.qc": "add391b746e1e27d9ad1570df67a2a1002e5b791ecee36241c4d10fe627a9867",
+        "src/ball.qc": "5b510e9c2e50b9020d2459b30d23704d0b5e17d40b171ce3a5fdc2d5c00d57c3",
+        "src/bots.qc": "9a4155fddcc806fbc45b385c9e018caacf63e634cb8ceae9805759fce40792da",
+        "src/bottest.qc": "63937698d89250badf11381f261dc11f53de5ab2ffb691564fdbcbd1d53743fb",
+        "src/defs.qc": "42c53b8531c4872c3592900bb4385398a71f27f3d902fa8111bd2b5199e30e4c",
+        "src/feel.qc": "f7bdaf339dd5fb6555d613b6414c980a8f828ee27aa419b7e8b4be8244cc33e0",
+        "src/feeltest.qc": "080a332229f6c3ee07880f7a25f04acfc735b4ed417451028556b1179b088947",
+        "src/handview.qc": "1b5b853c8e4bd356416b4d4a61e1825155f1910d9ae1531c34ff9cb4dfe8ad50",
+        "src/hud.qc": "995187cf315b5a52d32bfc79a462b782e3a1a1c5732f679c8fb91f0412a0554e",
+        "src/hud_metrics.qc": "242acfcc9c3cc0d86702231897660b73d142d62bf76c44d09d7af78ce37ff7f1",
+        "src/match.qc": "1a28a03cecda4770fc6e74cfdd53989a7a9716011a80c7bbb772a8fed6354976",
+        "src/matchrules.qc": "fb862544f6e2896e86aed2f824aa46fe6222d5add2ae759b2b0489c274972ee1",
+        "src/matchtest.qc": "b7a1cfe9bb5c5701a14eb65e1237888134adc4132f542d7f714b7216fa30c2db",
+        "src/menu.qc": "1babe5662264bc125c2475e14db3af4071aff133bc1c738e133460ae6dd481a3",
+        "src/menutest.qc": "3533caf01fe7c4d33252e70e9b5640fcb25764be432f2b453db4842d582ac6c1",
+        "src/net.qc": "554b07696601659f85c703ac8ee879ed7a7188c2bd744f859cdaf6cfe1306db6",
+        "src/nettest.qc": "17ba5ed470489af6c9810eaadfbda969666cc8e92faee5cb607f6d2718473b0e",
+        "src/physics.qc": "4ce6a8e84a02140f76f85dab84505127764d00a8ee861c6b9c746d6185e41e80",
+        "src/player.qc": "519b7c4e20ccad7be2d4ad174783a909c902cad78013c1f7162d3ee9c43ac507",
+        "src/playtest.qc": "3563c8dfef79a7b1b64c3fa1e944cdcf8ef572783865d675d5274ec5ceb07631",
+        "src/receive.qc": "e80c8b5bc460631bb1b4aea23b18d2ff872a930ead0922f89b24aeae591dafd7",
+        "src/receivetest.qc": "37a279f65a6acc85b066b2514671f7e6ec17c76211ac9ca120ff7f51af46b8b5",
+        "src/regressions.qc": "cd5ff1e758409a7fc221629fb11f8e79f981090e784983a10928b0fdd56f3858",
+        "src/selftest.qc": "34d25803d7c31630c3835fedb7f0bf6b91421aa84f12402ada66ad20c8dfce80",
+        "src/serve.qc": "ddeb9481a046cb44babc461f586af46349830fab351505be82cf94b4af2a40c4",
+        "src/servetest.qc": "9c4f5782686415ea81fe3d97679beb522eb15150b5a5e7446023f8b66be33c79",
+        "src/shared.qc": "d26e4b9dd5ed6d1328e66c8f129dc103d80e49b6ce31cfe86d38e8579970c01b",
+        "src/world.qc": "57ed2e60c6b21cd8f2b394fa152a83f68e14e5a2334db0dd57bb4443f1f964cf",
+        "src/csprogs.src": "3d68b25f423eeeb71070fc62363e8a5c45be8c5b506c5d08281699c1e55946d9",
+        "src/progs.src": "7644a06e597843947fc4cf7cd2447dd59f7681b39aae3deb7abb86aaebdbaa29",
+        "beach.cfg": "521497138f0819e28b5b45a661329b21420ca94bf78660cc4ad4183dbacc1a97",
+        "server.cfg": "70af8dc1889b0f452f554e612ff2cc8fadaf00e9a3b7dee45003972533d78ece",
+        "test_menu.py": "ec87849fbee77fe0d5fde90ffabb3210640f1ae14b21f52564e4b3b2b5bf3290"
+      }
+    }
+  }
 }

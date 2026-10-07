@@ -14,6 +14,8 @@ void() BV_PlayTestInput =
     {
         self.bv_play_stage = 1;
         self.bv_play_started = time;
+        // This integration fixture explicitly exercises opt-in prediction.
+        self.bv_overlays = TRUE;
         self.impulse = 20;
         self.bv_arc = 0.35;
         self.bv_sidespin = 0;
