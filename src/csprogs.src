@@ -1,4 +1,5 @@
 ../dist/beachvolley/csprogs.dat
 defs.qc
 shared.qc
+hud_metrics.qc
 hud.qc

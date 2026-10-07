@@ -187,8 +187,16 @@ string(string first, string second, ...) strcat = #115;
 
 #ifdef CSQC
 float drawfont;
+float(string text) strlen = #114;
+string(string text, float start, float length) substring = #116;
+float(string text, float index) str2chr = #222;
 float(__variant builtin) checkbuiltin = #0;
+string(string name, float flags) precache_pic = #317;
 float(string name, string atlas, string sizes, float slot) loadfont = #357;
+float(vector position, vector size, vector color, float alpha, float radius,
+    optional float cornermask, optional float feather) drawroundedrect = #0;
+void(vector position, vector size, string picture, vector source, vector extent,
+    vector color, float alpha, float flags) drawsubpic = #328;
 float(vector position, vector size, vector color, float alpha, float flags) drawfill = #323;
 float(vector position, string text, vector size, vector color, float alpha, float flags) drawstring = #326;
 float(float slot) getstatf = #331;

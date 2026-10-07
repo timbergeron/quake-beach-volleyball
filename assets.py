@@ -11,6 +11,7 @@ import struct
 from pathlib import Path
 
 from hud_font import pixels as font_pixels
+from hud_assets import generate as generate_hud
 from ball_assets import generate_ball
 from player_assets import generate_players
 from net_assets import generate_net, POST_Y, POST_RADIUS, POST_HEIGHT
@@ -417,6 +418,7 @@ def generate(base, build, game):
     generate_players(game, build / "player-quality")
     shadow_model(game / "progs/bv_shadow.mdl", palette)
     write_tga(game / "gfx/bv_hud.tga", 128, 128, font_pixels())
+    generate_hud(game / "gfx")
     for kind, duration in (("pass", 0.18), ("set", 0.13), ("spike", 0.2),
                            ("roll", 0.15), ("serve", 0.2), ("dig", 0.22), ("sand", 0.15),
                            ("net", 0.2), ("target", 0.3), ("ocean", 4)):

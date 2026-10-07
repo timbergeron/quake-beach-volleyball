@@ -160,9 +160,12 @@ outlined green or orange marker. Spin labels use L/R for sidespin and TOP/BACK
 for vertical spin. CLEAN, REACH, and GLANCE feedback identifies contact quality
 and gives a cue about preparation, reaching, footing, digging, or serve timing.
 Recent contact quality and landing feedback remain visible
-for three seconds, including across automatic training feeds. The HUD uses an
-original bitmap font when the engine supports CSQC font loading, with the normal
-Quake font as a fallback.
+for three seconds, including across automatic training feeds. The HUD uses smooth
+proportional DejaVu Sans lettering, a prominent next-action cue, and quieter shot
+settings. H or Tab opens grouped controls. Short viewports keep landing feedback
+inside the action card so panels do not overlap. QSS-M's `drawroundedrect` named
+CSQC extension supplies native antialiased corners; older engines retain square
+panels. The original bitmap font and normal Quake font provide text fallbacks.
 
 Start with a serve: press R, move along the baseline, aim, and hold LMB to toss.
 The serve gauge rises toward the toss apex and then falls; the sweet spot is
