@@ -770,5 +770,6 @@ void() BV_MenuInit =
     // Fixture capture and review modes must retain an unobstructed court.
     if (autocvar_bv_menu_auto && !cvar("bv_selftest") && !cvar("bv_visualtest") &&
         !cvar("bv_playtest") && !cvar("bv_matchtest") && !cvar("bv_bottest") &&
-        !cvar("bv_receivetest") && !cvar("bv_netview") && !cvar("bv_handview")) bv_menu_welcome = TRUE;
+        !cvar("bv_receivetest") && !cvar("bv_blocktest") &&
+        !cvar("bv_netview") && !cvar("bv_handview")) bv_menu_welcome = TRUE;
 };

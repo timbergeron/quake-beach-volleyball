@@ -20,6 +20,7 @@ void() BV_StopMatch =
     bv_last_player = world;
     bv_feeder = world;
     bv_touch_actor = world;
+    bv_touch_was_block = FALSE;
     bv_server = world;
     bv_ball_state = BV_IDLE;
     bv_ball.velocity = '0 0 0';
@@ -33,11 +34,13 @@ void() BV_StopMatch =
     bv_match_owner.bv_armed_until = 0;
     bv_match_owner.bv_match_hint = 0;
     bv_match_owner.bv_contact_latched = FALSE;
+    BV_ResetBlock(bv_match_owner);
     bv_match_owner = world;
 };
 
 void(entity actor, vector position) BV_ResetActor =
 {
+    BV_ResetBlock(actor);
     setorigin(actor, position);
     actor.velocity = '0 0 0';
     actor.flags = actor.flags | FL_ONGROUND;
@@ -87,6 +90,7 @@ void() BV_MatchServe =
     bv_touch_team = 0;
     bv_touches = 0;
     bv_touch_actor = world;
+    bv_touch_was_block = FALSE;
     bv_serve_pending = FALSE;
 };
 
@@ -180,7 +184,7 @@ float(entity player) BV_MatchContact =
     }
     else if (bv_touch_team == side)
     {
-        if (bv_touch_actor == player)
+        if (bv_touch_actor == player && !bv_touch_was_block)
         {
             BV_MatchPoint(-side, "DOUBLE CONTACT");
             return FALSE;
@@ -195,6 +199,7 @@ float(entity player) BV_MatchContact =
     bv_touches = bv_touches + 1;
     bv_touch_team = side;
     bv_touch_actor = player;
+    bv_touch_was_block = FALSE;
     /* The serve is not one of the receiving team's three touches. */
     if (bv_serve_pending) bv_touches = 0;
     return TRUE;

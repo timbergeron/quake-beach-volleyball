@@ -8,6 +8,7 @@ void(entity player) BV_RunFeelTests;
 void(entity player) BV_RunMatchRules;
 void(entity player) BV_RunBotTests;
 void(entity player) BV_RunServeTests;
+void(entity player) BV_RunBlockTests;
 
 void(string name, float condition) BV_Assert =
 {
@@ -331,6 +332,7 @@ void() BV_RunSelfTests =
     BV_RunMatchRules(player);
     BV_RunAnimationTests(player);
     BV_RunBotTests(player);
+    BV_RunBlockTests(player);
     BV_RunServeTests(player);
     self = player;
     ClientDisconnect();

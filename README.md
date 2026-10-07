@@ -13,7 +13,7 @@ your hands.
 ![First-person doubles with a blue teammate, red opponents, and the rounded match HUD](docs/screenshots/doubles.png)
 
 *Native QSS-M captures: compact HUD, clearer court, and updated hands. The
-latest source also adds the game menu below. The v0.7.0 download predates these
+latest source also adds the game menu and blocking with court coverage. The v0.7.0 download predates these
 changes.*
 
 ## Start playing
@@ -62,6 +62,7 @@ net and jump to attack.
 | **WASD** / mouse | Move / look |
 | Hold → release **LMB** | Prepare → pass or spike |
 | Hold → release **RMB** | Prepare → set or airborne roll |
+| Hold **RMB** + **Space** near the net | Jump to block an opponent's attack |
 | **Space** / **Ctrl** | Jump / dive |
 | **Shift + mouse** | Adjust your aim while preparing |
 | Wheel / **F**, **V** | Change arc / shorter or deeper placement; cushion a receive |
@@ -76,9 +77,15 @@ the optional landing guide. [Full controls, serve timing, and shot shaping →](
 Doubles is one local player plus three bots: receive, set, attack, cover. Games
 default to seven points, win by two; the latest menu also offers 11 or 21.
 The winning team serves next. Three-touch limits
-and double-contact faults are in place. Full beach rules, service rotation,
+and double-contact faults are in place. A block counts as the first touch;
+the blocker can play the next ball. Full beach rules, service rotation,
 side changes, and network doubles are still in development.
 [How doubles works →](docs/gameplay.md#doubles-rallies)
+
+**Read the block.** Face the net, hold **RMB**, and jump as the attack arrives.
+Your partner covers behind you. On attack, watch the defender commit: hit around
+the hands or send a roll over an early jump.
+[Blocking and coverage →](docs/gameplay.md#blocking-and-coverage)
 
 ## See the game
 
@@ -103,6 +110,10 @@ The court map, coaching tips, and shot statistics start off; enable each in
 | Read the receive | Time the jump serve |
 | --- | --- |
 | ![Receiving an incoming serve with a compact contact cue and timing bar](docs/screenshots/receive.png) | ![Preparing a jump topspin serve with a compact timing bar](docs/screenshots/jump-serve.png) |
+
+| Time your block | Read their coverage |
+| --- | --- |
+| ![Preparing a live first-person jump block as the ball approaches the tape](docs/screenshots/block.png) | ![An opponent commits to a physical block while their partner covers the court](docs/screenshots/block-coverage.png) |
 
 **Help when you need it.** Controls are grouped by movement and shot shaping.
 The compact layout keeps them readable on a smaller viewport.

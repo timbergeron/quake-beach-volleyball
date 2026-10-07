@@ -31,7 +31,7 @@ click or drag. Left turns a switch off; right turns it on.
   directly into serve practice. **All controls** returns to court with the
   full control overlay open.
 
-Opening the menu cancels a prepared shot. The court stays live while browsing.
+Opening the menu cancels a prepared shot or block. The court stays live while browsing.
 Changing sessions during doubles asks before resetting the score; quitting
 also asks. Confirmations name the destination, show your current session, and
 default to **Cancel**. **Video & controls** opens QSS-M's video, audio, and
@@ -46,6 +46,7 @@ that console. Use `seta bv_menu_auto 1` to restore it.
 | WASD / mouse | Move / look |
 | Hold and release LMB | Prepare and contact a forearm pass or high attack |
 | Hold and release RMB | Prepare and contact a set, or an airborne roll shot |
+| Hold RMB + Space near the net | Face the net and jump to block an opponent's attack |
 | Wheel up / down | Increase / decrease arc in 5% steps |
 | Hold Q / E | Adjust remembered sidespin left / right continuously |
 | Z | Cycle topspin/backspin; positive values dip, negative values lift |
@@ -176,7 +177,7 @@ second. Consecutive self contacts are allowed for practice.
 Press **5** to start. The opponents serve first; move into the incoming ball,
 prepare LMB toward your blue teammate and release at the hands, then get forward
 for their set. The compact scoreboard shows both teams and a serving-side dot.
-Optional coaching tips call out receive, set, attack or cover. Both
+Optional coaching tips call out receive, set, attack, block or cover. Both
 opponents use the same physical receive–set–attack sequence. Bots forecast the
 ball's flight, move with collision-aware feet, prepare and strike only within
 hand reach. Poor positioning can cause a miss.
@@ -184,7 +185,8 @@ hand reach. Poor positioning can cause a miss.
 At attack contact, bots simulate nine short/deep and angled spike/roll options
 with the current wind, drag, spin and contact quality. They reject predicted
 net and court faults, then compare when each defender could intercept the
-descending ball. Both defenders affect placement. This is an approximate
+descending ball, including a committed block's hand volume and remaining jump
+window. A cut outside the hands or a roll above them can beat the block. Both defenders affect placement. This is an approximate
 reach estimate; collisions, dives and changes of direction can still save a shot.
 
 Receivers can make an emergency dive when ordinary movement would arrive late
@@ -199,6 +201,30 @@ the height. The direction is yours to choose, including on assisted contacts.
 Jump + LMB attacks high balls; jump + RMB gives a slower looping roll shot.
 Shot-specific follow-through briefly limits movement and prevents instant
 recontacts. A small ball shadow helps read height even with J overlays off.
+
+### Blocking and coverage
+
+When the opponents prepare an attack, take the net or cover behind your partner.
+Face the net within roughly a metre, **hold RMB**, and **jump with Space** as the
+attack arrives. The raised hands physically rebound incoming pace; holding
+longer adds no power. Your jump has a short contact window, so an early jump
+opens the court to a delayed roll. Releasing RMB lowers the hands. RMB keeps
+its set/roll action during your team's possession and when receiving a serve.
+
+The front bot takes the block and the other player covers the open diagonal.
+If you prepare a block, your blue partner covers behind you. Bots read the
+visible set and commit their lane when they jump; they cannot track a late cut
+across the court in midair. Watch the hands before choosing a spike, short cut,
+or lofted roll. Court coverage returns to ordinary receiving after the ball
+crosses, so the defender can move in for a short dig.
+
+A beach block counts as **touch one**, leaving two touches. The blocker may
+play the next ball after it separates from the hands; subsequent contacts use
+the ordinary double-contact rule. Serves cannot be blocked, and a block sent
+out is charged to the blocking team. These rules follow
+[FIVB beach rules 14.4–14.5](https://www.fivb.com/wp-content/uploads/2025/02/FIVB-BeachVolleyball_Rules2025_2028-EN-v01.pdf).
+This implementation contacts the ball on the defender's side of the net;
+over-net penetration and collective blocks are not simulated.
 
 The default match is first to seven, win by two. The winner serves next after
 a two-second pause; you serve home points and the far back bot serves away

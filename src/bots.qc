@@ -134,7 +134,7 @@ void(entity player, vector contact, vector target, float kind) BV_BotTargetShot 
 float(vector contact, vector launch, vector spin, float side) BV_AttackScore =
 {
     local entity first, second;
-    local vector position, flight_velocity;
+    local vector position, flight_velocity, previous;
     local float age, margin, candidate;
     BV_Predict(contact, launch, spin);
     if (bv_predict_net || bv_predict_under_net || bv_predict_antenna || bv_flight_time >= 4 ||
@@ -154,11 +154,16 @@ float(vector contact, vector launch, vector spin, float side) BV_AttackScore =
     margin = 4;
     while (age < bv_flight_time)
     {
+        previous = position;
         BV_Integrate(position, flight_velocity, spin, BV_STEP * 2);
         position = bv_step_position;
         flight_velocity = bv_step_velocity;
         spin = bv_step_spin;
         age = age + BV_STEP * 2;
+        // Read the defender's committed hands, including jump expiry. A roll
+        // above them or a cut outside their lane remains a genuine opening.
+        if (BV_BlockSweep(first, previous, position, age)) return -4;
+        if (BV_BlockSweep(second, previous, position, age)) return -4;
         if (position_x * side < 0 && flight_velocity_z < 0 && position_z <= 72)
         {
             candidate = BV_ArrivalTime(first, position, 30) + 0.12 - age;
@@ -288,7 +293,7 @@ entity(float side, vector point) BV_SelectReceiver =
         first = bv_opponent1;
         second = bv_opponent2;
     }
-    if (bv_touch_team == side && bv_touches > 0)
+    if (bv_touch_team == side && bv_touches > 0 && !bv_touch_was_block)
     {
         if (bv_touches >= 3) return world;
         if (bv_touch_actor == first) return second;
@@ -299,6 +304,94 @@ entity(float side, vector point) BV_SelectReceiver =
     if (BV_ArrivalTime(first, point, 30) <= BV_ArrivalTime(second, point, 30) + 0.08)
         return first;
     return second;
+};
+
+/* Assign a front player and a court defender while the opponents build an
+ * attack. Read the visible set, not the attacker's chosen future shot. Once
+ * airborne the blocker keeps the lane; the partner covers the open diagonal.
+ */
+void(float side) BV_PlanDefense =
+{
+    local entity first, second, blocker, cover;
+    local vector point;
+    local float active, lane, peak;
+    first = bv_match_owner; second = bv_partner;
+    if (side > 0) { first = bv_opponent1; second = bv_opponent2; }
+    active = FALSE;
+    if (bv_touch_team == -side && bv_touches >= 2 && !bv_serve_pending &&
+        bv_ball_state == BV_LIVE && bv_ball.origin_x * side < 65)
+        active = TRUE;
+    if (!active)
+    {
+        first.bv_defense_role = second.bv_defense_role = 0;
+        if (first.bv_isbot) first.bv_blocking = FALSE;
+        if (second.bv_isbot) second.bv_blocking = FALSE;
+        return;
+    }
+    blocker = first; cover = second;
+    if (second.bv_defense_role == 1 ||
+        (!first.bv_defense_role && fabs(second.origin_x) < fabs(first.origin_x)))
+    { blocker = second; cover = first; }
+    if (!first.bv_isbot && first.bv_blocking && !second.bv_block_started)
+    { blocker = first; cover = second; }
+    blocker.bv_defense_role = 1; cover.bv_defense_role = 2;
+    BV_Forecast(BV_ATTACK_HEIGHT);
+    point = bv_intercept;
+    lane = BV_Clamp(point_y, -96, 96);
+    if (blocker.bv_block_started) lane = blocker.bv_block_lane;
+    if (blocker.bv_isbot)
+    {
+        blocker.bv_preparing = 0; blocker.bv_armed_until = 0;
+        blocker.bv_goal = '0 0 24';
+        blocker.bv_goal_x = side * 22;
+        blocker.bv_goal_y = lane;
+        if (!blocker.bv_block_started)
+        {
+            blocker.v_angle_y = 0;
+            if (side > 0) blocker.v_angle_y = 180;
+            blocker.angles_y = blocker.v_angle_y;
+        }
+        else
+        {
+            blocker.v_angle_y = vectoyaw(blocker.bv_block_normal);
+            blocker.angles_y = blocker.v_angle_y;
+        }
+        if (blocker.flags & FL_ONGROUND)
+        {
+            blocker.bv_block_started = 0;
+            blocker.bv_block_contacted = FALSE;
+        }
+        if (BV_CanBlock(blocker))
+        {
+            BV_BeginBlock(blocker);
+            peak = BV_JumpSpeed() / BV_Clamp(autocvar_bv_gravity, 100, 800);
+            if ((blocker.flags & FL_ONGROUND) && time >= blocker.bv_jump_ready &&
+                vlen(blocker.bv_goal - blocker.origin) < 16 &&
+                ((bv_intercept_time < peak + 0.12 && bv_intercept_time > 0.08) ||
+                 (bv_ball.velocity_x * side > 80 && fabs(bv_ball.origin_x) < 90)))
+            {
+                blocker.velocity_z = BV_JumpSpeed();
+                blocker.flags = blocker.flags - (blocker.flags & FL_ONGROUND);
+                blocker.bv_takeoff_at = time;
+                blocker.bv_jump_ready = time + 1;
+                BV_BeginBlock(blocker);
+            }
+        }
+    }
+    // Once the ball crosses, ordinary receiver selection takes over so the
+    // covering player can dig a short ball instead of staying at a waypoint.
+    if (cover.bv_isbot && bv_ball.origin_x * side < 6)
+    {
+        cover.bv_preparing = 0; cover.bv_armed_until = 0;
+        cover.bv_blocking = FALSE;
+        cover.bv_goal = '0 0 24';
+        cover.bv_goal_x = side * 145;
+        cover.bv_goal_y = -58;
+        if (lane < -18) cover.bv_goal_y = 58;
+        if (fabs(lane) <= 18 && cover.origin_y > 0) cover.bv_goal_y = 58;
+        cover.v_angle_y = vectoyaw(bv_ball.origin - cover.origin);
+        cover.angles_y = cover.v_angle_y;
+    }
 };
 
 void(entity actor) BV_FinishBotDive =
@@ -460,6 +553,7 @@ void(entity actor) BV_MoveBot =
     distance = vlen(delta);
     speed = BV_Clamp(autocvar_bv_bot_speed, 80, 220);
     if (actor.bv_recover_until > time) speed = speed * 0.65;
+    if (actor.bv_block_started && actor.bv_blocking) speed = 0;
     if (actor.bv_dive_until > time)
     {
         /* Commit to the chosen direction, braking at the original goal.
@@ -541,6 +635,8 @@ void() BV_UpdateBots =
         BV_PlanBot(bv_partner, -1, TRUE);
         BV_PlanBot(bv_opponent1, 1, TRUE);
         BV_PlanBot(bv_opponent2, 1, FALSE);
+        BV_PlanDefense(-1);
+        BV_PlanDefense(1);
     }
     bv_match_owner.bv_match_hint = BV_HINT_COVER;
     if (bv_home_receiver == bv_match_owner)
@@ -549,6 +645,7 @@ void() BV_UpdateBots =
         if (bv_touch_team < 0 && bv_touches == 1) bv_match_owner.bv_match_hint = BV_HINT_SET;
         if (bv_touch_team < 0 && bv_touches == 2) bv_match_owner.bv_match_hint = BV_HINT_ATTACK;
     }
+    if (bv_match_owner.bv_defense_role == 1) bv_match_owner.bv_match_hint = BV_HINT_BLOCK;
     BV_MoveBot(bv_partner);
     BV_MoveBot(bv_opponent1);
     BV_MoveBot(bv_opponent2);

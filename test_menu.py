@@ -42,7 +42,7 @@ def capture_case(binary, basedir, output, name, width, height, scale, timeout):
         shutil.copytree(game, target, copy_function=stage_asset, symlinks=True)
         stage_runtime(binary, basedir, runtime, target)
         settings = dict(developer=1, bv_selftest=0, bv_visualtest=0, bv_playtest=0,
-                        bv_matchtest=0, bv_bottest=0, bv_receivetest=0, bv_netview=0,
+                        bv_matchtest=0, bv_bottest=0, bv_blocktest=0, bv_receivetest=0, bv_netview=0,
                         bv_handview=0, bv_menutest=1, host_timescale=0, host_framerate=0.1,
                         host_maxfps=100, scr_sbarscale=scale, con_notifytime=0,
                         con_notifylines=0, scr_fade=0, scr_conspeed=100000,

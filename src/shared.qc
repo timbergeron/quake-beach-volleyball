@@ -37,6 +37,7 @@ const float BV_SET = 2;
 const float BV_SPIKE = 3;
 const float BV_ROLL = 4;
 const float BV_SERVE = 5;
+const float BV_BLOCK = 6;
 const float BV_FLOAT_SERVE = 1;
 const float BV_TOPSPIN_SERVE = 2;
 
@@ -107,6 +108,7 @@ const float BV_HINT_SET = 2;
 const float BV_HINT_ATTACK = 3;
 const float BV_HINT_COVER = 4;
 const float BV_HINT_SERVE = 5;
+const float BV_HINT_BLOCK = 6;
 
 const float BV_NOTE_CLEAN = 0;
 const float BV_NOTE_PREPARATION = 1;
@@ -169,5 +171,6 @@ string(float kind) BV_ShotName =
     if (kind == BV_SPIKE) return "SPIKE";
     if (kind == BV_ROLL) return "ROLL";
     if (kind == BV_SERVE) return "SERVE";
+    if (kind == BV_BLOCK) return "BLOCK";
     return "PASS";
 };

@@ -8,6 +8,7 @@ net.qc
 feel.qc
 serve.qc
 receive.qc
+block.qc
 player.qc
 match.qc
 bots.qc
@@ -17,6 +18,7 @@ regressions.qc
 nettest.qc
 feeltest.qc
 matchrules.qc
+blocktest.qc
 animationtest.qc
 handview.qc
 bottest.qc

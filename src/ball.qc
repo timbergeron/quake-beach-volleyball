@@ -33,12 +33,16 @@
 .float bv_anim_air, bv_anim_air_started;
 .float bv_anim_cut;
 .vector bv_swing_aim;
+.float bv_blocking, bv_block_started, bv_block_contacted, bv_takeoff_at;
+.vector bv_block_normal;
+.float bv_block_lane, bv_defense_role;
 
 entity bv_match_owner, bv_partner, bv_opponent1, bv_opponent2, bv_server;
 float bv_match, bv_home_score, bv_away_score, bv_match_phase;
 float bv_serving_team, bv_touch_team, bv_touches, bv_serve_pending;
 float bv_match_next, bv_match_goal;
 float bv_point_reason;
+float bv_touch_was_block;
 entity bv_touch_actor;
 vector bv_partner_position, bv_opponent1_position, bv_opponent2_position;
 entity bv_shadow;
@@ -56,6 +60,14 @@ void(entity player) BV_ResetAnimation;
 void(entity player) BV_RunAnimationTests;
 void() BV_MatchTestInput;
 void() BV_MatchTestObserve;
+void(entity player) BV_ResetBlock;
+float(entity player) BV_BlockInput;
+float(vector start, vector finish) BV_FindBlock;
+void(vector incoming) BV_BlockContact;
+entity bv_block_actor;
+vector bv_block_point;
+void() BV_BlockTestInput;
+void() BV_BlockTestObserve;
 
 entity bv_ball, bv_holder, bv_last_player, bv_feeder;
 vector bv_ball_spin;
@@ -337,6 +349,12 @@ void(float dt) BV_BallStep =
     /* A hand contact before an obstacle consumes the shot without recording
      * a future net/floor event. Never search beyond the first obstacle.
      */
+    if (BV_FindBlock(old, impact))
+    {
+        if (BV_TryContacts(old, bv_block_point)) return;
+        BV_BlockContact(launch_velocity);
+        return;
+    }
     if (BV_TryContacts(old, impact)) return;
     if (BV_UnderNetSweep(old, impact))
     {

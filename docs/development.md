@@ -149,15 +149,16 @@ for target-engine review commands and the animation inventory.
 Live play selects ready movement, forward running, lateral shuffles,
 backpedaling, forearm preparation/contact, deep hand setting, attack approach,
 two-arm backswing, takeoff, bow-and-arrow preparation, spike/roll follow-through,
-standing float and jump topspin serving, short angled cut shots, diving, getting up and landing. The
+standing float and jump topspin serving, short angled cut shots, block preparation
+and pike blocks, diving, getting up and landing. The
 game sends poses at Quake's 0.1-second alias interpolation cadence, selecting
 from the more densely sampled clips. Stride phase follows distance traveled.
 Contact physics and collision still determine when a shot happens.
 
 The library additionally includes back sets, jump sets, closed-knuckle
-pokeys, split steps, pike blocks with left/right presses, peeling into defense,
-and pancakes. These can be reviewed now; their separate gameplay actions and
-block rules are not implemented yet. The clips contain no entity translation:
+pokeys, split steps, lateral block presses, peeling into defense,
+and pancakes. These variants can be reviewed; their separate gameplay actions
+are not implemented yet. The clips contain no entity translation:
 game physics supplies jump height and court movement.
 
 ## Anatomical first-person hands
@@ -286,7 +287,7 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 260 assertions inside the actual QC VM, captures the court and compact
+It runs 295 assertions inside the actual QC VM, captures the court and compact
 help/HUD through SDL's offscreen renderer, and performs standing serves from
 both baselines through the normal input, toss, release, collision, flight,
 scoring, and HUD update paths. Additional live serves check the sweet timing
@@ -307,6 +308,15 @@ screenshots, and executable/progs hashes are written to `artifacts/`.
 Seven net fixtures capture both faces, mesh, padding and close-up fittings, and
 check live recoil plus antenna contact and fault feedback. Fixture settings use
 a startup config so Quake's 50-argument command-line limit cannot drop the map.
+
+Blocking fixtures run human jumps at 50 and 100 Hz, a bot's physical block with
+court coverage, and a lofted roll over an expired jump. Each records the raised
+hands and the outcome. Run `--case block --case block-fast --case block-bot
+--case block-roll` to select these. Dedicated checks cover swept reach, serve
+exclusion, block/double-contact touch rules, out deflections, lane commitment,
+partner roles and attack selection against committed hands. Block reach and
+restitution live in `src/block.qc`; defense roles and attack scoring live in
+`src/bots.qc`. No engine or model changes are required.
 
 Run `python3 -m unittest -v test_launcher` for three launcher regressions covering
 installation switches, broken links, and preservation of regular runtime files.

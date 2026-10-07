@@ -27,21 +27,23 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     shutil.copytree(game, runtime / "beachvolley")
     match = profile in ("match", "match-set", "match-topspin")
     bot = profile in ("bot-dive", "bot-dive-fast")
+    block = profile in ("block", "block-roll", "block-bot", "block-fast")
     receive = profile in ("receive-float", "receive-topspin", "receive-early", "receive-late")
     netview = {"net-hero": 1, "net-opposite": 2, "net-close": 3, "net-post": 4,
                "net-hit": 5, "net-antenna": 6, "net-hardware": 7}.get(profile, 0)
-    if not visual and not play and not match and not bot and not receive:
+    if not visual and not play and not match and not bot and not receive and not block:
         (runtime / "beachvolley/autoexec.cfg").write_text("exec server.cfg\n")
     stage_runtime(binary, basedir, runtime, runtime / "beachvolley")
     # Quake keeps only 50 command-line arguments. Put fixture settings in a
     # script so renderer options cannot silently discard the final +map.
     settings = {
         "developer": 1,
-        "bv_selftest": int(not (visual or play or match or bot or receive)),
+        "bv_selftest": int(not (visual or play or match or bot or receive or block)),
         "bv_visualtest": 2 if profile == "compact" else int(visual),
         "bv_playtest": {"opposite": 2, "sweet": 3, "late": 4, "jump-serve": 5}.get(profile, 1) if play else 0,
         "bv_matchtest": 3 if profile == "match-topspin" else 2 if profile == "match-set" else int(match),
         "bv_bottest": int(bot),
+        "bv_blocktest": {"block": 1, "block-roll": 2, "block-bot": 3, "block-fast": 1}.get(profile, 0),
         "bv_receivetest": {"receive-float": 1, "receive-topspin": 2,
                            "receive-early": 3, "receive-late": 4}.get(profile, 0),
         "bv_netview": netview,
@@ -49,15 +51,18 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
     }
     command = [str(binary), "-basedir", str(runtime), "-game", "beachvolley",
                "-nohome", "-nolan", "-noudp", "-nosound", "+exec", "fixture.cfg"]
-    if visual or play or match or bot or receive:
+    if visual or play or match or bot or receive or block:
         command[1:1] = ["-window", "-width", str(width), "-height", str(height), "-nojoy", "-nomouse",
                         "-fsaa", "4"]
         command.remove("-nosound")
         # Shader warmup and screenshot readback must not lengthen the scripted
         # button hold. Variable server rates are checked separately in QC.
         settings.update(host_timescale=0,
-                        host_framerate=0.02 if visual or match or profile == "bot-dive" else 0.01,
+                        host_framerate=0.02 if visual or match or profile in ("bot-dive", "block", "block-roll", "block-bot") else 0.01,
                         host_maxfps=100)
+        if block:
+            settings.update(scr_conspeed=100000, con_notifytime=0, con_notifylines=0,
+                            scr_fade=0, bv_menu_auto=0)
         if profile == "compact":
             settings.update(scr_sbarscale=2, bv_help=1)
     else:
@@ -75,7 +80,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                                 # Software rendering of the detailed net can
                                 # take longer while the fixed-rate simulation
                                 # still follows the same input/contact timings.
-                            timeout=timeout if visual or play or match or bot or receive else 40)
+                            timeout=timeout if visual or play or match or bot or receive or block else 40)
     except subprocess.TimeoutExpired as failure:
         output = failure.stdout or b""
         if isinstance(output, bytes):
@@ -88,12 +93,24 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
         errors.append(f"engine exit {result.returncode}")
     if "SpawnServer: beach" not in result.stdout:
         errors.append("beach map did not start")
-    for forbidden in ("BEACH FAIL", "BEACH PLAY FAIL", "BEACH MATCH FAIL", "BEACH BOT FAIL", "BEACH RECEIVE FAIL", "BEACH NET FAIL", "Playing demo", "Host_Error", "Sys_Error", "Program error",
+    for forbidden in ("BEACH FAIL", "BEACH PLAY FAIL", "BEACH MATCH FAIL", "BEACH BOT FAIL", "BEACH BLOCK FAIL", "BEACH RECEIVE FAIL", "BEACH NET FAIL", "Playing demo", "Host_Error", "Sys_Error", "Program error",
                       "unimplemented builtin", "Shader compilation failed", "Could not load",
                       "not looped", "bad loop", "not precached", "Couldn't load sound/beach", "couldn't load bitmap font"):
         if forbidden in result.stdout:
             errors.append(forbidden)
-    if receive:
+    if block:
+        for marker in ("BEACH BLOCK PASS physical-jump-and-pose", "BEACH BLOCK PASS coordinated-court-coverage",
+                       "BEACH BLOCK PASS live-contact-or-roll-opening", "BEACH BLOCK DONE"):
+            if marker not in result.stdout:
+                errors.append(f"missing {marker}")
+        images = sorted((runtime / "beachvolley/screenshots").glob("*.tga"))
+        if len(images) != 2:
+            errors.append("missing live block/coverage captures")
+        else:
+            screenshot = f"{name}.tga"
+            shutil.copyfile(images[0], artifacts / screenshot)
+            shutil.copyfile(images[-1], artifacts / f"{name}-contact.tga")
+    elif receive:
         for marker in ("BEACH RECEIVE PASS manual-physical-contact", "BEACH RECEIVE PASS timing-and-control",
                        "BEACH RECEIVE HUD timing-and-cushion", "BEACH RECEIVE DONE"):
             if marker not in result.stdout:
@@ -178,14 +195,14 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                     shutil.copyfile(images[0], artifacts / "compact-help.tga")
     else:
         completed = re.search(r"BEACH DONE pass=(\d+) fail=(\d+)", result.stdout)
-        if not completed or int(completed[2]) or int(completed[1]) < 260:
+        if not completed or int(completed[2]) or int(completed[1]) < 295:
             errors.append("missing or failed gameplay completion marker")
     if errors:
         raise RuntimeError(f"{name}: {', '.join(errors)}\n{result.stdout[-6000:]}")
-    return {"name": name, "passes": re.findall(r"BEACH (?:(?:PLAY|MATCH|BOT|RECEIVE|NET) )?PASS (.+)", result.stdout),
-            "screenshot": screenshot if visual or play or match or bot or receive else None,
-            "contact_screenshot": f"{name}-contact.tga" if play or bot or receive else None,
-            "custom_font": "BEACH HUD FONT custom" in result.stdout if visual or play or match or bot or receive else None}
+    return {"name": name, "passes": re.findall(r"BEACH (?:(?:PLAY|MATCH|BOT|BLOCK|RECEIVE|NET) )?PASS (.+)", result.stdout),
+            "screenshot": screenshot if visual or play or match or bot or receive or block else None,
+            "contact_screenshot": f"{name}-contact.tga" if play or bot or receive or block else None,
+            "custom_font": "BEACH HUD FONT custom" in result.stdout if visual or play or match or bot or receive or block else None}
 
 
 def main():
@@ -201,6 +218,7 @@ def main():
     selection.add_argument("--case", action="append", choices=("gameplay", "visual", "play", "opposite",
         "sweet", "late", "compact", "match", "match-set", "bot-dive", "bot-dive-fast", "jump-serve",
         "receive-float", "receive-topspin", "receive-early", "receive-late", "match-topspin",
+        "block", "block-roll", "block-bot", "block-fast",
         "net-hero", "net-opposite", "net-close", "net-post", "net-hit", "net-antenna", "net-hardware"),
         help="run a selected case; repeat to select several")
     args = parser.parse_args()
@@ -243,6 +261,8 @@ def main():
                  ("receive-early", False, False, "receive-early"),
                  ("receive-late", False, False, "receive-late"),
                  ("match-topspin", False, False, "match-topspin"),
+                 ("block", False, False, "block"), ("block-roll", False, False, "block-roll"),
+                 ("block-bot", False, False, "block-bot"), ("block-fast", False, False, "block-fast"),
                  ("net-hero", True, False, "net-hero"), ("net-opposite", True, False, "net-opposite"),
                  ("net-close", True, False, "net-close"), ("net-post", True, False, "net-post"),
                  ("net-hit", True, False, "net-hit"), ("net-antenna", True, False, "net-antenna"),

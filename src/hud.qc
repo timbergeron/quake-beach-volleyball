@@ -219,6 +219,7 @@ void(vector viewport) BV_Help =
     BV_HelpRow(x + 16, y + row_y + gap * 4, "Space", "Jump", column, compact);
     BV_HelpRow(x + 16, y + row_y + gap * 5, "Ctrl", "Dive", column, compact);
     BV_HelpRow(x + 16, y + row_y + gap * 6, "Shift", "+ look to aim", column, compact);
+    BV_HelpRow(x + 16, y + row_y + gap * 7, "RMB", "+ jump: block", column, compact);
     BV_HelpRow(x + 24 + column, y + row_y, "Wheel", "Arc", column, compact);
     BV_HelpRow(x + 24 + column, y + row_y + gap, "Q / E", "Side spin", column, compact);
     BV_HelpRow(x + 24 + column, y + row_y + gap * 2, "Z / MMB", "Spin / reset", column, compact);
@@ -360,6 +361,8 @@ void(vector viewport) BV_HudCue =
             { label = "Set your partner"; instruction = "Hold RMB. Lift toward your partner."; }
             if (getstatf(BV_STAT_HINT) == BV_HINT_ATTACK)
             { label = "Attack"; instruction = "Jump + LMB to spike. RMB to roll."; }
+            if (getstatf(BV_STAT_HINT) == BV_HINT_BLOCK)
+            { label = "Block the attack"; instruction = "Near net: hold RMB, then jump."; }
         }
     }
     if (state == BV_HELD)

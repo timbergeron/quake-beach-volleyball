@@ -164,6 +164,7 @@ void(entity player, vector contact) BV_Contact =
 
 void(entity player) BV_ReadyServe =
 {
+    BV_ResetBlock(player);
     local vector position;
     BV_ClearContactLatches();
     bv_holder = player;
@@ -388,12 +389,13 @@ void() BV_HandVisualObserve;
 
 void() PlayerPreThink =
 {
-    local float action, pulse, speed, eye_height;
+    local float action, pulse, speed, eye_height, blocking;
     local vector heading, horizontal;
     if (!self.bv_isplayer) return;
     if (cvar("bv_playtest")) BV_PlayTestInput();
     if (cvar("bv_matchtest")) BV_MatchTestInput();
     if (cvar("bv_bottest")) BV_BotTestInput();
+    if (cvar("bv_blocktest")) BV_BlockTestInput();
     if (cvar("bv_receivetest")) BV_ReceiveTestInput();
     if (cvar("bv_netview")) BV_NetVisualInput();
     // A packet sent before cursor capture must not start or release a shot.
@@ -451,10 +453,11 @@ void() PlayerPreThink =
     self.bv_sidespin = BV_Clamp(self.bv_sidespin +
         (self.button5 - self.button4) * frametime * 1.6, -1, 1);
 
+    blocking = BV_BlockInput(self);
     action = 0;
     if (self.button0 && !self.bv_previous_primary) action = 1;
     if (self.button3 && !self.bv_previous_secondary) action = 2;
-    if (action && !self.bv_preparing && time >= self.bv_recover_until)
+    if (action && !blocking && !self.bv_preparing && time >= self.bv_recover_until)
         BV_BeginPreparation(self, action);
     if (self.bv_preparing)
     {
@@ -490,6 +493,8 @@ void() PlayerPreThink =
     {
         self.velocity_z = BV_JumpSpeed();
         self.flags = self.flags - (self.flags & FL_ONGROUND);
+        self.bv_takeoff_at = time;
+        if (blocking) BV_BeginBlock(self);
     }
     self.bv_previous_jump = self.button2;
     if (self.button7 && !self.bv_previous_dive &&
@@ -515,6 +520,7 @@ void() PlayerPreThink =
     horizontal_z = 0;
     speed = 185;
     if (self.bv_recover_until > time) speed = 135;
+    if (self.bv_block_started && self.bv_blocking) speed = 65;
     if (self.bv_dive_until > time) speed = 250;
     if (vlen(horizontal) > speed)
     {
@@ -537,6 +543,8 @@ void() PlayerPostThink =
     {
         position_x = BV_Clamp(position_x, -340, -20);
         position_y = BV_Clamp(position_y, -180, 180);
+        if (self.bv_blocking && self.bv_block_started && !(self.flags & FL_ONGROUND))
+            position_y = BV_Clamp(position_y, self.bv_block_lane - 6, self.bv_block_lane + 6);
     }
     if (position != self.origin) setorigin(self, position);
     self.bv_state = bv_ball_state;
@@ -561,6 +569,7 @@ void() PlayerPostThink =
     if (cvar("bv_playtest")) BV_PlayTestObserve();
     if (cvar("bv_matchtest")) BV_MatchTestObserve();
     if (cvar("bv_bottest")) BV_BotTestObserve();
+    if (cvar("bv_blocktest")) BV_BlockTestObserve();
     if (cvar("bv_receivetest")) BV_ReceiveTestObserve();
     if (cvar("bv_netview")) BV_NetVisualObserve();
     if (cvar("bv_handview")) BV_HandVisualObserve();
@@ -573,6 +582,7 @@ void(float enabled) CSEv_BeachMenu_f =
     if (!self.bv_isplayer || self.bv_isbot) return;
     self.bv_menu_active = enabled != 0;
     if (!enabled) return;
+    BV_ResetBlock(self);
     self.bv_preparing = 0;
     self.bv_armed_until = 0;
     self.bv_aim_locked = FALSE;
@@ -597,6 +607,7 @@ void() PutClientInServer =
     self.classname = "player";
     self.bv_isplayer = TRUE;
     self.bv_menu_active = FALSE;
+    BV_ResetBlock(self);
     self.health = 100;
     self.max_health = 100;
     self.takedamage = 0;

@@ -46,6 +46,15 @@ void(entity player) BV_Animate =
     player.bv_anim_air = airborne;
     age = time - player.bv_anim_air_started;
     elapsed = time - player.bv_last_contact;
+    if (player.bv_blocking || (airborne && player.bv_block_started && player.bv_block_contacted))
+    {
+        if (!airborne)
+            BV_Animation(player, BV_ANIM_BLOCK_LOAD, BV_ANIM_BLOCK_LOAD_COUNT, 0.85, FALSE);
+        else
+            BV_Animation(player, BV_ANIM_BLOCK_PIKE, BV_ANIM_BLOCK_PIKE_COUNT,
+                (time - player.bv_block_started) / 0.62, FALSE);
+        return;
+    }
     if (player.bv_dive_until > time)
     {
         BV_Animation(player, BV_ANIM_DIVE, BV_ANIM_DIVE_COUNT,
