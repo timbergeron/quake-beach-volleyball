@@ -1,4 +1,4 @@
-Files: *
+Files: bv_ui.tga
 Copyright: Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved.
  Bitstream Vera is a trademark of Bitstream, Inc.
  DejaVu changes are in public domain.

@@ -1,5 +1,9 @@
 # Quake beach volleyball
 
+<p align="center">
+  <img src="Quake%20Beach%20Volleyball%20Arcade%20Logo.png" alt="Quake Beach Volleyball arcade logo" width="480">
+</p>
+
 **Aim. Prepare. Meet the ball.**
 
 First-person beach volleyball for [QSS-M](https://github.com/timbergeron/QSS-M).
@@ -94,7 +98,7 @@ game, or learn your first serve in three steps. Resume keeps your current match
 one action away; settings explain what they change. Rounded panels and clear
 focus work with a mouse or keyboard, including smaller windows and large HUD scales.
 
-![The native CSQC game menu with Play, Practice, Settings, and Learn tabs](docs/screenshots/menu.png)
+![The native CSQC game menu with the arcade logo and Play, Practice, Settings, and Learn tabs](docs/screenshots/menu.png)
 
 | Resume your match | Choose your HUD · 640 × 480 |
 | --- | --- |

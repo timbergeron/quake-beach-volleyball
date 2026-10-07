@@ -21,7 +21,8 @@ git clone https://github.com/timbergeron/md3harness.git ../md3harness
 
 If that checkout already exists, use it. Normal asset builds use the prepared
 source data and Python's standard library; Blender and Pillow are not required.
-Pillow is only needed to repeat the optional anatomical source extraction.
+Pillow is only needed to repeat the optional anatomical source extraction or
+refresh the prepared menu logo.
 
 ```sh
 python3 build.py \
@@ -227,6 +228,15 @@ rounded drawing and font metrics in `src/hud.qc`. Canvas scaling and pointer coo
 transform, including small windows and large HUD scales. No engine change is
 needed beyond the existing CSQC hooks; native rounded corners use the same
 optional extension as the HUD.
+
+The menu header uses the supplied transparent arcade logo. Its prepared RGBA
+copy, `resources/ui/bv_logo.tga`, is staged into `gfx/bv_logo.tga` by
+`hud_assets.py`; normal builds need no image conversion dependency. The original
+`Quake Beach Volleyball Arcade Logo.png` also appears in the README and ships
+with the documentation. The header preserves the logo's aspect ratio and shares
+the menu's canvas scaling and fade.
+To refresh the prepared copy after replacing the PNG, run
+`python3 hud_assets.py --logo` with Pillow installed.
 
 `beach_menu` toggles the menu. `bv_menu_auto` controls the arrival screen.
 Player options travel through `CSEv_BeachOption_ff`; session selection uses the

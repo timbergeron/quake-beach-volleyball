@@ -417,7 +417,8 @@ void(float x, float y, float width, float height, string number, string title, s
 
 float(vector viewport) BV_MenuDraw =
 {
-    local float x, y, width, height, pad, inner, column, gap, top, bottom, body, row, i, tab, card, footer;
+    local float x, y, width, height, pad, inner, column, gap, top, bottom, body, row, i, tab, card, footer, canvas_height;
+    local vector logo_position, logo_size;
     local string title, subtitle, label, detail;
     if (bv_menu_welcome && getstatf(BV_STAT_STATE) > 0)
     {
@@ -425,17 +426,18 @@ float(vector viewport) BV_MenuDraw =
         BV_MenuSetOpen(TRUE);
     }
     if (!bv_menu_open) return FALSE;
+    // Reserve a logo header above the tabs without shrinking the page body.
     // A minimum canvas keeps three settings rows and explanations readable.
     // Drawing and absolute pointer input share this exact transform.
-    bv_menu_scale = BV_Clamp(viewport_y / 320, 0.1, 1);
+    bv_menu_compact = viewport_y < 344 || viewport_x < 464;
+    canvas_height = 456; if (bv_menu_compact) canvas_height = 416;
+    bv_menu_scale = BV_Clamp(viewport_y / canvas_height, 0.1, 1);
     bv_menu_scale = BV_Clamp(viewport_x / 360, 0.1, bv_menu_scale);
     viewport = viewport / bv_menu_scale;
     bv_ui_scale = bv_menu_scale;
     bv_menu_viewport = viewport;
     width = BV_Clamp(viewport_x - 24, 0, 640);
-    height = BV_Clamp(viewport_y - 24, 0, 336);
-    bv_menu_compact = FALSE;
-    if (height < 320 || width < 440) bv_menu_compact = TRUE;
+    height = BV_Clamp(viewport_y - 24, 0, 432);
     pad = 22; gap = 10;
     if (bv_menu_compact) { pad = 16; gap = 8; }
     inner = width - pad * 2;
@@ -452,7 +454,12 @@ float(vector viewport) BV_MenuDraw =
         return TRUE;
     }
     BV_Panel(x, y, width, height, bv_menu_alpha);
-    BV_MenuText(x + pad, y + 13, "BEACH VOLLEYBALL", 9, BV_UI_ACCENT, inner - 85);
+    logo_position = '0 0 0';
+    logo_position_x = x + (width - 144) * 0.5;
+    logo_position_y = y + 8;
+    logo_size = '144 108 0';
+    drawsubpic(logo_position * bv_menu_scale, logo_size * bv_menu_scale,
+        "gfx/bv_logo.tga", '0 0 0', '1 1 0', '1 1 1', bv_menu_alpha, 0);
     BV_RoundBox(x + width - pad - 71, y + 15, 4, 4, 2, BV_UI_GOLD, bv_menu_alpha);
     BV_MenuText(x + width - pad - 61, y + 12, "COURT LIVE", 9, BV_UI_MUTED, 61);
     tab = inner / 4;
@@ -462,7 +469,7 @@ float(vector viewport) BV_MenuDraw =
         if (i == 1) label = "Practice";
         if (i == 2) label = "Settings";
         if (i == 3) label = "Learn";
-        BV_MenuChoice(x + pad + i * tab, y + 32, tab - 4, 26, label, BV_MENU_PAGE, i, bv_menu_page == i);
+        BV_MenuChoice(x + pad + i * tab, y + 128, tab - 4, 26, label, BV_MENU_PAGE, i, bv_menu_page == i);
     }
     title = "Ready to play?";
     subtitle = "Play local doubles with three bots, or practice a stroke.";
@@ -475,12 +482,12 @@ float(vector viewport) BV_MenuDraw =
     if (bv_menu_page == 1) { title = "Practice"; subtitle = "Start with a serve. Build your way to a rally."; }
     if (bv_menu_page == 2) { title = "Settings"; subtitle = "Make it comfortable. Changes apply immediately."; }
     if (bv_menu_page == 3) { title = "Your first serve"; subtitle = "Three simple steps. Then try it on the court."; }
-    top = y + 76;
+    top = y + 172;
     BV_MenuText(x + pad, top, title, 25 - bv_menu_compact * 5, BV_UI_TEXT, inner);
     if (!bv_menu_compact) BV_MenuText(x + pad, top + 34, subtitle, 11, BV_UI_MUTED, inner);
     else if (!bv_menu_page && getstatf(BV_STAT_MATCH))
         BV_MenuText(x + width - pad - 125, top + 4, subtitle, 11, BV_UI_TEXT, 125);
-    top = y + 130; if (bv_menu_compact) top = y + 106;
+    top = y + 226; if (bv_menu_compact) top = y + 202;
     bottom = y + height - 60;
     body = bottom - top;
     if (bv_menu_page == 0)
@@ -764,6 +771,7 @@ void() BV_MenuInit =
 {
     local float i;
     registercommand("beach_menu");
+    precache_pic("gfx/bv_logo.tga", 0);
     bv_menu_pressed = -1; bv_menu_drag = -1;
     for (i = 0; i < 4; i = i + 1) bv_menu_page_focus[i] = -1;
     bv_menu_in_session = !autocvar_bv_menu_auto;

@@ -24,6 +24,10 @@ sounds are generated from this project's Python source. No Quake PAK files, stoc
 or stock textures are distributed. A local Quake installation supplies the
 palette during the build.
 
+The arcade logo was supplied by the project maintainer as
+`Quake Beach Volleyball Arcade Logo.png`. The README uses that original image;
+the CSQC menu uses a prepared 768×576 RGBA copy in `resources/ui/bv_logo.tga`.
+
 The smooth proportional HUD font is a baked subset of DejaVu Sans. Bitstream
 Vera copyright (C) 2003 Bitstream, Inc.; DejaVu changes are in the public domain.
 Its redistribution license is preserved in `resources/ui/LICENSE.txt` and

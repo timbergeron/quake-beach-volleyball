@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026 timbergeron
-"""Stage the HUD font, or rebuild the bundled DejaVu Sans atlas.
+"""Stage the HUD font and menu logo, or rebuild the DejaVu Sans atlas.
 
 Normal builds need only Python's standard library. To regenerate the font:
 python3 hud_assets.py --font
 This optional operation requires libcairo and DejaVu Sans (Debian packages
 libcairo2 and fonts-dejavu-core). Font licensing is in resources/ui/LICENSE.txt.
+To refresh the menu logo from its original PNG, run with --logo (needs Pillow).
 """
 
 import argparse
@@ -33,6 +34,16 @@ def write_tga(path, width, height, pixels):
 def generate(destination):
     destination.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(HERE / "resources/ui/bv_ui.tga", destination / "bv_ui.tga")
+    shutil.copyfile(HERE / "resources/ui/bv_logo.tga", destination / "bv_logo.tga")
+
+
+def generate_logo():
+    """Prepare the supplied transparent artwork; never needed at runtime."""
+    from PIL import Image
+
+    with Image.open(HERE / "Quake Beach Volleyball Arcade Logo.png") as source:
+        logo = source.convert("RGBA").resize((768, 576), Image.Resampling.LANCZOS)
+        logo.save(HERE / "resources/ui/bv_logo.tga", compression=None)
 
 
 def generate_font():
@@ -97,8 +108,11 @@ def generate_font():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--font", action="store_true")
+    parser.add_argument("--logo", action="store_true")
     args = parser.parse_args()
     if args.font:
         generate_font()
-    else:
+    if args.logo:
+        generate_logo()
+    if not args.font and not args.logo:
         generate(HERE / "dist/beachvolley/gfx")
