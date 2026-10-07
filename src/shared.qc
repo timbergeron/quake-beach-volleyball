@@ -2,6 +2,11 @@
 // Copyright (C) 2026 timbergeron
 /* All distances use 32 Quake units per metre; time is seconds. */
 const float BV_GRAVITY = 313.92;
+/* A 65 cm vertical raises the hands above the tape while keeping the eyes
+ * below it. Attack forecasts use the overhead hand height at the jump apex.
+ */
+const float BV_JUMP_HEIGHT = 20.8;
+const float BV_ATTACK_HEIGHT = 77 + BV_JUMP_HEIGHT;
 const float BV_RADIUS = 3.4;
 const float BV_NET_HEIGHT = 77.76;
 const float BV_NET_BOTTOM = 45.76;

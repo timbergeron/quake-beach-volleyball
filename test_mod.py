@@ -142,8 +142,10 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                        "BEACH PLAY DONE"):
             if marker not in result.stdout:
                 errors.append(f"missing {marker}")
-        if profile == "jump-serve" and "BEACH PLAY PASS live-jump-topspin" not in result.stdout:
-            errors.append("missing live jump/topspin contact")
+        if profile == "jump-serve":
+            for marker in ("BEACH PLAY PASS live-jump-topspin", "BEACH PLAY PASS realistic-jump-height"):
+                if marker not in result.stdout:
+                    errors.append(f"missing {marker}")
         images = sorted((runtime / "beachvolley/screenshots").glob("*.tga"))
         if len(images) != 2:
             errors.append("missing preparation/contact feedback captures")
@@ -176,7 +178,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                     shutil.copyfile(images[0], artifacts / "compact-help.tga")
     else:
         completed = re.search(r"BEACH DONE pass=(\d+) fail=(\d+)", result.stdout)
-        if not completed or int(completed[2]) or int(completed[1]) < 257:
+        if not completed or int(completed[2]) or int(completed[1]) < 260:
             errors.append("missing or failed gameplay completion marker")
     if errors:
         raise RuntimeError(f"{name}: {', '.join(errors)}\n{result.stdout[-6000:]}")

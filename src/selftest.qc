@@ -27,13 +27,14 @@ void() BV_RunSelfTests =
 {
     local entity player, saved_self;
     local vector landing, launch_velocity, position, other_position, aim_direction;
-    local float low_apex, low_range, saved_time, i, saved_drag, saved_magnus;
+    local float low_apex, low_range, saved_time, i, saved_drag, saved_magnus, saved_gravity;
     bv_test_pass = 0;
     bv_test_fail = 0;
     saved_self = self;
     saved_time = time;
     saved_drag = autocvar_bv_drag;
     saved_magnus = autocvar_bv_magnus;
+    saved_gravity = autocvar_bv_gravity;
     BV_Assert("hud-decimal-no-float-tail", BV_Decimal(7.8) == "7.8");
     BV_Assert("hud-decimal-carries-correctly", BV_Decimal(0.99) == "1.0");
     time = 10;
@@ -177,11 +178,31 @@ void() BV_RunSelfTests =
     player.bv_previous_jump = 0;
     player.flags = player.flags | FL_ONGROUND;
     PlayerPreThink();
-    BV_Assert("athletic-jump", player.velocity_z > 190 && !(player.flags & FL_ONGROUND));
+    BV_Assert("jump-lifts-feet-65cm", fabs(player.velocity_z * player.velocity_z /
+        (2 * autocvar_bv_gravity) - 20.8) < 0.01 && !(player.flags & FL_ONGROUND));
     player.flags = player.flags | FL_ONGROUND;
     player.velocity = '0 0 0';
     PlayerPreThink();
     BV_Assert("holding-jump-does-not-autohop", player.velocity_z == 0);
+    autocvar_bv_gravity = 100;
+    player.bv_previous_jump = 0;
+    PlayerPreThink();
+    BV_Assert("low-gravity-keeps-jump-height", fabs(player.velocity_z * player.velocity_z /
+        (2 * autocvar_bv_gravity) - 20.8) < 0.01);
+    autocvar_bv_gravity = 800;
+    player.bv_previous_jump = 0;
+    player.flags = player.flags | FL_ONGROUND;
+    PlayerPreThink();
+    BV_Assert("high-gravity-keeps-jump-height", fabs(player.velocity_z * player.velocity_z /
+        (2 * autocvar_bv_gravity) - 20.8) < 0.01);
+    autocvar_bv_gravity = saved_gravity;
+    setorigin(player, '-288 0 44.8');
+    player.bv_action = 1;
+    BV_ContactZone(player, '-271 0 97.8');
+    BV_Assert("jump-eyes-below-tape-hands-above", player.origin_z + player.view_ofs_z <
+        BV_NET_HEIGHT && bv_hand_position_z > BV_NET_HEIGHT + BV_RADIUS);
+    setorigin(player, '-288 0 24');
+    player.flags = player.flags | FL_ONGROUND;
     player.button2 = 0;
     player.button7 = 1;
     player.bv_previous_dive = 0;

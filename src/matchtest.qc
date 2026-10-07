@@ -54,7 +54,7 @@ void() BV_MatchTestInput =
     }
     if (bv_touch_team < 0 && bv_touches == 2)
     {
-        height = 115;
+        height = BV_ATTACK_HEIGHT;
         action = 2;
         self.bv_depth = 0;
         self.bv_arc = 0.12;
@@ -86,7 +86,8 @@ void() BV_MatchTestInput =
         self.velocity_x = delta_x;
         self.velocity_y = delta_y;
     }
-    if (height == 115 && bv_intercept_time < 0.42 &&
+    if (height == BV_ATTACK_HEIGHT && bv_intercept_time <
+        BV_JumpSpeed() / BV_Clamp(autocvar_bv_gravity, 100, 800) + 0.04 &&
         bv_intercept_time > 0.13 && distance < 45 && (self.flags & FL_ONGROUND))
         self.button2 = 1;
     if (action == 1) self.button0 = 1;

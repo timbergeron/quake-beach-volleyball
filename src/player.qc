@@ -242,7 +242,7 @@ void(entity player, float automatic) BV_Feed =
         angle = 15;
         if (player.bv_serve_style == BV_TOPSPIN_SERVE)
         {
-            start_z = 137;
+            start_z = 103;
             speed = 680;
             angle = 7;
         }
@@ -481,7 +481,7 @@ void() PlayerPreThink =
     if (self.button2 && !self.bv_previous_jump &&
         (self.flags & FL_ONGROUND) && self.bv_dive_until <= time)
     {
-        self.velocity_z = 202;
+        self.velocity_z = BV_JumpSpeed();
         self.flags = self.flags - (self.flags & FL_ONGROUND);
     }
     self.bv_previous_jump = self.button2;

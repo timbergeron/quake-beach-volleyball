@@ -77,8 +77,8 @@ float(vector position) BV_InCourt =
            fabs(position_y) <= BV_HALF_WIDTH + BV_RADIUS;
 };
 
-/* Six painted targets on the far court, all represented by identical boxes
- * in assets.py. The centre and short targets make placement easy to compare.
+/* Six practice zones per side, shown on the overhead HUD. Keep these bounds
+ * matched to BV_MapTargets so placement scoring has a visible reference.
  */
 float(vector position) BV_OnTarget =
 {

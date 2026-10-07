@@ -86,6 +86,7 @@ def package_game():
     members = [GAME / name for name in ("progs.dat", "csprogs.dat", "beach.cfg", "server.cfg", "autoexec.cfg")]
     members.extend(GAME / name for name in documents)
     obsolete = {"progs/bv_ball.mdl", "textures/beach/bv_tape.tga",
+                "textures/beach/bv_target.tga",
                 "progs/bv_athlete.mdl", "progs/bv_hands.mdl",
                 "textures/beach/bv_pole.tga", "textures/beach/{bv_net.tga"}
     for directory in ("maps", "progs", "sound", "textures", "gfx"):

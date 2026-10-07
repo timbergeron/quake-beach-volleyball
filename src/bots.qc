@@ -369,7 +369,7 @@ void(entity actor, float side, float forecast) BV_PlanBot =
     if (bv_touch_team == side && bv_touches == 2)
     {
         kind = BV_SPIKE;
-        height = 115;
+        height = BV_ATTACK_HEIGHT;
     }
     if (forecast) BV_Forecast(height);
     point = bv_intercept;
@@ -419,7 +419,7 @@ void(entity actor, float side, float forecast) BV_PlanBot =
     {
         target_x = side * 65;
         target_y = BV_Clamp(partner.origin_y, -80, 80);
-        target_z = 115;
+        target_z = BV_ATTACK_HEIGHT;
         actor.bv_shot_apex = 195;
     }
     if (kind == BV_SPIKE)
@@ -438,11 +438,12 @@ void(entity actor, float side, float forecast) BV_PlanBot =
     actor.bv_aim = normalize(target - actor.origin);
     actor.bv_aim_z = 0;
     if (kind == BV_PASS && BV_TryBotDive(actor, side)) return;
-    if (kind == BV_SPIKE && bv_intercept_time < 0.42 &&
+    if (kind == BV_SPIKE && bv_intercept_time <
+        BV_JumpSpeed() / BV_Clamp(autocvar_bv_gravity, 100, 800) + 0.04 &&
         bv_intercept_time > 0.12 && (actor.flags & FL_ONGROUND) &&
         time >= actor.bv_jump_ready && vlen(actor.bv_goal - actor.origin) < 45)
     {
-        actor.velocity_z = 202;
+        actor.velocity_z = BV_JumpSpeed();
         actor.flags = actor.flags - (actor.flags & FL_ONGROUND);
         actor.bv_jump_ready = time + 1;
     }
@@ -518,11 +519,18 @@ void() BV_UpdateBots =
         if (bv_server.bv_isbot && bv_ball_state == BV_HELD && time >= bv_server.bv_plan_next)
         {
             BV_BeginPreparation(bv_server, 1);
-            if (bv_server.bv_serve_style == BV_TOPSPIN_SERVE)
-            {
-                bv_server.velocity_z = 202;
-                bv_server.flags = bv_server.flags - (bv_server.flags & FL_ONGROUND);
-            }
+        }
+        /* Toss first, then put the shorter jump's apex at the toss apex. */
+        if (bv_server.bv_isbot && bv_server.bv_serve_contact &&
+            bv_server.bv_serve_style == BV_TOPSPIN_SERVE &&
+            (bv_server.flags & FL_ONGROUND) && time >= bv_server.bv_jump_ready &&
+            time - bv_server.bv_prepare_started >=
+            (BV_TossSpeed(bv_server) - BV_JumpSpeed()) /
+                BV_Clamp(autocvar_bv_gravity, 100, 800))
+        {
+            bv_server.velocity_z = BV_JumpSpeed();
+            bv_server.flags = bv_server.flags - (bv_server.flags & FL_ONGROUND);
+            bv_server.bv_jump_ready = time + 1;
         }
         BV_Animate(bv_server);
         return;

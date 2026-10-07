@@ -82,10 +82,10 @@ void(entity player) BV_RunFeelTests =
 
     player.bv_footing = 1;
     player.flags = player.flags - (player.flags & FL_ONGROUND);
-    player.velocity = '0 0 202';
-    setorigin(player, '-70 0 60');
+    player.velocity = '0 0 1' * BV_JumpSpeed();
+    setorigin(player, '-70 0 44.8');
     BV_UpdateFooting(player);
-    BV_ContactZone(player, '-53 0 113');
+    BV_ContactZone(player, '-53 0 97.8');
     BV_ResolveContact(player, bv_hand_position);
     BV_Assert("balanced-jump-keeps-clean-attack", player.bv_footing == 1 &&
         bv_shot_kind == BV_SPIKE && bv_contact_quality > 0.99);

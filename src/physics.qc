@@ -10,6 +10,11 @@ var float autocvar_bv_spin_decay = 0.18;
 var float autocvar_bv_wind_x = 0;
 var float autocvar_bv_wind_y = 0;
 
+float() BV_JumpSpeed =
+{
+    return sqrt(2 * BV_Clamp(autocvar_bv_gravity, 100, 800) * BV_JUMP_HEIGHT);
+};
+
 vector bv_step_position, bv_step_velocity, bv_step_spin;
 float bv_step_phase;
 vector bv_landing;

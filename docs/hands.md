@@ -1,6 +1,6 @@
 # Anatomical first-person volleyball hands
 
-The 21,814-triangle view model uses continuous hands with knuckles, nail beds, thumb webbing,
+The 21,766-triangle view model uses continuous hands with knuckles, nail beds, thumb webbing,
 palm contours and a separate 512×2048 skin atlas. Three joints per finger and
 opposed thumbs allow a setting cradle without mitten-shaped palms or separate
 cylinders. Arms continue behind the camera to keep their cropped ends hidden.
@@ -10,6 +10,9 @@ MakeHuman assets. The rig source records their pinned revision and hashes in
 `resources/hands/hand-rig.json`; licensing and credits are in `THIRD_PARTY.md`.
 All skinning, camera framing and volleyball animations are authored here.
 Dual quaternion skinning preserves finger and wrist volume during flexion.
+Stroke extensions retract 15% toward the relaxed wrists to keep the visible
+arms compact. The relaxed pose and hand anatomy keep their original size;
+the hidden forearm continuation is 27 units long so its cut stays offscreen.
 QSS-M uses textured alias lighting; this asset does not require a PBR renderer.
 
 ![Deep-dish setting cradle in QSS-M](hands.png)

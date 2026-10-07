@@ -122,6 +122,7 @@ def court_map(wad):
         ((254, -128, 0), (256, 128, 0.25)),
         ((-254, -128, 0), (254, -126, 0.25)),
         ((-254, 126, 0), (254, 128, 0.25)),
+        ((-1, -126, 0), (1, 126, 0.25)),
     ):
         lines.append(brush(low, high, "bv_line"))
     # Player-only round collision hulls; the MD3 supplies the visible padding.
@@ -137,9 +138,6 @@ def court_map(wad):
             planes.append(((x0, y0, 0), (x0, y0, POST_HEIGHT), (x1, y1, 0)))
         lines.append("{\n" + "\n".join(" ".join("( %g %g %g )" % point for point in plane)
                      + " clip 0 0 0 1 1" for plane in planes) + "\n}")
-    for x in (-208, -80, 80, 208):
-        for y in (-92, 0, 92):
-            lines.append(brush((x - 28, y - 26, 0), (x + 28, y + 26, 0.1), "bv_target"))
     # Low driftwood barriers frame the practice area without obscuring the sea.
     for x in (-480, 480):
         lines.append(brush((x - 4, -240, 0), (x + 4, 240, 12), "bv_wood", 2))
@@ -304,34 +302,16 @@ def court_textures():
         rgba = bytearray(pixels)
         rgba[0::4], rgba[2::4] = pixels[2::4], pixels[0::4]
         images[name] = bytes(rgba)
-    # Use exactly the same sand pixels/UVs under the practice paint.
-    sand = images["bv_sand"]
-    target = bytearray(sand)
-    for y in range(1024):
-        ty = y // 16
-        for x in range(1024):
-            tx = x // 16
-            border = tx < 3 or ty < 3 or tx > 60 or ty > 60
-            cross = (abs(tx - 32) < 2 and abs(ty - 32) < 9) or \
-                    (abs(ty - 32) < 2 and abs(tx - 32) < 9)
-            if border or cross:
-                offset = (y * 1024 + x) * 4
-                grain = (sum(sand[offset:offset + 3]) // 3 - 160) // 6
-                target[offset:offset + 3] = bytes((43 + grain, 134 + grain, 145 + grain))
-    images["bv_target"] = bytes(target)
     return images
 
 
-def external_textures(game, court):
+def external_textures(game):
     """RGB companions keep daylight colours independent of Quake's palette."""
     destination = game / "textures/beach"
     destination.mkdir(parents=True, exist_ok=True)
     source = Path(__file__).resolve().parent / "resources/textures"
     for name in ("bv_sand.tga", "#bv_sea.tga"):
         shutil.copyfile(source / name, destination / name)
-    target = court["bv_target"]
-    write_tga(destination / "bv_target.tga", 1024, 1024,
-              (target[i:i + 4] for i in range(0, len(target), 4)))
     for name, color in (("bv_line", (24, 95, 162)),):
         write_tga(destination / f"{name}.tga", 64, 64, [(*color, 255)] * 4096)
     for name, base in (("bv_wood", (135, 102, 65)),):
@@ -393,11 +373,10 @@ def daylight_skybox(game):
         write_tga(directory / f"bv_beach{suffix}.tga", size, size, pixels)
 
 
-def generate(base, build, game):
-    palette = palette_from(base)
+def generate_court(palette, build, game):
+    """Build the clean court independently of the animated model assets."""
     build.mkdir(parents=True, exist_ok=True)
-    for directory in ("maps", "progs", "sound/beach"):
-        (game / directory).mkdir(parents=True, exist_ok=True)
+    (game / "maps").mkdir(parents=True, exist_ok=True)
     textures = {}
     court = court_textures()
     # Keep the BSP's classic 64px materials and UV scale, with matching palette
@@ -423,13 +402,20 @@ def generate(base, build, game):
     wad = build / "beach.wad"
     write_wad(wad, textures)
     (build / "beach.map").write_text(court_map(wad))
+    external_textures(game)
+    daylight_skybox(game)
+
+
+def generate(base, build, game):
+    palette = palette_from(base)
+    for directory in ("progs", "sound/beach"):
+        (game / directory).mkdir(parents=True, exist_ok=True)
+    generate_court(palette, build, game)
     generate_ball(game / "progs")
     generate_net(game / "progs")
     marker_model(game / "progs/bv_marker.mdl", palette)
     generate_players(game, build / "player-quality")
     shadow_model(game / "progs/bv_shadow.mdl", palette)
-    external_textures(game, court)
-    daylight_skybox(game)
     write_tga(game / "gfx/bv_hud.tga", 128, 128, font_pixels())
     for kind, duration in (("pass", 0.18), ("set", 0.13), ("spike", 0.2),
                            ("roll", 0.15), ("serve", 0.2), ("dig", 0.22), ("sand", 0.15),

@@ -5,10 +5,11 @@
  */
 .float bv_play_stage, bv_play_started, bv_play_finished, bv_play_capture;
 .float bv_play_contact_capture;
+.float bv_play_jump_peak;
 
 void() BV_PlayTestInput =
 {
-    local float release_at;
+    local float release_at, jump_at;
     if (!self.bv_play_stage)
     {
         self.bv_play_stage = 1;
@@ -29,8 +30,9 @@ void() BV_PlayTestInput =
     if (cvar("bv_playtest") == 4) release_at = 0.85;
     if (cvar("bv_playtest") == 5)
     {
-        release_at = 0.77;
-        if (time - self.bv_play_started >= 0.1 && time - self.bv_play_started < 0.12)
+        release_at = 0.1 + BV_TossSpeed(self) / BV_Clamp(autocvar_bv_gravity, 100, 800);
+        jump_at = release_at - BV_JumpSpeed() / BV_Clamp(autocvar_bv_gravity, 100, 800);
+        if (time - self.bv_play_started >= jump_at && time - self.bv_play_started < jump_at + 0.02)
             self.button2 = 1;
     }
     if (self.bv_play_stage == 1 &&
@@ -42,10 +44,12 @@ void() BV_PlayTestInput =
 void() BV_PlayTestObserve =
 {
     local float capture_at, quality_ok, landed_ok;
+    if (cvar("bv_playtest") == 5)
+        self.bv_play_jump_peak = BV_Clamp(self.origin_z - 24, self.bv_play_jump_peak, 1000);
     capture_at = 0.3;
     if (cvar("bv_playtest") == 3) capture_at = 0.52;
     if (cvar("bv_playtest") == 4) capture_at = 0.77;
-    if (cvar("bv_playtest") == 5) capture_at = 0.62;
+    if (cvar("bv_playtest") == 5) capture_at = 0.4;
     if (self.bv_preparing && time - self.bv_play_started > capture_at && !self.bv_play_capture)
     {
         self.bv_play_capture = TRUE;
@@ -86,6 +90,14 @@ void() BV_PlayTestObserve =
         if (!self.bv_play_finished)
         {
             self.bv_play_finished = time;
+            if (cvar("bv_playtest") == 5)
+            {
+                dprint("BEACH PLAY DETAIL jump-height=", ftos(self.bv_play_jump_peak / 32), "m\n");
+                if (fabs(self.bv_play_jump_peak - 20.8) < 2 &&
+                    51 + self.bv_play_jump_peak < BV_NET_HEIGHT)
+                    dprint("BEACH PLAY PASS realistic-jump-height\n");
+                else dprint("BEACH PLAY FAIL realistic-jump-height\n");
+            }
             dprint("BEACH PLAY DETAIL landing x=", ftos(bv_ball.origin_x),
                    " y=", ftos(bv_ball.origin_y), "\n");
             /* This FTEQCC build can lose the final store when assigning a

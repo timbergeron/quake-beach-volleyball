@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 """Handedness and quantized folds in the first-person volleyball rig."""
 from pathlib import Path
+import math
 import shutil
 import tempfile
 import unittest
@@ -10,6 +11,17 @@ import player_assets as player
 
 
 class HandAssets(unittest.TestCase):
+    def test_extended_strokes_keep_compact_wrist_reach(self):
+        for side in (1, -1):
+            neutral = (16, side*6, -10.5)
+            self.assertEqual(hands.motion("ready", 0, side)[0], neutral)
+            for clip in hands.hand_manifest()["clips"]:
+                for frame in range(clip["count"]):
+                    t = frame/(clip["count"] if clip["loop"] else clip["count"]-1)
+                    wrist = hands.motion(clip["name"], t, side)[0]
+                    self.assertLess(wrist[0], 25.5, (clip["name"], frame, side))
+                    self.assertLess(math.dist(wrist, neutral), 18, (clip["name"], frame, side))
+
     def test_dorsal_basis_and_contact_palms(self):
         rig = hands.rig()
         # A nail-bevel landmark in the pinned source must be on the dorsal

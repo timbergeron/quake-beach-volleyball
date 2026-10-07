@@ -26,6 +26,8 @@ CUT_CLIP = next(c for c in CLIPS if c.name == "cut")
 HAND_FRAME_COUNT = FRAME_COUNT + CUT_CLIP.count
 BATCH_FRAMES = 40
 REFINEMENT_MIN_EDGE = .12
+VIEW_EXTENSION_SCALE = .85
+FOREARM_CONTINUATION = 27
 
 
 def hand_manifest():
@@ -274,6 +276,10 @@ def motion(clip, t, side):
     rather than the float's straight push. Each returns to the same relaxed pose.
     """
     neutral = ((16, side*6.0, -10.5), (15, 0, -side*10), (10, 18, 10), 3, 8)
+    def compact(parameters):
+        # Retract stroke extension toward the relaxed wrists. Keep the hand
+        # anatomy and palm rotation intact while reducing the long-arm view.
+        return (mix(neutral[0], parameters[0], VIEW_EXTENSION_SCALE), *parameters[1:])
     # Parameters: wrist xyz, pitch/roll/yaw (X is forward), MCP/PIP/DIP
     # flexion in degrees, finger spread, and thumb opposition.
     load = ((16, side*4.8, 0.2), (-105, -side*23, -side*22), (18, 30, 18), 9, 22)
@@ -330,8 +336,8 @@ def motion(clip, t, side):
     for (ta, a), (tb, b) in zip(keys, keys[1:]):
         if t <= tb:
             u = smooth((t-ta)/(tb-ta))
-            return tuple(mix(x, y, u) for x, y in zip(a, b))
-    return keys[-1][1]
+            return compact(tuple(mix(x, y, u) for x, y in zip(a, b)))
+    return compact(keys[-1][1])
 
 
 def hand_pose(clip, t, side):
@@ -391,7 +397,7 @@ def raw_skin(parameters, side, data=None):
     # toward a fixed offscreen endpoint made a false elbow with sharp folds.
     # A straight continuation hides the cut below/behind the camera without
     # introducing a visible joint or flattening the cross-section.
-    end = add(center, mul(forearm_direction, 35))
+    end = add(center, mul(forearm_direction, FOREARM_CONTINUATION))
     first = data["extension_roots"][0]
     u = sub(positions[first], center)
     u = unit(sub(u, mul(forearm_direction, dot(u, forearm_direction))))

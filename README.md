@@ -175,9 +175,9 @@ and wheel arc for short/deep serves; extra depth can send the ball long.
 G selects the serve type before the toss. FLOAT uses a hard, low-spin contact
 with bounded lateral and vertical drift. Adding substantial Q/E sidespin
 suppresses the float effect. TOPSPIN uses a higher toss with forward spin and
-a faster downward bend. Jump with the toss and strike around its 0.67-second
-apex for the fastest contact; a standing topspin contact loses pace. The type
-sets forward spin for serves; Z still controls other strokes. The opponent
+a faster downward bend. Jump about 0.1 seconds after the toss and strike around
+its 0.48-second apex for the fastest contact; a standing topspin contact loses
+pace. The type sets forward spin for serves; Z still controls other strokes. The opponent
 mixes serve types between points. Receive drill (2) uses the G selection.
 The model rotates about the same world spin axis used by the flight forces.
 Float movement is a deterministic wake approximation with a new phase per
@@ -194,9 +194,13 @@ and then attack. You can hold a shot early while waiting for an automatic feed;
 the feed preserves your preparation and aim. R and manual feeds clear the old
 contact window. A flight that lasts longer than eight seconds expires so a ball
 caught on the tape cannot stall practice. Expired flights count as misses.
-Targets are painted on both courts. The HUD shows shot speed
+The sand stays clear inside the blue boundary, with a matching center line
+under the net. Practice target zones appear on the overhead HUD instead of
+being painted on the court. The HUD shows shot speed
 in metres per second and reports target hits, in/out, misses, and under-net
 faults. Consecutive self contacts are allowed for practice.
+
+![Clear sand inside the blue court boundary and a center line under the net in QSS-M](docs/court.png)
 
 ## Doubles rallies
 
@@ -270,8 +274,8 @@ textures and validated MD3s are committed here; the exporter is in md3harness.
 The court uses the supplied sand and water artwork, resized from 1254×1254 to
 1024×1024 with Lanczos resampling. Ready-to-use uncompressed RGBA TGA files live
 in `resources/textures`: `bv_sand.tga` for sand and `#bv_sea.tga` for the ocean.
-The build copies these into `textures/beach`, generates practice markings over
-the same sand, and embeds matching 64×64 Quake-palette fallbacks in the BSP.
+The build copies these into `textures/beach`, adds blue boundary and center
+lines over the sand, and embeds matching 64×64 Quake-palette fallbacks in the BSP.
 The `#` filename is Quake's external replacement for the `*bv_sea` water material;
 the sea keeps its animated water surface. No additional image tools are needed
 to build with the prepared textures.
@@ -378,7 +382,8 @@ game physics supplies jump height and court movement.
 
 ## Anatomical first-person hands
 
-The hand model has 21,814 triangles and 402 poses across 32 clips. Continuous
+The development hand model has 21,766 triangles and 402 poses across 32 clips.
+Stroke extensions retract 15% toward the relaxed wrists for a more compact view. Continuous
 geometry, dual quaternion skinning, opposed thumbs and individual finger joints
 preserve the palm and knuckle shapes during deep flexion. A separate 512×2048
 skin atlas supplies the texture. The mesh, anatomy target, weights and skin are
@@ -432,6 +437,10 @@ The console exposes `bv_gravity`, `bv_drag`, `bv_magnus`, `bv_spin_decay`,
 `bv_wind_x`, and `bv_wind_y`. Wind values use units/second; 32 is 1 m/s.
 Gravity defaults to 313.92 units/second². Player gravity follows the ball's
 gravity, while `server.cfg` sets sand movement speed, acceleration, and friction.
+Human and bot jumps lift the feet 65 cm, with takeoff speed scaled to gravity.
+At the apex the eyes stay below the tape and overhead hands reach about 3.06 m.
+For a jump topspin serve, toss first and jump shortly afterward; at default
+gravity the toss peaks around 0.48 seconds and the jump around 0.36 seconds.
 Shot velocity recipes are in `src/player.qc`, `src/serve.qc` and `src/receive.qc`; aerodynamic forces are in
 `src/physics.qc`. The preview includes floor, net, post and antenna interactions
 using the same equipment response as live play; other surroundings are traced
@@ -461,7 +470,7 @@ python3 test_mod.py \
 ```
 
 The runner uses temporary game directories and leaves installed configs alone.
-It runs 257 assertions inside the actual QC VM, captures the court and compact
+It runs 260 assertions inside the actual QC VM, captures the court and compact
 help/HUD through SDL's offscreen renderer, and performs standing serves from
 both baselines through the normal input, toss, release, collision, flight,
 scoring, and HUD update paths. Additional live serves check the sweet timing

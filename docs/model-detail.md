@@ -16,12 +16,12 @@ keeps these separate from conservative portable export limits.
 | Model | Previous triangles | Dense triangles | Poses |
 | --- | ---: | ---: | ---: |
 | Athlete, each kit | 5,004 | 35,422 | 389 |
-| First-person hands | 6,808 | 21,814 | 402 |
+| First-person hands | 6,808 | 21,766 | 402 |
 | Ball | 960 | 20,544 | 1 |
 | Net and equipment | 28,588 | 88,736 | 37 |
 
 All five MD3 files are regenerated: home and away bodies, hands, ball and net.
-Three visible bots plus the hands and all equipment total 237,360 model
+Three visible bots plus the hands and all equipment total 237,312 model
 triangles, before view culling. Animation ranges, contact timing, gameplay
 physics and collision hulls retain their existing contracts.
 
@@ -79,12 +79,12 @@ hashes; see [player review](player.md) and [hand review](hands.md).
 ## Delivered memory and review
 
 Each 389-pose athlete exports 21,079 vertices across five surfaces. The two
-kit files are 63.23 MiB each. The 402-pose hands export 12,872 vertices across
-two surfaces and occupy 39.93 MiB, down from 52.97 MiB despite the denser mesh.
+kit files are 63.23 MiB each. The 402-pose hands export 12,832 vertices across
+two surfaces and occupy 39.81 MiB, down from 52.97 MiB despite the denser mesh.
 The ball is 0.39 MiB; the 37-pose net is 15.51 MiB across 14 surfaces.
 
-Together their packed positions/normals occupy approximately **178.8 MiB**
-of CPU storage, and their pose VBOs approximately **268.2 MiB**. This excludes
+Together their packed positions/normals occupy approximately **178.7 MiB**
+of CPU storage, and their pose VBOs approximately **268.0 MiB**. This excludes
 textures, UVs, indices, maps and other engine allocations. Three bots can share
 the two loaded kit models. Rendered triangle counts grow with visible instances;
 the stored pose library is shared for each distinct model.

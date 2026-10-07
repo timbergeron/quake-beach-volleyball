@@ -2,7 +2,8 @@
 // Copyright (C) 2026 timbergeron
 float(entity player) BV_TossSpeed =
 {
-    if (player.bv_serve_style == BV_TOPSPIN_SERVE) return 210;
+    /* Keep the jump toss within overhead reach at the 65 cm jump apex. */
+    if (player.bv_serve_style == BV_TOPSPIN_SERVE) return 150;
     return 140;
 };
 
@@ -27,7 +28,7 @@ void(entity player, vector contact) BV_BuildServe =
         speed = 340 + charge * 340;
         // A jump creates the height needed to use the fast, dipping trajectory.
         if (player.flags & FL_ONGROUND) speed = speed * 0.78;
-        angle = 2 + BV_Clamp(player.bv_arc, 0, 1) * 16;
+        angle = 4 + BV_Clamp(player.bv_arc, 0, 1) * 16;
         bv_shot_spin = BV_Cross('0 0 1', heading) * (75 + charge * 40);
         bv_shot_spin = bv_shot_spin - '0 0 1' * (player.bv_sidespin * 24);
     }

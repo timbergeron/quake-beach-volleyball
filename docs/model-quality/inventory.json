@@ -61,14 +61,14 @@
     },
     {
       "model": "bv_hands.md3",
-      "sha256": "5d33b1e5c44676b605dad738ab054a51e2089e49df47cf8ccb1517aa03de513a",
+      "sha256": "5ad04aa250a0fa3cffe45446320245daebce6c1c3e94c5c71329eeb519085b82",
       "frames": 402,
       "surfaces": 2,
-      "vertices": 12872,
-      "triangles": 21814,
-      "bytes": 41874116,
-      "packed_pose_bytes": 41396352,
-      "pose_vbo_bytes": 62094528,
+      "vertices": 12832,
+      "triangles": 21766,
+      "bytes": 41744580,
+      "packed_pose_bytes": 41267712,
+      "pose_vbo_bytes": 61901568,
       "textures": {
         "progs/bv_hands": {
           "width": 512,
@@ -123,7 +123,7 @@
       }
     }
   ],
-  "visible_doubles_triangles": 237360,
-  "packed_pose_bytes": 187466808,
-  "pose_vbo_bytes": 281200212
+  "visible_doubles_triangles": 237312,
+  "packed_pose_bytes": 187338168,
+  "pose_vbo_bytes": 281007252
 }

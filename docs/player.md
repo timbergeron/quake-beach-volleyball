@@ -35,7 +35,7 @@ The first command writes home/away body MD3s, the first-person hand MD3, two
 The normal mod build invokes this same generator.
 
 Update the sibling harness to current `main` for its explicit QSS-M density
-profile. The bodies have 35,422 triangles each; the hands have 21,814. Both
+profile. The bodies have 35,422 triangles each; the hands have 21,766. Both
 export in 40-frame batches. [Density notes](model-detail.md) cover engine limits,
 memory, source preparation, the fixed MD3 grid and adaptive joint detail.
 

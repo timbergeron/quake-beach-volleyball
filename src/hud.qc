@@ -96,6 +96,29 @@ void(float x, float y, float slot, vector color, float outline) BV_MapPoint =
     if (outline) BV_Box(px - 1, py - 1, 3, 3, '0.04 0.1 0.12', 1);
 };
 
+void(float x, float y) BV_MapTargets =
+{
+    local float column, row, center, px, py;
+    column = 0;
+    while (column < 4)
+    {
+        center = -208;
+        if (column == 1) center = -80;
+        if (column == 2) center = 80;
+        if (column == 3) center = 208;
+        px = x + 60 + center * 96 / 512;
+        row = 0;
+        while (row < 3)
+        {
+            py = y + 38 + (row - 1) * 92 * 48 / 256;
+            BV_Box(px - 28 * 96 / 512, py - 26 * 48 / 256,
+                56 * 96 / 512, 52 * 48 / 256, '0.17 0.53 0.57', 0.55);
+            row = row + 1;
+        }
+        column = column + 1;
+    }
+};
+
 void() BV_VisualCapture =
 {
     if (!bv_hud_ready)
@@ -308,7 +331,9 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         {
             label = BV_ResultLabel(result);
             color = BV_ResultColor(result);
-            instruction = "AIM FOR THE PAINTED TARGETS";
+            instruction = "KEEP IT INSIDE THE COURT";
+            if (virtual_size_x >= 480 && overlays && !match)
+                instruction = "AIM FOR THE HUD TARGET ZONES";
             if (result == BV_RESULT_TARGET) instruction = "GOOD PLACEMENT";
             if (result == BV_RESULT_OUT) instruction = "ADJUST POWER AND ARC";
             if (result == BV_RESULT_OWN) instruction = "SET AGAIN OR CLEAR THE NET";
@@ -329,6 +354,7 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
         x = virtual_size_x - 132;
         BV_Box(x, 12, 120, 88, '0.025 0.055 0.07', 0.86);
         BV_Box(x + 12, 26, 96, 48, '0.42 0.37 0.26', 1);
+        if (!match) BV_MapTargets(x, 12);
         BV_Box(x + 12, 26, 96, 1, '0.35 0.8 0.9', 1);
         BV_Box(x + 12, 73, 96, 1, '0.35 0.8 0.9', 1);
         BV_Box(x + 12, 26, 1, 48, '0.35 0.8 0.9', 1);
