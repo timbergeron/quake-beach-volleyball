@@ -9,7 +9,25 @@ import unittest
 from pathlib import Path
 
 from net_assets import (ANTENNA_TOP, BAND, BOTTOM, CELL, FRAME_COUNT,
-                        HALF_LENGTH, POST_HEIGHT, TOP, cross, dot, sub)
+                        HALF_LENGTH, POST_HEIGHT, SURFACE_VERTEX_LIMIT, TOP, cross, dot, sub)
+
+
+class PackedPoses:
+    """Decode one actual binary pose at a time to bound regression memory."""
+    def __init__(self, data, offset, raw):
+        self.data, self.offset, self.raw = data, offset, raw
+
+    def __getitem__(self, frame):
+        if not 0 <= frame < self.raw[3]:
+            raise IndexError(frame)
+        vertices, normals = [], []
+        for i in range(self.raw[5]):
+            x, y, z, polar, azimuth = struct.unpack_from('<3h2B', self.data,
+                self.offset+self.raw[10]+(frame*self.raw[5]+i)*8)
+            vertices.append((x/64, y/64, z/64))
+            polar, azimuth = polar*math.tau/255, azimuth*math.tau/255
+            normals.append((math.sin(polar)*math.cos(azimuth), math.sin(polar)*math.sin(azimuth), math.cos(polar)))
+        return vertices, normals
 
 
 class NetAssetTests(unittest.TestCase):
@@ -23,17 +41,7 @@ class NetAssetTests(unittest.TestCase):
         for _ in range(header[6]):
             raw = struct.unpack_from('<4s64s10i', cls.data, offset)
             name = raw[1].split(b'\0')[0].decode()
-            poses = []
-            for frame in range(raw[3]):
-                vertices, normals = [], []
-                for i in range(raw[5]):
-                    x, y, z, polar, azimuth = struct.unpack_from('<3h2B', cls.data,
-                        offset + raw[10] + (frame * raw[5] + i) * 8)
-                    vertices.append((x / 64, y / 64, z / 64))
-                    polar, azimuth = polar * math.tau / 255, azimuth * math.tau / 255
-                    normals.append((math.sin(polar) * math.cos(azimuth),
-                                    math.sin(polar) * math.sin(azimuth), math.cos(polar)))
-                poses.append((vertices, normals))
+            poses = PackedPoses(cls.data, offset, raw)
             faces = [struct.unpack_from('<3i', cls.data, offset + raw[7] + i * 12) for i in range(raw[6])]
             cls.surfaces.append((name, offset, raw, poses, faces))
             offset += raw[11]
@@ -47,8 +55,8 @@ class NetAssetTests(unittest.TestCase):
         for _, offset, raw, poses, faces in self.surfaces:
             self.assertEqual(raw[0], b'IDP3')
             self.assertEqual(raw[3:5], (FRAME_COUNT, 1))
-            self.assertLessEqual(raw[5], 4096)
-            self.assertLessEqual(raw[6], 8192)
+            self.assertLessEqual(raw[5], SURFACE_VERTEX_LIMIT)
+            self.assertLessEqual(raw[6], 2147483647//3)
             shader, index = struct.unpack_from('<64si', self.data, offset + raw[8])
             self.assertEqual((shader.split(b'\0')[0], index), (b'progs/bv_net', 0))
             for i in range(raw[5]):

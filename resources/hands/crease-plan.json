@@ -1,0 +1,42 @@
+{
+  "schema": "beachvolley.crease-plan.v1",
+  "refinement_min_edge": 0.12,
+  "refinement_min_x": 0.45,
+  "refinement_passes": 2,
+  "topology_revision": 4,
+  "coarse_faces": [
+    412,
+    447,
+    453,
+    500,
+    509,
+    511,
+    524,
+    526,
+    531,
+    1169,
+    1178,
+    1187,
+    1240,
+    1241,
+    1245,
+    1608,
+    1617
+  ],
+  "unique_poses": 308,
+  "source_sha256": "972db85e8dded0a24ee3ba4c2402dadbd5264b888b9002431801303ba114a676",
+  "faces": [
+    1415,
+    1416,
+    1561,
+    1985,
+    2267,
+    3770,
+    3892,
+    4364,
+    10443,
+    10489,
+    10656
+  ],
+  "frames": 402
+}

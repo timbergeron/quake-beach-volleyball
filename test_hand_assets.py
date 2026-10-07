@@ -57,7 +57,7 @@ class HandAssets(unittest.TestCase):
                  ("cut", 3/12), ("cut_away", 3/12), ("poke", 0),
                  ("spike", 1/12), ("poke", 5/8), ("float_serve", 8/11), ("ready", 0)]
         scene = dict(schema="md3harness.scene.v1", name="hand-folds.md3", winding="ccw",
-                     frames=[f"test{i}" for i in range(len(poses))], tags=[[] for _ in poses], surfaces=[])
+                     profile="qssm", frames=[f"test{i}" for i in range(len(poses))], tags=[[] for _ in poses], surfaces=[])
         for side in (1, -1):
             surface = dict(name="left" if side > 0 else "right", shader="progs/bv_hands",
                 uv=[c[1:] for c in rig["corners"]],
@@ -70,7 +70,7 @@ class HandAssets(unittest.TestCase):
             game = Path(directory)
             (game/"progs").mkdir()
             shutil.copyfile(player.HERE/"resources/hands/bv_hands.tga", game/"progs/bv_hands.tga")
-            report = hands.harness().export_scene(scene, game/"progs/test.md3", game, strict=True)
+            report = hands.harness().export_scene(scene, game/"progs/test.md3", game, dict(triangle_budget=30000), strict=True)
             self.assertTrue(report["passed"])
             self.assertFalse(report["issues"])
             from md3harness.format import encode_scene

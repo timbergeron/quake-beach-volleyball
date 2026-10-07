@@ -9,7 +9,7 @@ select,button{color:#e6edf2;background:#253a47;border:1px solid #436274;border-r
 @media(max-width:760px){main{grid-template-columns:1fr}canvas{height:65vh}aside{height:auto;padding:22px}}
 </style>
 <main><canvas id="view" aria-label="Interactive 3D athlete; drag to orbit and scroll to zoom"></canvas><aside>
-<div class="badge">MD3 · original game asset</div><h1>Norway beach athlete</h1><p>Navy/red kit, sun cap and a full mirrored shield. Drag to orbit. Scroll to zoom.</p>
+<div class="badge">MD3 · volleyball athlete</div><h1>Norway beach athlete</h1><p>Navy/red kit, sun cap and a full mirrored shield. Drag to orbit. Scroll to zoom.</p>
 <label for="clip">Movement</label><select id="clip"></select><p id="note"></p>
 <div class="row"><button id="play">Pause</button><select id="speed" aria-label="Playback speed"><option value="1">1× speed</option><option value=".5">½ speed</option><option value=".25">¼ speed</option></select></div>
 <label for="scrub">Timeline <span id="pose"></span></label><input id="scrub" type="range" min="0" max="1" step=".001" value="0">
@@ -20,7 +20,10 @@ select,button{color:#e6edf2;background:#253a47;border:1px solid #436274;border-r
 <p id="error" role="alert"></p>
 </aside></main>
 <script>
-const manifest=__MANIFEST__, textures=__TEXTURES__, raw=Uint8Array.from(atob('__MODEL__'),c=>c.charCodeAt(0));
+(async()=>{
+const manifest=__MANIFEST__, textures=__TEXTURES__, encoded=atob('__MODEL__'),packed=new Uint8Array(encoded.length);
+for(let i=0;i<encoded.length;i++)packed[i]=encoded.charCodeAt(i);
+const raw=new Uint8Array(await new Response(new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
 const dv=new DataView(raw.buffer), i32=o=>dv.getInt32(o,true), f32=o=>dv.getFloat32(o,true);
 const canvas=document.getElementById('view'), gl=canvas.getContext('webgl',{antialias:true,preserveDrawingBuffer:true});
 const fail=e=>{document.getElementById('error').textContent=e.message;throw e};
@@ -28,7 +31,8 @@ if(!gl)fail(new Error('This review needs a browser with WebGL enabled.'));
 let surfaces=[], off=i32(100), nv=0, triangles=[];
 for(let s=0;s<i32(84);s++){
  const n=i32(off+80), nt=i32(off+84), tri=off+i32(off+88), tex=off+i32(off+96), xyz=off+i32(off+100);
- surfaces.push({n,xyz,tex,base:nv});
+ const shaderAt=off+i32(off+92);let shader='';for(let i=0;i<64&&raw[shaderAt+i];i++)shader+=String.fromCharCode(raw[shaderAt+i]);
+ surfaces.push({n,xyz,tex,base:nv,shader,start:triangles.length,count:nt*3});
  for(let t=0;t<nt;t++)triangles.push(nv+i32(tri+t*12),nv+i32(tri+t*12+4),nv+i32(tri+t*12+8));
  nv+=n;off+=i32(off+104);
 }
@@ -50,11 +54,14 @@ const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER
 if(!gl.getProgramParameter(program,gl.LINK_STATUS))fail(new Error(gl.getProgramInfoLog(program)));gl.useProgram(program);
 function attribute(name,size,data,dynamic){const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,data,dynamic?gl.DYNAMIC_DRAW:gl.STATIC_DRAW);const loc=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,size,gl.FLOAT,false,0,0);return buffer}
 const pb=attribute('position',3,positions,true),nb=attribute('normal',3,normals,true);attribute('uv',2,texcoords);attribute('floor',1,floor);
-const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(triangles),gl.STATIC_DRAW);
+const large=nv>65535;if(large&&!gl.getExtension('OES_element_index_uint'))fail(new Error('This mesh needs 32-bit WebGL indices.'));
+const indexType=large?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT,indexBytes=large?4:2;
+const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,large?new Uint32Array(triangles):new Uint16Array(triangles),gl.STATIC_DRAW);
 gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.frontFace(gl.CW);
 const projection=gl.getUniformLocation(program,'projection'), view=gl.getUniformLocation(program,'view');
-let textureLoaded=false,textureTicket=0;
-function setTexture(name){const ticket=++textureTicket,img=new Image();img.onload=()=>{if(ticket!==textureTicket)return;const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);textureLoaded=true};img.src='data:image/png;base64,'+textures[name]}
+const loadedTextures={};let activeKit='bv_athlete';
+function setTexture(name){activeKit=name}
+for(const [name,data] of Object.entries(textures)){const img=new Image();img.onload=()=>{const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);loadedTextures[name]=texture};img.src='data:image/png;base64,'+data}
 setTexture('bv_athlete');
 const byName=Object.fromEntries(manifest.clips.map(c=>[c.name,c]));
 const sequences={
@@ -93,7 +100,9 @@ function render(now){const delta=last?Math.min(.1,(now-last)/1000):0;last=now;co
 const s=sample();updatePose(s.a,s.b,s.t);document.getElementById('pose').textContent='· '+s.a;document.getElementById('scrub').value=time/total;
 const w=Math.round(canvas.clientWidth*devicePixelRatio),h=Math.round(canvas.clientHeight*devicePixelRatio);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}gl.viewport(0,0,w,h);gl.clearColor(.10,.17,.22,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
 const f=1/Math.tan(Math.PI/7),aspect=w/h,near=1,far=400;gl.uniformMatrix4fv(projection,false,new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0]));gl.uniformMatrix4fv(view,false,camera());
-if(textureLoaded)gl.drawElements(gl.TRIANGLES,triangles.length,gl.UNSIGNED_SHORT,0);requestAnimationFrame(render)}
+for(const surface of surfaces){const texture=loadedTextures[surface.shader==='progs/bv_kit'?'bv_kit':activeKit];if(texture){gl.bindTexture(gl.TEXTURE_2D,texture);gl.drawElements(gl.TRIANGLES,surface.count,indexType,surface.start*indexBytes)}}
+if(loadedTextures[activeKit]){gl.bindTexture(gl.TEXTURE_2D,loadedTextures[activeKit]);gl.drawElements(gl.TRIANGLES,6,indexType,(triangles.length-6)*indexBytes)}requestAnimationFrame(render)}
 document.getElementById('stats').textContent=manifest.clips.length+' clips · '+manifest.frames+' sampled poses · '+manifest.fps+' Hz · '+manifest.triangles.toLocaleString()+' triangles';document.getElementById('hash').textContent=manifest.sha256;
-window.review={manifest,choose,renderPose:(name,t)=>{const index=choices.findIndex(c=>c.clips.length===1&&c.clips[0].name===name);select.value=index;choose(index);time=t*duration();playing=false;document.getElementById('play').textContent='Play'},getFrame:()=>sample(),getPositions:()=>positions};requestAnimationFrame(render);
+window.review={manifest,choose,isReady:()=>Object.keys(loadedTextures).length===3,renderPose:(name,t)=>{const index=choices.findIndex(c=>c.clips.length===1&&c.clips[0].name===name);select.value=index;choose(index);time=t*duration();playing=false;document.getElementById('play').textContent='Play'},getFrame:()=>sample(),getPositions:()=>positions};requestAnimationFrame(render);
+})().catch(e=>{document.getElementById('error').textContent=e.message;console.error(e)});
 </script></html>

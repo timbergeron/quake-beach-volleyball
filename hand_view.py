@@ -38,7 +38,7 @@ def png_from_tga(path):
             +chunk(b"IDAT", zlib.compress(rgba, 9))+chunk(b"IEND", b""))
 
 
-def capture(binary, basedir, game, output, selected=None):
+def capture(binary, basedir, game, output, selected=None, timeout=120):
     output.mkdir(parents=True, exist_ok=True)
     clips = {c.name: c for c in CLIPS}
     keys = [("ready", clips["ready"].start),
@@ -75,7 +75,7 @@ def capture(binary, basedir, game, output, selected=None):
             env = {**os.environ, "SDL_VIDEO_DRIVER": "offscreen", "SDL_AUDIO_DRIVER": "dummy",
                    "LIBGL_ALWAYS_SOFTWARE": "1", "LP_NUM_THREADS": "2"}
             result = subprocess.run(command, cwd=runtime, env=env, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, text=True, errors="replace", timeout=120)
+                stderr=subprocess.STDOUT, text=True, errors="replace", timeout=timeout)
             (output/f"{name}.log").write_text(result.stdout)
             found = re.search(r"BEACH HAND VIEW frame=(\d+)", result.stdout)
             screenshots = sorted((target/"screenshots").glob("*.tga"))
@@ -88,6 +88,7 @@ def capture(binary, basedir, game, output, selected=None):
                 sha256=hashlib.sha256(png.read_bytes()).hexdigest()))
             metadata.write_text(json.dumps(review, indent=2)+"\n")
             print(f"{name}: PASS (first-person MD3 frame {frame})", flush=True)
+            shutil.rmtree(runtime)
     return review
 
 
@@ -97,7 +98,11 @@ if __name__ == "__main__":
     parser.add_argument("--basedir", type=Path, required=True)
     parser.add_argument("--game", type=Path, default=HERE/"dist/beachvolley")
     parser.add_argument("--output", type=Path, default=HERE/"artifacts/hands-qssm")
+    parser.add_argument("--timeout", type=int, default=120,
+                        help="Wall-clock seconds per capture; simulation timing stays fixed")
     parser.add_argument("--case", action="append", choices=("ready", "deep-dish", "set-release",
         "float-toss", "float-contact", "cut-inward", "cut-away"), help="capture selected views; repeat to select several")
     args = parser.parse_args()
-    capture(args.bin.resolve(), args.basedir.resolve(), args.game.resolve(), args.output.resolve(), args.case)
+    if args.timeout <= 0:
+        parser.error("--timeout must be positive")
+    capture(args.bin.resolve(), args.basedir.resolve(), args.game.resolve(), args.output.resolve(), args.case, args.timeout)

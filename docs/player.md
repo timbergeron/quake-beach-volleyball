@@ -1,6 +1,6 @@
 # Beach athlete authoring and review
 
-The original stylized male player is inspired by Norway's Anders Mol and
+The anatomical male player is inspired by Norway's Anders Mol and
 Christian Sørum. Visual cues are a tall, lean build; navy/red/white tournament
 kit; a Norway flag; `NOR` and number 1; bare feet; a navy sun cap; fair hair;
 and a full mirrored sun shield. The shield is curved mesh spanning both eyes
@@ -8,7 +8,7 @@ and dipping over the nose, with light temples. It uses a painted reflective
 gradient suitable for QSS-M's alias material rendering, rather than a reflective
 shader. This is an authored character, not a scan or motion capture.
 
-The rest silhouette is approximately 1.95 metres tall at 32 units per metre.
+The rest silhouette, including the cap, is approximately 1.94 metres tall at 32 units per metre.
 X points forward, Y left and Z up. The entity origin matches the game's existing
 player origin: bare soles are about -24 units. Gameplay hulls remain separate
 from visual geometry. No animation drives entity translation or contacts.
@@ -28,11 +28,16 @@ python3 player_assets.py --write-qc
 python3 player_review.py
 ```
 
-The first command writes home/away body MD3s, the first-person arm MD3, two
-512×512 original body RGBA atlases, a 512×2048 hand atlas, and body/hand manifests under
+The first command writes home/away body MD3s, the first-person hand MD3, two
+2048×2048 body RGBA atlases, a 512×512 cap/shield atlas, a 512×2048 hand atlas, and body/hand manifests under
 `dist/beachvolley/progs/`. It writes strict quality reports under
 `build/player-quality/`. `--output` takes a game root, not a `progs/` directory.
 The normal mod build invokes this same generator.
+
+Update the sibling harness to current `main` for its explicit QSS-M density
+profile. The bodies have 35,422 triangles each; the hands have 21,814. Both
+export in 40-frame batches. [Density notes](model-detail.md) cover engine limits,
+memory, source preparation, the fixed MD3 grid and adaptive joint detail.
 
 The checked-in `src/animation_frames.qc` is generated from the animation
 inventory. Refresh it with `--write-qc` whenever clip durations/order change.
@@ -70,6 +75,7 @@ PYTHONPATH=../md3harness python3 -m md3harness check \
 PYTHONPATH=../md3harness python3 -m md3harness preview \
   dist/beachvolley/progs/bv_athlete.md3 \
   --asset-root dist/beachvolley --output build/player-review/qssm \
+  --manifest build/player-quality/athlete.contract.json \
   --frames 0,121,124,162,180,182,283,346 \
   --engine /path/to/quakespasm --basedir /path/to/quake \
   --fteqcc /path/to/fteqcc --qbsp /path/to/qbsp \

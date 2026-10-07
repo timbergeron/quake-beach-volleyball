@@ -1,16 +1,67 @@
 {
-  "schema": "beachvolley.screenshots.v1",
-  "captured_on": "2026-10-06",
-  "source_commit": "14b88be45b47213390830268c499e7a97b358cca",
+  "schema": "beachvolley.screenshots.v2",
+  "captured_on": "2026-10-07",
+  "source_base_commit": "ac87b69fa0c32960c16f4059e2a1498da5748244",
+  "source_working_tree": true,
   "engine_sha256": "fdcaea200f1dbb2a05ffca8edeccab41988ea6d2d218dd72243ef272bb1b8d3d",
-  "hands_sha256": "328cc74c500233f56ec5403a0a0544595b290fb7a3190a9e44c6408cc3c2d56d",
+  "hands_sha256": "5d33b1e5c44676b605dad738ab054a51e2089e49df47cf8ccb1517aa03de513a",
   "skin_sha256": "d38c24379e85d135b986f33172746ed023dffd0b28018a8bcac4605a063f4e97",
+  "models": {
+    "bv_athlete.md3": "8de67bc164d0974c5bdcfb7dc722dacd228a3db17d836cf43b926665a5a98275",
+    "bv_athlete_away.md3": "8403b186026004523db31eee3a199c8d97ccb93cacfddc458a7c4b2d3aba7525",
+    "bv_hands.md3": "5d33b1e5c44676b605dad738ab054a51e2089e49df47cf8ccb1517aa03de513a",
+    "bv_ball.md3": "ca3132b7aab94d27db1c83b5c98389b71da00dc61b6d60effcc603f782bdc9c8",
+    "bv_net.md3": "a50b441e58b86941e340a38c9df76aaacd14f5a22b3a7db6c2243f1cfb03cd6a"
+  },
+  "progs_sha256": "61ffe01017e82dfd5da1b526623d8a77ca2c8441227b7bc93cc716d14547cf5b",
+  "csprogs_sha256": "b9d9d91e6b8ab2c46457c2c012f0b2375946adf27c0421c42a7f889cd4225d8e",
+  "map_sha256": "c2e8f24df57ac7e41261adff54410ea4312be4f3e7a7977de688a8d14814726f",
+  "source_files_sha256": {
+    "anatomical_body.py": "51091d97e3a9924c5c8a24be6908151112b4806423ea9d80f380a7ca490e1037",
+    "anatomy_mesh.py": "b71f1ba4582f3c1abdc3aa8e37c19dfdc5750945e9bdf6d85844082176cec001",
+    "assets.py": "8e3457c983d06dc32ec05f8e66f6819ac347d3ba0de5e9af69432882a93b122f",
+    "ball_assets.py": "4aed41c0900e3326ccae5a0a6ea5888b5f7087d49b4c5ba09c740736470ac288",
+    "build.py": "df311b45d8deae319a47822996c5bbd6407083f3f7966d0acb0970d0d77501f9",
+    "hand_assets.py": "c0a72bd6155233d767449bf9384bdb384b444d74447863eac88398d589583e6e",
+    "hand_review.py": "00f435d9d1f3d2c1da8d4e7afb759383d3e38e6a23c21a6d654144e2d554822d",
+    "hand_view.py": "0b04ba9b2baee5421a7a42da8563995055cc9d4b6746294ac6c49e64bb5d07cf",
+    "hud_font.py": "7f412421b14aa48d97dea315bfea6f97fb558ff77eef8f585b799f6433e259ff",
+    "net_assets.py": "835139f61749997ebfdd99b209642f3cd9330efc8e4335e8907917bee76eedac",
+    "player_assets.py": "f8ab36516db681017074fb22ba0236b4cdef9c179ae8c2fe529a4b2150b70d9f",
+    "player_review.py": "96afd31eca397caeea10a6318af7d5bfabb5781e8b8666ca8f853df473b8605b",
+    "prepare_body_source.py": "e6a261e73310b9b510fffd92fd77e5e99743cb350058e9f951d96335c0681c48",
+    "prepare_hand_source.py": "d6aaead2895e74411119f38039ea2a92a2bf9ade59192857c6369ece84c30fcd",
+    "resources/anatomy/body-rig.json": "cc97ef2ac68bac08baa20749ef5d0e72c82c418bdaa3e35f8a4aa598a0b64ece",
+    "resources/anatomy/crease-plan.json": "766dbc5024636c284b9d2a0f982fbdab6e68cc12ffb9b560b9528db36a432ba8",
+    "resources/hand-review.html": "ef4dda04bf3a57b1dcc303cddf0d017e97cfe38a679fb6d8240ef80a1bcc629e",
+    "resources/hands/crease-plan.json": "b15cf9042001e5bd180e1c5d46b706b4b9b610eaf1d472503fe6a11582644a86",
+    "resources/hands/hand-rig.json": "972db85e8dded0a24ee3ba4c2402dadbd5264b888b9002431801303ba114a676",
+    "resources/hands/refinement-plan.json": "1dee3280b431dbd7f790d506ce6cd9c7587ffbf7371a80a06b38ffda46555863",
+    "resources/player-review.html": "32c5c0c4c37c4d15fa2094d4f1a2465ca33ed914cbf8cfe4748d6fdb0f04afeb",
+    "run.py": "cccf96cf190c6a5fe2ea3c19b05aeaa1cf7a6c3d1b74a932aec36ee662f7f6b8",
+    "test_anatomy_mesh.py": "a70c4b4f443e1a93b272150b1f0e21fd0ec0a72f856c9fd1bc354f2ec720fb6d",
+    "test_ball_assets.py": "382864c609d814a681c76cf69d9af8a9df448e23bc26744438be4f13c810632d",
+    "test_hand_assets.py": "b6051baa696f15af992e0d1b5cb7d9be07e91a6358d02f5272823d795ce4f561",
+    "test_launcher.py": "9db1f1199a9a94f33b3c9425c96909bdf4db1c93fc57f73d736ce6096ee500cc",
+    "test_mod.py": "e815e8e9f41c41d6c2fe4f42fd655e137c957749f3aa52cb190649040ed6598d",
+    "test_net_assets.py": "98271eeef86c1de26b99e318348c66dc71a6bdc00ced64868af566205e757f77",
+    "test_player_assets.py": "72dbe5b4355bd57b2b2d365bf6ab6d8492794f5cc8076395595b7821557ccba9"
+  },
   "captures": [
+    {
+      "name": "deep-dish",
+      "frame": 121,
+      "image": "../hands.png",
+      "sha256": "c228d2423b4734015b363a3ecce5c1210cb2ba32b7fc9901a4df420b2db22662",
+      "kind": "fixed first-person pose",
+      "width": 1280,
+      "height": 720
+    },
     {
       "name": "float-contact",
       "frame": 239,
       "image": "float-contact.png",
-      "sha256": "ba2e5f04f858fa0471a21c989a304987453c0e2cd919cf2929006c86ec24fd3c",
+      "sha256": "b9d65465fd8a60239b7aa4f3f3e442b1d141792ca2d9d66fa1caf23a37389f94",
       "kind": "fixed first-person pose",
       "width": 1280,
       "height": 720
@@ -19,7 +70,7 @@
       "name": "cut-inward",
       "frame": 207,
       "image": "cut-inward.png",
-      "sha256": "7aa3bf6e0481ad3f0603ca26e267897982e42f9c8dd19fd5ca508749ba5a6db6",
+      "sha256": "8ed9798fc7f4d24b61a8dbf1637208347377a348ecd3eb1a44e76908778a609e",
       "kind": "fixed first-person pose",
       "width": 1280,
       "height": 720
@@ -28,7 +79,7 @@
       "name": "cut-away",
       "frame": 392,
       "image": "cut-away.png",
-      "sha256": "cdfb74f2adb68e046d170cffd46b716f15c0cfd26c2f7da03bbb9a97374485cd",
+      "sha256": "b6d0893affd855e78850fe9533491f62fa1d61fef273816b404d0662d8f991ef",
       "kind": "fixed first-person pose",
       "width": 1280,
       "height": 720
@@ -36,37 +87,20 @@
     {
       "name": "doubles",
       "image": "doubles.png",
+      "sha256": "27afc2f50023f46390bc359e8bb92a300f7804cfc1a4911acf32d1e69c8ae626",
+      "source_tga_sha256": "b9fb93ad749f518c3db8c4cdb14886edc8f5e95ff2200385c816cdb93c5e0b0c",
       "kind": "live receive/set/attack rally",
       "width": 960,
-      "height": 540,
-      "sha256": "f0cb3112c876e00a114a9b477e7c1da216adbf595e49a2989e87bf73448a2d6c",
-      "source_tga_sha256": "278db767512e58af65fd6682437243f6697d347d80e153c024a775ad6a71579d",
-      "progs_sha256": "61ffe01017e82dfd5da1b526623d8a77ca2c8441227b7bc93cc716d14547cf5b",
-      "csprogs_sha256": "b9d9d91e6b8ab2c46457c2c012f0b2375946adf27c0421c42a7f889cd4225d8e",
-      "athlete_sha256": "dc737eb50abf4d2c7ae6ef560702bbd851401a891f3e24aa87f31471b9e56b0c",
-      "athlete_away_sha256": "635a594d101a0bf2e02866638d041bc1997ef49e5ad824901814ce2d731aa66e"
+      "height": 540
     },
     {
       "name": "serve-contact",
       "image": "serve-contact.png",
+      "sha256": "15e4e21009f3ca3a19ede00b2a1d4013ce02226bb146980b1c291a5008d41022",
+      "source_tga_sha256": "3dd281023ec9f261e5b48972617e37dee3592edaae74a4b99ceda9c5fc06cba5",
       "kind": "live float-serve contact",
       "width": 960,
-      "height": 540,
-      "sha256": "d2315f4cdbeb7a3dec6d9e4fffe047b2694fc2f2f1e494593b95b6a14ac1605f",
-      "source_tga_sha256": "b40708dd1c8d0e5793eaa16fb6df5404f16a56e0d44b93698f7616ff9d91b35f",
-      "progs_sha256": "61ffe01017e82dfd5da1b526623d8a77ca2c8441227b7bc93cc716d14547cf5b",
-      "csprogs_sha256": "b9d9d91e6b8ab2c46457c2c012f0b2375946adf27c0421c42a7f889cd4225d8e",
-      "athlete_sha256": "dc737eb50abf4d2c7ae6ef560702bbd851401a891f3e24aa87f31471b9e56b0c",
-      "athlete_away_sha256": "635a594d101a0bf2e02866638d041bc1997ef49e5ad824901814ce2d731aa66e"
-    },
-    {
-      "name": "deep-dish",
-      "frame": 121,
-      "image": "../hands.png",
-      "sha256": "4889937b4754c46dd180a4f6f8df791e1daa41687d618d011ecb61cd8ba84a19",
-      "kind": "fixed first-person pose",
-      "width": 1280,
-      "height": 720
+      "height": 540
     }
   ]
 }

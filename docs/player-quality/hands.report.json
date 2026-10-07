@@ -1,11 +1,12 @@
 {
   "schema": "md3harness.report.v1",
   "profile": "qssm",
+  "limits_profile": "qssm",
   "name": "bv_hands.md3",
   "passed": true,
   "frames": 402,
   "tags": 2,
-  "bytes": 55545052,
+  "bytes": 41874116,
   "dimensions": [
     41.015625,
     48.875,
@@ -14,48 +15,16 @@
   "surfaces": [
     {
       "name": "left_hand_0",
-      "vertices": 4096,
-      "triangles": 1644,
-      "shaders": [
-        "progs/bv_hands"
-      ]
-    },
-    {
-      "name": "left_hand_1",
-      "vertices": 4095,
-      "triangles": 1629,
-      "shaders": [
-        "progs/bv_hands"
-      ]
-    },
-    {
-      "name": "left_hand_2",
-      "vertices": 393,
-      "triangles": 131,
+      "vertices": 6436,
+      "triangles": 10907,
       "shaders": [
         "progs/bv_hands"
       ]
     },
     {
       "name": "right_hand_0",
-      "vertices": 4096,
-      "triangles": 1644,
-      "shaders": [
-        "progs/bv_hands"
-      ]
-    },
-    {
-      "name": "right_hand_1",
-      "vertices": 4095,
-      "triangles": 1629,
-      "shaders": [
-        "progs/bv_hands"
-      ]
-    },
-    {
-      "name": "right_hand_2",
-      "vertices": 393,
-      "triangles": 131,
+      "vertices": 6436,
+      "triangles": 10907,
       "shaders": [
         "progs/bv_hands"
       ]
@@ -2494,7 +2463,7 @@
       "max": [
         27.171875,
         22.0625,
-        -6.171875
+        -6.15625
       ]
     },
     {
@@ -4899,5 +4868,5 @@
     }
   ],
   "model": "bv_hands.md3",
-  "sha256": "328cc74c500233f56ec5403a0a0544595b290fb7a3190a9e44c6408cc3c2d56d"
+  "sha256": "5d33b1e5c44676b605dad738ab054a51e2089e49df47cf8ccb1517aa03de513a"
 }

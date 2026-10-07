@@ -31,13 +31,16 @@ class VolleyballAssetTests(unittest.TestCase):
         self.assertEqual((frame_at, tag_at, surface_at), (108, 164, 164))
         surface = struct.unpack_from("<4s64s10i", self.data, surface_at)
         self.assertEqual(surface[0], b"IDP3")
-        self.assertEqual(surface[2:7], (0, 1, 1, 561, 960))
+        self.assertEqual(surface[2:5], (0, 1, 1))
+        vertex_count, triangle_count = surface[5:7]
+        self.assertGreaterEqual(triangle_count, 20000)
+        self.assertLessEqual(vertex_count, 65535)
         triangles_at, shader_at, uv_at, vertices_at, surface_end = surface[7:]
         self.assertEqual(triangles_at, 108)
-        self.assertEqual(shader_at, triangles_at + 960 * 12)
+        self.assertEqual(shader_at, triangles_at + triangle_count * 12)
         self.assertEqual(uv_at, shader_at + 68)
-        self.assertEqual(vertices_at, uv_at + 561 * 8)
-        self.assertEqual(surface_end, vertices_at + 561 * 8)
+        self.assertEqual(vertices_at, uv_at + vertex_count * 8)
+        self.assertEqual(surface_end, vertices_at + vertex_count * 8)
         self.assertEqual(surface_at + surface_end, end)
         shader, index = struct.unpack_from("<64si", self.data, surface_at + shader_at)
         self.assertEqual((shader.split(b"\0")[0], index), (b"progs/bv_ball", 0))
@@ -81,7 +84,8 @@ class VolleyballAssetTests(unittest.TestCase):
         for i in range(surface[6]):
             face = struct.unpack_from("<3i", self.data, 164 + surface[7] + i * 12)
             us = [coords[j][0] for j in face]
-            self.assertLessEqual(max(us) - min(us), 1 / 32 + 1e-6)
+            # Polar faces have wider longitudes; none crosses the wrap seam.
+            self.assertLessEqual(max(us) - min(us), .5)
 
     def test_skin_colours_poles_and_meridian(self):
         self.assertEqual(len(self.skin), 128 * 128)

@@ -16,12 +16,16 @@ import shutil
 import struct
 import tempfile
 
+from anatomy_mesh import refine_quads, triangulate
+
 from player_assets import (HERE, CLIPS, FRAME_COUNT, Vectors, add, sub, mul,
                           dot, cross, unit, mix, smooth, rotate, transform, harness)
 
 IDENTITY = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
 CUT_CLIP = next(c for c in CLIPS if c.name == "cut")
 HAND_FRAME_COUNT = FRAME_COUNT + CUT_CLIP.count
+BATCH_FRAMES = 40
+REFINEMENT_MIN_EDGE = .12
 
 
 def hand_manifest():
@@ -107,53 +111,30 @@ def dual_skin(point, weights, duals):
 
 
 @lru_cache(maxsize=1)
-def rig(path=None):
+def rig(path=None, use_plan=True, coarse_faces=None):
     data = json.loads((Path(path) if path else HERE / "resources/hands/hand-rig.json").read_text())
-    # OBJ uses seam vertices; preserve the seam's UV but share the geometry's
-    # normal. Canonical faces are outward CCW on the left hand.
-    corners, lookup, triangles, geometric = [], {}, [], []
-    for face in data["faces"]:
-        ids = []
-        for corner in face:
-            key = tuple(corner)
-            if key not in lookup:
-                lookup[key] = len(corners)
-                corners.append(corner)
-            ids.append(lookup[key])
-        # Shortest diagonal is more stable on nail beds and thumb webbing.
-        if len(face) == 4:
-            p = [data["vertices"][c[0]] for c in face]
-            d02, d13 = sub(p[0], p[2]), sub(p[1], p[3])
-            local = [(0, 1, 2), (0, 2, 3)] if dot(d02, d02) <= dot(d13, d13) else [(0, 1, 3), (1, 2, 3)]
-        else:
-            local = [(0, i, i+1) for i in range(1, len(face)-1)]
-        for a, b, c in local:
-            original = [face[i][0] for i in (a, b, c)]
-            if len(set(original)) < 3:
-                continue
-            p = [data["vertices"][i] for i in original]
-            area = cross(sub(p[1], p[0]), sub(p[2], p[0]))
-            if dot(area, area) < .000004:
-                continue
-            triangles.append((ids[a], ids[b], ids[c]))
-            geometric.append((face[a][0], face[b][0], face[c][0]))
-    # Thumb webbing needs its own corner normals at strong opposition. Keep
-    # those corners separate in every pose instead of changing topology.
-    flat = []
-    for i, (triangle, original) in enumerate(zip(triangles, geometric)):
-        crease = any(
-            .02 < sum(w for n, w in data["weights"][v].items() if n.startswith(("finger1", "lowerarm"))) < .98
-            or .02 < sum(w for n, w in data["weights"][v].items() if n.startswith("finger")) < .98
-            or sum(w > .12 for n, w in data["weights"][v].items() if n.startswith("finger")) > 1
-            for v in original)
-        if crease:
-            indices = []
-            for index in triangle:
-                indices.append(len(corners))
-                corners.append(corners[index])
-            triangles[i] = tuple(indices)
-        flat.append(crease)
-    data.update(corners=corners, triangles=triangles, geometric=geometric, flat=flat)
+    # Add real curved edge samples, preserving the source nail beds, UV seams
+    # and weights. Tiny faces stay coarse enough to survive the MD3 grid.
+    if coarse_faces is None:
+        detail_plan = HERE/"resources/hands/refinement-plan.json"
+        coarse_faces = tuple(json.loads(detail_plan.read_text())["coarse_faces"]) if detail_plan.is_file() else ()
+    coarse = set(coarse_faces)
+    data["coarse_faces"] = sorted(coarse)
+    for _ in range(2):
+        sources = data.get("face_sources", list(range(len(data["faces"]))))
+        def allowed(face, index):
+            source = sources[index]
+            if source not in coarse:
+                return True
+            return all(dot(sub(data["vertices"][a[0]],data["vertices"][b[0]]),
+                           sub(data["vertices"][a[0]],data["vertices"][b[0]])) >= .18**2
+                       for a,b in zip(face,face[1:]+face[:1]))
+        refine_quads(data, lambda p: p[0] > .45, min_edge=REFINEMENT_MIN_EDGE,
+                     face_filter=allowed)
+    triangulate(data)
+    corners, triangles, geometric = data["corners"], data["triangles"], data["geometric"]
+    flat = [False]*len(triangles)
+    data["flat"] = flat
     # Continue the cropped forearm behind the camera. Leaving its irregular
     # source boundary exposed creates visible sawtooth ends on overhead shots.
     edge_counts = Counter(tuple(sorted((a, b))) for tri in geometric
@@ -205,7 +186,84 @@ def rig(path=None):
             flat[i] = True
     data.update(extensions=extensions, extension_roots=roots, extension_order=data_order,
                 extension_source_uv={i: corners[source_corners[i]][1:] for i in roots})
+    plan = HERE/"resources/hands/crease-plan.json"
+    if use_plan and plan.is_file():
+        import hashlib
+        saved = json.loads(plan.read_text())
+        if (saved["source_sha256"] != hashlib.sha256((Path(path) if path else HERE/"resources/hands/hand-rig.json").read_bytes()).hexdigest()
+                or saved.get("refinement_passes") != 2 or saved.get("topology_revision") != 4
+                or saved.get("coarse_faces") != data["coarse_faces"]
+                or saved.get("refinement_min_edge") != REFINEMENT_MIN_EDGE or saved.get("refinement_min_x") != .45):
+            raise ValueError("hand crease plan does not match its source rig")
+        split_creases(data, saved["faces"])
     return data
+
+
+def split_creases(data, faces):
+    for index in sorted(set(faces)):
+        if data["flat"][index]:
+            continue
+        split = []
+        for corner in data["triangles"][index]:
+            split.append(len(data["corners"]))
+            data["corners"].append(data["corners"][corner])
+        data["triangles"][index] = tuple(split)
+        data["flat"][index] = True
+
+
+def plan_creases():
+    """Reserve a fixed layout from every authored pose on both hands."""
+    import hashlib
+    harness()
+    from md3harness.format import normal_bytes, decode_normal
+    base = json.loads((HERE/"resources/hands/hand-rig.json").read_text())
+    coarse = set()
+    for attempt in range(4):
+        rig.cache_clear()
+        data, faces, collapsed, seen = rig(use_plan=False, coarse_faces=tuple(sorted(coarse))), set(), set(), set()
+        for clip in hand_manifest()["clips"]:
+            for frame in range(clip["count"]):
+                t = frame/(clip["count"] if clip["loop"] else clip["count"]-1)
+                for side in (1, -1):
+                    parameters = motion(clip["name"],t,side)
+                    key = (parameters,side)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    positions, normals, _ = raw_skin(parameters, side, data)
+                    positions = [tuple(round(x*64)/64 for x in p) for p in Vectors(positions)]
+                    normals = [decode_normal(*normal_bytes(n)) for n in Vectors(normals)]
+                    for index, (a, b, c) in enumerate(data["geometric"]):
+                        face = cross(sub(positions[b], positions[a]), sub(positions[c], positions[a]))
+                        if side > 0:
+                            face = mul(face, -1)
+                        if dot(face, face) < 1e-18:
+                            if index >= len(data["triangle_sources"]):
+                                raise ValueError(f"forearm extension collapses: {clip['name']} {frame} side {side}")
+                            collapsed.add(data["triangle_sources"][index])
+                            continue
+                        average = add(add(normals[a], normals[b]), normals[c])
+                        if dot(face, average) < -.025*math.sqrt(dot(face, face)*dot(average, average)):
+                            faces.add(index)
+            print(f"Hand detail preflight {attempt}: {clip['name']}; {len(faces)} crease faces; {len(collapsed)} compressed source faces", flush=True)
+        if not collapsed:
+            break
+        vertices = {corner[0] for index in collapsed for corner in base["faces"][index]}
+        coarse.update(index for index,face in enumerate(base["faces"]) if any(corner[0] in vertices for corner in face))
+        if attempt == 2:
+            coarse = set(range(len(base["faces"])))
+    else:
+        raise ValueError("hand detail could not preserve every quantized pose")
+    saved = dict(schema="beachvolley.crease-plan.v1", refinement_min_edge=REFINEMENT_MIN_EDGE, refinement_min_x=.45,
+                 refinement_passes=2, topology_revision=4, coarse_faces=data["coarse_faces"], unique_poses=len(seen),
+                 source_sha256=hashlib.sha256((HERE/"resources/hands/hand-rig.json").read_bytes()).hexdigest(),
+                 faces=sorted(faces), frames=HAND_FRAME_COUNT)
+    (HERE/"resources/hands/crease-plan.json").write_text(json.dumps(saved, indent=2)+"\n")
+    (HERE/"resources/hands/refinement-plan.json").write_text(json.dumps(dict(
+        source_sha256=saved["source_sha256"],coarse_faces=data["coarse_faces"]),indent=2)+"\n")
+    split_creases(data, faces)
+    skin_pose.cache_clear()
+    return saved
 
 
 def motion(clip, t, side):
@@ -280,9 +338,8 @@ def hand_pose(clip, t, side):
     return skin_pose(motion(clip, t, side), side)
 
 
-@lru_cache(maxsize=256)
-def skin_pose(parameters, side):
-    data = rig()
+def raw_skin(parameters, side, data=None):
+    data = data or rig()
     wrist, angles, curls, spread, opposition = parameters
     axes = tuple(rotate(a, angles) for a in IDENTITY)
     # Source is the left hand (thumb toward +Y); its medial direction is -Y.
@@ -369,7 +426,14 @@ def skin_pose(parameters, side):
             face = mul(face, -1)
         for index in (a, b, c):
             normals[index] = add(normals[index], face)
-    normals = list(map(unit, normals))
+    normals = [unit(n) if dot(n, n) > 1e-18 else (0, 0, 1) for n in normals]
+    return positions, normals, wrist
+
+
+@lru_cache(maxsize=96)
+def skin_pose(parameters, side):
+    data = rig()
+    positions, normals, wrist = raw_skin(parameters, side)
     corner_positions = [positions[c[0]] for c in data["corners"]]
     corner_normals = [normals[c[0]] for c in data["corners"]]
     harness()
@@ -404,7 +468,7 @@ def skin_pose(parameters, side):
 
 def scene(frame_range=None):
     data = rig()
-    result = dict(schema="md3harness.scene.v1", name="bv_hands.md3", winding="ccw", frames=[], surfaces=[], tags=[])
+    result = dict(schema="md3harness.scene.v1", profile="qssm", name="bv_hands.md3", winding="ccw", frames=[], surfaces=[], tags=[])
     # Reflection reverses winding. Canonical MakeHuman faces point outward;
     # both hands must also point outward after their camera-space reflection.
     for side, name in ((1, "left_hand"), (-1, "right_hand")):
@@ -499,7 +563,7 @@ def export_batch(game, index):
     progs = Path(game)/"progs"
     progs.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(HERE/"resources/hands/bv_hands.tga", progs/"bv_hands.tga")
-    start, end = index*80, min(HAND_FRAME_COUNT, (index+1)*80)
+    start, end = index*BATCH_FRAMES, min(HAND_FRAME_COUNT, (index+1)*BATCH_FRAMES)
     if start >= end:
         raise ValueError("invalid hand batch")
     full = scene(range(start, end))
@@ -515,7 +579,7 @@ def export_batch(game, index):
     compact = dict(full, frames=[full["frames"][i] for i in unique], tags=[full["tags"][i] for i in unique],
         surfaces=[dict(s, poses=[s["poses"][i] for i in unique]) for s in full["surfaces"]])
     temporary = progs/f"hand-unique-{index}.md3"
-    cli.export_scene(compact, temporary, game, dict(frames=len(unique), triangle_budget=8000), strict=True)
+    cli.export_scene(compact, temporary, game, dict(frames=len(unique), triangle_budget=30000), strict=True)
     expand_frames(temporary, progs/f"hand-batch-{index}.md3", mapping, full["frames"])
     print(f"Hand batch {index}: strict PASS ({start}..{end-1})", flush=True)
 
@@ -526,8 +590,8 @@ def assemble(game, reports=None):
     progs = Path(game)/"progs"
     path = progs/"bv_hands.md3"
     temporary = progs/"bv_hands.candidate.md3"
-    combine_batches([progs/f"hand-batch-{i}.md3" for i in range((HAND_FRAME_COUNT+79)//80)], temporary)
-    report = inspect(temporary, game, dict(frames=HAND_FRAME_COUNT, triangle_budget=8000))
+    combine_batches([progs/f"hand-batch-{i}.md3" for i in range((HAND_FRAME_COUNT+BATCH_FRAMES-1)//BATCH_FRAMES)], temporary)
+    report = inspect(temporary, game, dict(frames=HAND_FRAME_COUNT, triangle_budget=30000))
     if not report["passed"] or report["issues"]:
         raise ValueError(f"assembled hands rejected: {report['issues']}")
     temporary.replace(path)
@@ -544,7 +608,7 @@ def generate_hands(game, reports=None):
     (game / "progs").mkdir(parents=True, exist_ok=True)
     shutil.copyfile(HERE / "resources/hands/bv_hands.tga", game / "progs/bv_hands.tga")
     with tempfile.TemporaryDirectory(prefix="hand-batches-", dir=game) as directory:
-        for index in range((HAND_FRAME_COUNT+79)//80):
+        for index in range((HAND_FRAME_COUNT+BATCH_FRAMES-1)//BATCH_FRAMES):
             export_batch(directory, index)
         report = assemble(directory, reports)
         for name in ("bv_hands.md3", "bv_hands.animations.json"):
@@ -558,8 +622,11 @@ if __name__ == "__main__":
     parser.add_argument("--reports", type=Path, default=HERE / "build/hand-quality")
     parser.add_argument("--batch", type=int, help="Export one batch into an isolated candidate")
     parser.add_argument("--assemble", action="store_true", help="Join and strictly inspect an exported candidate")
+    parser.add_argument("--plan-creases", action="store_true", help="Preflight every pose and save fixed shading topology")
     args = parser.parse_args()
-    if args.batch is not None:
+    if args.plan_creases:
+        plan_creases()
+    elif args.batch is not None:
         export_batch(args.output, args.batch)
     elif args.assemble:
         assemble(args.output, args.reports)

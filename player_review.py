@@ -4,6 +4,7 @@
 """Make a self-contained animated review of the exact exported MD3 bytes."""
 import argparse
 import base64
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -42,16 +43,17 @@ def generate_review(game, output):
     if not (report and report.get("sha256") == digest and all(
             (game / t["path"]).is_file() and hashlib.sha256((game / t["path"]).read_bytes()).hexdigest() == t["sha256"]
             for t in report.get("textures", {}).values())):
-        report = inspect(model, game)
+        from anatomical_body import CONTRACT
+        report = inspect(model, game, CONTRACT)
     if not report["passed"] or report["issues"]:
         raise ValueError("cannot review an invalid exported player")
     textures = {name: base64.b64encode(texture_png(game / f"progs/{name}.tga")).decode()
-                for name in ("bv_athlete", "bv_athlete_away")}
+                for name in ("bv_athlete", "bv_athlete_away", "bv_kit")}
     manifest = animation_manifest()
     manifest["sha256"] = digest
     manifest["triangles"] = sum(s["triangles"] for s in report["surfaces"])
     page = (HERE / "resources/player-review.html").read_text()
-    page = page.replace("__MODEL__", base64.b64encode(model.read_bytes()).decode())
+    page = page.replace("__MODEL__", base64.b64encode(gzip.compress(model.read_bytes(), mtime=0)).decode())
     page = page.replace("__MANIFEST__", json.dumps(manifest)).replace("__TEXTURES__", json.dumps(textures))
     output.mkdir(parents=True, exist_ok=True)
     (output / "animation.html").write_text(page)

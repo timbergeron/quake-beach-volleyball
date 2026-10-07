@@ -14,39 +14,94 @@ from hud_font import GLYPHS
 RADIUS = 3.4  # Matches BV_RADIUS: 21.25 cm at 32 Quake units/metre.
 TEXTURE_SIZE = 512
 SHADER = "progs/bv_ball"
+SPHERE_SUBDIVISIONS = 5
 
 
 def sphere_mesh():
-    """Duplicate the UV meridian and pole corners to avoid wrap interpolation."""
-    columns, rows = 32, 16
-    vertices, coords, triangles = [], [], []
-    for row in range(rows + 1):
-        polar = math.pi * row / rows
-        for column in range(columns + 1):
-            longitude = math.tau * column / columns
-            vertices.append((RADIUS * math.sin(polar) * math.cos(longitude),
-                             RADIUS * math.sin(polar) * math.sin(longitude),
-                             RADIUS * math.cos(polar)))
-            # At a pole each fan corner samples the middle of its UV wedge.
-            u = (column + (-0.5 if row == 0 else 0.5 if row == rows else 0)) / columns
-            coords.append((max(0, min(1, u)), row / rows))
-    for row in range(rows):
-        for column in range(columns):
-            a = row * (columns + 1) + column
-            b = a + columns + 1
-            # Clockwise outward faces, as used by Quake/QSS-M alias models.
-            if row > 0:
-                triangles.append((a, a + 1, b))
-            if row < rows - 1:
-                triangles.append((a + 1, b + 1, b))
+    """Uniform high-detail sphere, with stable meridian and polar UV corners.
+
+    Five icosahedral refinements retain broad, grid-safe faces near both poles,
+    where a dense latitude/longitude mesh would collapse on MD3's 1/64 grid.
+    """
+    golden = (1+math.sqrt(5))/2
+    points = [(-1,golden,0),(1,golden,0),(-1,-golden,0),(1,-golden,0),
+              (0,-1,golden),(0,1,golden),(0,-1,-golden),(0,1,-golden),
+              (golden,0,-1),(golden,0,1),(-golden,0,-1),(-golden,0,1)]
+    def project(p):
+        length = math.sqrt(sum(c*c for c in p))
+        return tuple(c*RADIUS/length for c in p)
+    points = list(map(project, points))
+    faces = [(0,11,5),(0,5,1),(0,1,7),(0,7,10),(0,10,11),
+             (1,5,9),(5,11,4),(11,10,2),(10,7,6),(7,1,8),
+             (3,9,4),(3,4,2),(3,2,6),(3,6,8),(3,8,9),
+             (4,9,5),(2,4,11),(6,2,10),(8,6,7),(9,8,1)]
+    for _ in range(SPHERE_SUBDIVISIONS):
+        edges, refined = {}, []
+        def midpoint(a,b):
+            edge = tuple(sorted((a,b)))
+            if edge not in edges:
+                edges[edge] = len(points)
+                points.append(project(tuple((x+y)*.5 for x,y in zip(points[a],points[b]))))
+            return edges[edge]
+        for a,b,c in faces:
+            ab,bc,ca = midpoint(a,b),midpoint(b,c),midpoint(c,a)
+            refined.extend(((a,ab,ca),(b,bc,ab),(c,ca,bc),(ab,bc,ca)))
+        faces = refined
+    base_uv = [((math.atan2(y,x)%math.tau)/math.tau, math.acos(max(-1,min(1,z/RADIUS)))/math.pi)
+               for x,y,z in points]
+    vertices, coords, triangles, lookup = [], [], [], {}
+    for face in faces:
+        corners = [list(base_uv[i]) for i in face]
+        non_poles = [i for i,source in enumerate(face) if abs(points[source][2]) < RADIUS-1e-8]
+        if max(corners[i][0] for i in non_poles)-min(corners[i][0] for i in non_poles) > .5:
+            for uv in corners:
+                if uv[0] < .5:
+                    uv[0] += 1
+        for index, source in enumerate(face):
+            if abs(points[source][2]) > RADIUS-1e-8:
+                corners[index][0] = sum(corners[j][0] for j in range(3) if j != index)*.5
+        polygon = [(points[source],uv) for source,uv in zip(face,corners)]
+        pieces = [(polygon,False)]
+        if any(uv[0] > 1 for p,uv in polygon):
+            pieces = []
+            for upper in (False,True):
+                clipped,previous = [],polygon[-1]
+                for current in polygon:
+                    inside = current[1][0] >= 1 if upper else current[1][0] <= 1
+                    before = previous[1][0] >= 1 if upper else previous[1][0] <= 1
+                    if inside != before:
+                        fraction = (1-previous[1][0])/(current[1][0]-previous[1][0])
+                        point = tuple(a+(b-a)*fraction for a,b in zip(previous[0],current[0]))
+                        clipped.append((point,[1,previous[1][1]+(current[1][1]-previous[1][1])*fraction]))
+                    if inside:
+                        clipped.append(current)
+                    previous = current
+                if len(clipped) >= 3:
+                    pieces.append((clipped,upper))
+        for polygon,upper in pieces:
+            ids = []
+            for point,uv in polygon:
+                uv = (uv[0]-(1 if upper else 0),uv[1])
+                key = tuple(round(x,12) for x in (*point,*uv))
+                if key not in lookup:
+                    lookup[key] = len(vertices)
+                    vertices.append(point)
+                    coords.append(uv)
+                if not ids or lookup[key] != ids[-1]:
+                    ids.append(lookup[key])
+            if len(ids)>1 and ids[0]==ids[-1]:
+                ids.pop()
+            for i in range(1,len(ids)-1):
+                # Source icosahedron is CCW; QSS-M alias faces are clockwise.
+                triangles.append((ids[0],ids[i+1],ids[i]))
     return vertices, coords, triangles
 
 
 def write_md3(path, vertices, coords, triangles):
     """One surface, one shader, one static frame; MD3 version 15."""
-    if len(vertices) != len(coords) or not 0 < len(vertices) <= 4096:
+    if len(vertices) != len(coords) or not 0 < len(vertices) <= 65535:
         raise ValueError("invalid MD3 vertex/UV count")
-    if not 0 < len(triangles) <= 8192:
+    if not 0 < len(triangles) <= 2147483647//3:
         raise ValueError("invalid MD3 triangle count")
     if any(not 0 <= i < len(vertices) for face in triangles for i in face):
         raise ValueError("MD3 triangle index outside the mesh")

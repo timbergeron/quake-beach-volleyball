@@ -3,6 +3,7 @@
 """Self-contained review of the exported first-person MD3 and skin."""
 import argparse
 import base64
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -24,7 +25,7 @@ def generate_review(game, output, reports=None):
     if not (report and report.get("sha256") == digest and all(
             hashlib.sha256((game/t["path"]).read_bytes()).hexdigest() == t["sha256"]
             for t in report.get("textures", {}).values())):
-        report = inspect(model, game)
+        report = inspect(model, game, dict(frames=402, triangle_budget=30000))
     if not report["passed"] or report["issues"]:
         raise ValueError("cannot review an invalid exported hand model")
     clip_file = game/"progs/bv_hands.animations.json"
@@ -39,7 +40,7 @@ def generate_review(game, output, reports=None):
             clip["note"] = "Forearm rotates, wrist turns sideways, and the arm follows across the body."
     textures = {"bv_hands": base64.b64encode(texture_png(game/"progs/bv_hands.tga")).decode()}
     page = (HERE/"resources/hand-review.html").read_text()
-    page = page.replace("__MODEL__", base64.b64encode(model.read_bytes()).decode())
+    page = page.replace("__MODEL__", base64.b64encode(gzip.compress(model.read_bytes(), mtime=0)).decode())
     page = page.replace("__MANIFEST__", json.dumps(manifest)).replace("__TEXTURES__", json.dumps(textures))
     output.mkdir(parents=True, exist_ok=True)
     (output/"hands.html").write_text(page)

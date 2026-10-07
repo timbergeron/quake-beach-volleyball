@@ -444,6 +444,9 @@ def hand(mesh, wrist, forearm, side, state, view=False):
 
 
 def athlete(state, view=False):
+    if not view:
+        from anatomical_body import athlete as anatomical_athlete
+        return anatomical_athlete(state)
     mesh = Mesh()
     torso = state["torso"]
     # Tall athlete proportions: hips about a metre above the sand, with
@@ -619,17 +622,19 @@ class Vectors:
         return (self.data[i], self.data[i+1], self.data[i+2])
 
 
-def scene(view=False):
+def scene(view=False, frame_range=None):
     result = dict(schema="md3harness.scene.v1", name="bv_hands.md3" if view else "bv_athlete.md3",
-                  winding="ccw", frames=[], surfaces=[], tags=[])
+                  profile="qssm", winding="ccw", frames=[], surfaces=[], tags=[])
     parts = None
     for clip in CLIPS:
         for frame in range(clip.count):
+            if frame_range is not None and clip.start+frame not in frame_range:
+                continue
             t = frame/(clip.count if clip.loop else clip.count-1)
             mesh, wrists = athlete(clip.sample(t), view)
             if parts is None:
                 parts = list(mesh.parts)
-                result["surfaces"] = [dict(name=p.name, shader="progs/bv_athlete", uv=p.uv,
+                result["surfaces"] = [dict(name=p.name, shader="progs/bv_athlete" if p.name == "anatomical_body" else "progs/bv_kit", uv=p.uv,
                     triangles=p.triangles, poses=[]) for p in mesh.parts.values()]
             if list(mesh.parts) != parts:
                 raise ValueError("animation changed surface order")
@@ -664,35 +669,9 @@ def qc_constants():
 
 
 def generate_players(game, reports=None):
-    game = Path(game)
-    cli = harness()
-    from md3harness.materials import write_tga
-    progs = game / "progs"
-    write_tga(progs / "bv_athlete.tga", ATLAS, ATLAS, skin())
-    write_tga(progs / "bv_athlete_away.tga", ATLAS, ATLAS, skin(True))
-    # Structural contracts apply to every pose, including the smallest fingers.
-    contract = dict(frames=FRAME_COUNT, dimensions=[17.08, 20.84, 62.41],
-        dimension_tolerance=.10, triangle_budget=12500,
-        atlas_regions=[dict(surface_prefix=name, rect=REGIONS[material], mip_level=3)
-            for name, material in (("shield", "lens"), ("fingers", "skin"), ("cap", "navy"), ("short_legs", "shorts"))])
-    body = scene()
-    print("Exporting and checking body poses...", flush=True)
-    report = cli.export_scene(body, progs / "bv_athlete.md3", game, contract, strict=True)
-    for surface in body["surfaces"]:
-        surface["shader"] = "progs/bv_athlete_away"
-    body["name"] = "bv_athlete_away.md3"
-    print("Exporting and checking away kit...", flush=True)
-    away = cli.export_scene(body, progs / "bv_athlete_away.md3", game, contract, strict=True)
-    del body
-    print("Building and checking first-person arms...", flush=True)
-    hands = generate_hands(game)
-    cli.save_json(progs / "bv_athlete.animations.json", animation_manifest())
-    if reports:
-        for name, data in (("athlete", report), ("athlete-away", away), ("hands", hands)):
-            cli.save_json(Path(reports) / f"{name}.report.json", data)
-        cli.save_json(Path(reports) / "athlete.contract.json", contract)
-    print(f"Athletes: {len(CLIPS)} clips, {FRAME_COUNT} poses at {FPS} Hz; "
-          f"{sum(p['triangles'] for p in report['surfaces'])} triangles; strict MD3 checks passed", flush=True)
+    from anatomical_body import generate_players as generate_anatomical_players
+    report = generate_anatomical_players(game, reports)
+    generate_hands(game, reports)
     return report
 
 

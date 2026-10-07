@@ -20,7 +20,9 @@ select,button{color:#e6edf2;background:#253a47;border:1px solid #436274;border-r
 <p id="error" role="alert"></p>
 </aside></main>
 <script>
-const manifest=__MANIFEST__, textures=__TEXTURES__, raw=(()=>{const data=atob('__MODEL__'),bytes=new Uint8Array(data.length);for(let i=0;i<data.length;i++)bytes[i]=data.charCodeAt(i);return bytes})();
+(async()=>{
+const manifest=__MANIFEST__, textures=__TEXTURES__, packed=(()=>{const data=atob('__MODEL__'),bytes=new Uint8Array(data.length);for(let i=0;i<data.length;i++)bytes[i]=data.charCodeAt(i);return bytes})();
+const raw=new Uint8Array(await new Response(new Blob([packed]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
 const dv=new DataView(raw.buffer), i32=o=>dv.getInt32(o,true), f32=o=>dv.getFloat32(o,true);
 const canvas=document.getElementById('view'), gl=canvas.getContext('webgl',{antialias:true,preserveDrawingBuffer:true});
 const fail=e=>{document.getElementById('error').textContent=e.message;throw e};
@@ -96,5 +98,6 @@ const w=Math.round(canvas.clientWidth*devicePixelRatio),h=Math.round(canvas.clie
 const aspect=w/h,f=firstPerson?aspect:1/Math.tan(Math.PI/7),near=.5,far=400;gl.uniformMatrix4fv(projection,false,new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0]));gl.uniformMatrix4fv(view,false,camera());
 if(textureLoaded)gl.drawElements(gl.TRIANGLES,triangles.length,gl.UNSIGNED_SHORT,0);requestAnimationFrame(render)}
 document.getElementById('stats').textContent=manifest.clips.length+' clips · '+manifest.frames+' sampled poses · '+manifest.fps+' Hz · '+manifest.triangles.toLocaleString()+' triangles';document.getElementById('hash').textContent=manifest.sha256;
-window.review={manifest,choose,setFirstPerson:value=>firstPerson=value,renderPose:(name,t)=>{const index=choices.findIndex(c=>c.clips.length===1&&c.clips[0].name===name);select.value=index;choose(index);time=t*duration();playing=false;document.getElementById('play').textContent='Play'},getFrame:()=>sample(),getPositions:()=>positions};requestAnimationFrame(render);
+window.review={manifest,choose,isReady:()=>textureLoaded,setFirstPerson:value=>firstPerson=value,renderPose:(name,t)=>{const index=choices.findIndex(c=>c.clips.length===1&&c.clips[0].name===name);select.value=index;choose(index);time=t*duration();playing=false;document.getElementById('play').textContent='Play'},getFrame:()=>sample(),getPositions:()=>positions};requestAnimationFrame(render);
+})().catch(e=>{document.getElementById('error').textContent=e.message;console.error(e)});
 </script></html>

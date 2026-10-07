@@ -17,7 +17,7 @@ from pathlib import Path
 from run import HERE, stage_runtime
 
 
-def run_case(binary, basedir, game, workspace, visual, play=False, profile="default", artifacts=None):
+def run_case(binary, basedir, game, workspace, visual, play=False, profile="default", artifacts=None, timeout=120):
     name = "play" if play else "visual" if visual else "gameplay"
     if profile != "default":
         name = profile
@@ -75,7 +75,7 @@ def run_case(binary, basedir, game, workspace, visual, play=False, profile="defa
                                 # Software rendering of the detailed net can
                                 # take longer while the fixed-rate simulation
                                 # still follows the same input/contact timings.
-                                timeout=120 if visual or play or match or bot or receive else 40)
+                            timeout=timeout if visual or play or match or bot or receive else 40)
     except subprocess.TimeoutExpired as failure:
         output = failure.stdout or b""
         if isinstance(output, bytes):
@@ -192,6 +192,8 @@ def main():
     parser.add_argument("--basedir", type=Path, required=True)
     parser.add_argument("--artifacts", type=Path, default=HERE / "artifacts",
                         help="directory for logs, captures and the provenance summary")
+    parser.add_argument("--timeout", type=int, default=120,
+                        help="Wall-clock seconds per rendered case; simulation timing stays fixed")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--skip-visual", action="store_true")
     selection.add_argument("--case", action="append", choices=("gameplay", "visual", "play", "opposite",
@@ -200,6 +202,8 @@ def main():
         "net-hero", "net-opposite", "net-close", "net-post", "net-hit", "net-antenna", "net-hardware"),
         help="run a selected case; repeat to select several")
     args = parser.parse_args()
+    if args.timeout <= 0:
+        parser.error("--timeout must be positive")
     binary = args.bin.expanduser().resolve()
     basedir = args.basedir.expanduser().resolve()
     game = HERE / "dist/beachvolley"
@@ -247,10 +251,11 @@ def main():
         for name, visual, play, profile in cases:
             if name not in selected:
                 continue
-            result = run_case(binary, basedir, game, workspace, visual, play, profile, artifacts)
+            result = run_case(binary, basedir, game, workspace, visual, play, profile, artifacts, args.timeout)
             summary["results"].append(result)
             save_summary()
             print(f"{result['name']}: PASS ({len(result['passes'])} gameplay assertions)", flush=True)
+            shutil.rmtree(workspace / result["name"])
     summary["complete"] = True
     save_summary()
 

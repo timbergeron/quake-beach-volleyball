@@ -1,6 +1,6 @@
 # Anatomical first-person volleyball hands
 
-The view model uses continuous hands with knuckles, nail beds, thumb webbing,
+The 21,814-triangle view model uses continuous hands with knuckles, nail beds, thumb webbing,
 palm contours and a separate 512×2048 skin atlas. Three joints per finger and
 opposed thumbs allow a setting cradle without mitten-shaped palms or separate
 cylinders. Arms continue behind the camera to keep their cropped ends hidden.
@@ -51,6 +51,12 @@ The generator validates batches before assembling and checking all 402 frames.
 Exact repeated poses reuse their packed vertices; frame labels and timing remain
 unchanged. This keeps the exporter usable on machines with limited memory.
 
+The denser model uses a saved refinement plan derived from all 402 poses.
+Small compression zones retain larger faces, while the palm and finger
+silhouettes gain detail. A fixed crease layout splits only disagreeing normals.
+Run `python3 hand_assets.py --plan-creases` after changing detail or motion;
+normal builds consume the committed plans. See [the density notes](model-detail.md).
+
 Actual first-person QSS-M captures:
 
 ```sh
@@ -71,7 +77,8 @@ the inputs listed by `prepare_hand_source.py`, and run that script. It crops the
 hand skin without rescaling, adds a forearm strip sampled from nearby skin,
 slices the forearm into a clean attachment ring, and welds millimetre-scale
 nail bevels that cannot survive MD3's 1/64-unit position grid. Skin weights and UVs remain reproducible from
-the pinned input files; the full character mesh and texture are not shipped.
+the pinned input files. Hand extraction keeps the full upstream files in the
+tooling directory; athletes use a separately prepared clothed body.
 
 At the pinned MakeHuman revision, the source paths are
 `makehuman/data/3dobjs/base.obj`, `makehuman/data/rigs/default.mhskel`,

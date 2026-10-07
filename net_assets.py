@@ -31,6 +31,8 @@ SHADER = "progs/bv_net"
 # Six decay poses for each of three impact locations, from either side.
 PULSE = (0.7, 1.0, 0.25, -0.28, 0.12, 0.0)
 FRAME_COUNT = 1 + 3 * 2 * len(PULSE)
+SURFACE_VERTEX_LIMIT = 65535  # QSS-M's unsigned-short surface indices.
+CORD_SIDES = 16  # Largest radial detail with edges comfortably above the MD3 grid.
 REGIONS = {"canvas": (0, 0, 512, 512), "cord": (512, 0, 1024, 256),
            "metal": (512, 256, 1024, 512), "padding": (0, 512, 512, 1024),
            "red": (512, 512, 1024, 768), "white": (512, 768, 1024, 1024)}
@@ -94,11 +96,11 @@ class Assembly:
 
     def append(self, name, vertices, normals, coords, triangles, moving=False):
         surface = self.parts.get(name)
-        if surface is None or len(surface.vertices) + len(vertices) > 4096:
+        if surface is None or len(surface.vertices) + len(vertices) > SURFACE_VERTEX_LIMIT:
             surface = Surface(f"{name}_{sum(s.name.startswith(name + '_') for s in self.surfaces)}")
             self.surfaces.append(surface)
             self.parts[name] = surface
-        if len(vertices) > 4096:
+        if len(vertices) > SURFACE_VERTEX_LIMIT:
             raise ValueError("primitive exceeds MD3 surface limits")
         offset = len(surface.vertices)
         surface.vertices.extend(vertices)
@@ -173,7 +175,7 @@ class Assembly:
                 triangles.extend(((a, b, c), (c, b, d)))
         self.append(name, vertices, normals, coords, triangles, moving)
 
-    def torus(self, name, centre, axis, major, minor, material="metal", rings=16, sides=6):
+    def torus(self, name, centre, axis, major, minor, material="metal", rings=32, sides=12):
         axis = unit(axis)
         u = unit(cross(axis, (0, 0, 1) if abs(axis[2]) < 0.9 else (1, 0, 0)))
         v = cross(axis, u)
@@ -197,17 +199,17 @@ class Assembly:
 def padded_post(mesh, y):
     # A capsule silhouette: no square timber and no exposed sharp post tops.
     profile = []
-    for i in range(1, 7):
-        angle = -math.pi / 2 + i * math.pi / 12
+    for i in range(1, 13):
+        angle = -math.pi / 2 + i * math.pi / 24
         profile.append((POST_RADIUS + POST_RADIUS * math.sin(angle),
                         POST_RADIUS * math.cos(angle), math.sin(angle), math.cos(angle)))
-    for i in range(1, 7):
-        profile.append((POST_RADIUS + (POST_HEIGHT - 2 * POST_RADIUS) * i / 6, POST_RADIUS, 0, 1))
-    for i in range(1, 6):
-        angle = i * math.pi / 12
+    for i in range(1, 13):
+        profile.append((POST_RADIUS + (POST_HEIGHT - 2 * POST_RADIUS) * i / 12, POST_RADIUS, 0, 1))
+    for i in range(1, 12):
+        angle = i * math.pi / 24
         profile.append((POST_HEIGHT - POST_RADIUS + POST_RADIUS * math.sin(angle),
                         POST_RADIUS * math.cos(angle), math.sin(angle), math.cos(angle)))
-    sides = 24
+    sides = 96
     vertices, normals, coords, triangles = [], [], [], []
     for z, radius, nz, nr in profile:
         for j in range(sides + 1):
@@ -229,7 +231,7 @@ def padded_post(mesh, y):
     mesh.append("padded_posts", vertices, normals, coords, triangles)
     # Canvas retaining collars sit flush against the pad.
     for z in (BAND, BOTTOM + BAND / 2, TOP - BAND / 2):
-        mesh.torus("pad_collars", (0, y, z), (0, 0, 1), POST_RADIUS + 0.015, 0.06, "canvas", rings=24)
+        mesh.torus("pad_collars", (0, y, z), (0, 0, 1), POST_RADIUS + 0.015, 0.06, "canvas", rings=64)
 
 
 def net_mesh():
@@ -238,12 +240,12 @@ def net_mesh():
     for column in range(86):
         y = -HALF_LENGTH + column * CELL
         points = [(0, y, low + i * CELL) for i in range(9)]
-        mesh.tube("vertical_cords", points, CORD_RADIUS, "cord", sides=6, moving=True)
+        mesh.tube("vertical_cords", points, CORD_RADIUS, "cord", sides=CORD_SIDES, moving=True)
     for row in range(9):
         z = low + row * CELL
         # Offset crossing strands slightly to give the mesh a woven surface.
         points = [(0.035, -HALF_LENGTH + i * CELL, z) for i in range(86)]
-        mesh.tube("horizontal_cords", points, CORD_RADIUS, "cord", sides=6, moving=True)
+        mesh.tube("horizontal_cords", points, CORD_RADIUS, "cord", sides=CORD_SIDES, moving=True)
     for z in (BOTTOM + BAND / 2, TOP - BAND / 2):
         mesh.ribbon("horizontal_bands", (0, -HALF_LENGTH, z), (0, HALF_LENGTH, z), BAND)
     for side in (-1, 1):
@@ -257,25 +259,25 @@ def net_mesh():
             net_y = side * (HALF_LENGTH - 0.8)
             post_y = side * (POST_Y - POST_RADIUS)
             mesh.tube("tension_cords", [(0, side * HALF_LENGTH, z), (0, post_y, z)],
-                      0.055, "cord", sides=8)
+                      0.055, "cord", sides=12)
             for x in (-0.15, 0.15):
                 mesh.torus("eyelets", (x, net_y, z), (1, 0, 0), 0.24, 0.055)
             for position in (net_y, post_y):
                 mesh.torus("anchor_eyes", (0, position, z), (1, 0, 0), 0.26, 0.065)
             centre = side * (HALF_LENGTH + POST_Y - POST_RADIUS) / 2
             mesh.tube("turnbuckles", [(0, centre - 0.65, z), (0, centre + 0.65, z)],
-                      0.17, "metal", sides=12, caps=True)
+                      0.17, "metal", sides=32, caps=True)
         # Opposite faces of the net carry the two antenna rods.
         x, y = side * ANTENNA_X, side * ANTENNA_Y
         mesh.tube("antenna_base", [(x, y, BOTTOM), (x, y, TOP)],
-                  ANTENNA_RADIUS, "white", sides=12, caps=True)
+                  ANTENNA_RADIUS, "white", sides=32, caps=True)
         for stripe in range(8):
             z = TOP + stripe * CELL
             mesh.tube("antenna_stripes", [(x, y, z), (x, y, z + CELL)], ANTENNA_RADIUS,
-                      "red" if stripe % 2 == 0 else "white", sides=12, caps=stripe == 7)
+                      "red" if stripe % 2 == 0 else "white", sides=32, caps=stripe == 7)
         for z in (BOTTOM + 1.2, TOP - 1.2):
             mesh.torus("antenna_clips", (x, y, z), (0, 0, 1), ANTENNA_RADIUS + 0.035,
-                       0.045, "metal", rings=12)
+                       0.045, "metal", rings=24, sides=10)
     return mesh
 
 
@@ -324,7 +326,7 @@ def write_net_md3(path, mesh):
         faces = [face for face in part.triangles if dot(cross(sub(encoded[face[1]], encoded[face[0]]),
                     sub(encoded[face[2]], encoded[face[0]])), cross(sub(encoded[face[1]], encoded[face[0]]),
                     sub(encoded[face[2]], encoded[face[0]]))) > 0]
-        if len(faces) > 8192:
+        if len(faces) > 2147483647//3:
             raise ValueError("net exceeds MD3 triangle limits")
         tri_at = 108
         shader_at = tri_at + len(faces) * 12
