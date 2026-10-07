@@ -7,7 +7,7 @@ red opponents. Position your feet, prepare your hands, and time the contact.
 
 ![Local doubles with the current athletes, anatomical hands and match HUD in QSS-M](docs/screenshots/doubles.png)
 
-## Current development build — October 7, 2026
+## Current release — October 7, 2026
 
 - **Anatomical first-person hands:** textured skin, knuckles, nail beds, palm
   contours and three joints per finger. Deep-dish setting spreads and flexes
@@ -25,10 +25,8 @@ red opponents. Position your feet, prepare your hands, and time the contact.
   timed receiving, short/deep placement, spin, emergency digs, target drills,
   landing previews, and net/post/antenna collisions with animated net recoil.
 
-The screenshots show the current `main` build. The latest published
-[v0.6.0 ZIP](https://github.com/timbergeron/quake-beach-volleyball/releases/tag/v0.6.0)
-contains the earlier first-person arms; build from source for the
-dense anatomical models and directional cut animations shown here.
+The screenshots show the dense anatomical models and directional cut animations
+included in the [v0.7.0 release](https://github.com/timbergeron/quake-beach-volleyball/releases/tag/v0.7.0).
 
 The design takes inspiration from
 Virtua Tennis's preparation and positioning controls, described in Sega's
@@ -44,7 +42,7 @@ gameplay values rather than a calibrated sports simulation.
 ## Play the built version
 
 Download `beachvolley.zip` from the
-[v0.6.0 release](https://github.com/timbergeron/quake-beach-volleyball/releases/tag/v0.6.0),
+[v0.7.0 release](https://github.com/timbergeron/quake-beach-volleyball/releases/tag/v0.7.0),
 unpack it into your Quake directory, and launch
 [QSS-M](https://github.com/timbergeron/QSS-M):
 
@@ -56,10 +54,17 @@ You need an installed copy of Quake, including `id1/pak0.pak`. The archive
 contains mod assets and compiled QC; base Quake data comes
 from your installation.
 
-The v0.6.0 release includes the MD3 ball, animated net, prepared court textures,
-Norwegian-inspired players and first-person arms. See the
-[release notes](docs/releases/v0.6.0.md) for the asset inventory, animation review
-download and validation details.
+The v0.7.0 release includes all five dense MD3s, anatomical first-person hands,
+prepared court textures, compiled game and current documentation. See the
+[release notes](docs/releases/v0.7.0.md) for the inventory, both animation
+reviewers, texture painting kit and validation details.
+
+The separate [texture painting kit](https://github.com/timbergeron/quake-beach-volleyball/releases/download/v0.7.0/texture-paint-kit.zip)
+contains the current PNG atlases, exact UV guides, material-region overlays and
+[editing prompts](docs/texture-authoring.md) for all six textures. To regenerate
+it from a built game, use `python3 texture_kit.py --output build/new-texture-kit`
+with current `../md3harness`. The kit prepares existing skins for editing;
+generated texture replacements can be integrated after review.
 
 To play a source build, run this from the mod repository root after building:
 
