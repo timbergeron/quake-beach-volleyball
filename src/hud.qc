@@ -5,7 +5,11 @@ float bv_play_reach_reported, bv_play_preview_reported;
 float bv_play_timing_reported, bv_play_quality_reported;
 float bv_match_hud_reported, bv_match_point_reported;
 float bv_ui_font, bv_ui_rounded;
+var float bv_ui_scale = 1;
 float bv_net_hud_reported, bv_receive_hud_reported;
+float(vector viewport) BV_MenuDraw;
+void() BV_MenuInit;
+void() BV_MenuTestFrame;
 
 const vector BV_UI_TEXT = '0.94 0.97 0.98';
 const vector BV_UI_MUTED = '0.61 0.7 0.74';
@@ -43,9 +47,11 @@ void(float x, float y, string text, float height, vector color, float alpha, flo
     position_x = x;
     position_y = y;
     size = '1 1 0' * height;
+    position = position * bv_ui_scale;
+    size = size * bv_ui_scale;
     if (!bv_ui_font)
     {
-        size_x = height * 0.6;
+        size_x = height * 0.6 * bv_ui_scale;
         drawstring(position, text, size, color, alpha, 0);
         return;
     }
@@ -58,7 +64,7 @@ void(float x, float y, string text, float height, vector color, float alpha, flo
         source_y = floor(character / 16) / 16;
         if (character != 32)
             drawsubpic(position, size, "gfx/bv_ui.tga", source, '0.0625 0.0625 0', color, alpha, 0);
-        position_x = position_x + BV_GlyphAdvance(character) * height;
+        position_x = position_x + BV_GlyphAdvance(character) * height * bv_ui_scale;
     }
 };
 
@@ -72,7 +78,7 @@ void(float x, float y, float width, float height, vector color, float alpha) BV_
     position_y = y;
     size_x = width;
     size_y = height;
-    drawfill(position, size, color, alpha, 0);
+    drawfill(position * bv_ui_scale, size * bv_ui_scale, color, alpha, 0);
 };
 
 void(float x, float y, float width, float height, float radius, vector color, float alpha) BV_RoundBox =
@@ -90,7 +96,7 @@ void(float x, float y, float width, float height, float radius, vector color, fl
     position_y = y;
     size_x = width;
     size_y = height;
-    drawroundedrect(position, size, color, alpha, radius);
+    drawroundedrect(position * bv_ui_scale, size * bv_ui_scale, color, alpha, radius * bv_ui_scale);
 };
 
 void(float x, float y, float width, float height, float alpha) BV_Panel =
@@ -281,6 +287,8 @@ void(vector virtual_size, float showscores) CSQC_DrawHud =
     local float match, phase, hint, assisted, overlays, column, hud_y, receiving, style;
     local vector color;
     local string label, instruction, footer;
+    BV_MenuTestFrame();
+    if (BV_MenuDraw(virtual_size)) return;
     if ((cvar("bv_netview") > 0 && cvar("bv_netview") != 6) || cvar("bv_handview"))
     {
         BV_VisualCapture();
@@ -655,4 +663,5 @@ void(float api_level, string engine_name, float engine_version) CSQC_Init =
     if (drawfont) dprint("BEACH HUD FONT custom\n");
     if (bv_ui_rounded) dprint("BEACH HUD ROUNDED native\n");
     dprint("BEACH CSQC INIT\n");
+    BV_MenuInit();
 };

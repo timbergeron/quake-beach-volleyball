@@ -186,7 +186,20 @@ void(vector position, string sample, float volume, float attenuation) ambientsou
 string(string first, string second, ...) strcat = #115;
 
 #ifdef CSQC
+// FTE CSQC event/key codes, also used by QSS-M's Key_NativeToQC.
+const float IE_KEYDOWN = 0, IE_KEYUP = 1, IE_MOUSEABS = 3;
+const float K_TAB = 9, K_ENTER = 13, K_ESCAPE = 27, K_SPACE = 32;
+const float K_UPARROW = 128, K_DOWNARROW = 129, K_LEFTARROW = 130, K_RIGHTARROW = 131;
+const float K_SHIFT = 134, K_F1 = 135, K_F12 = 146, K_KP_ENTER = 172;
+const float K_MOUSE1 = 512, K_MOUSE2 = 513;
 float drawfont;
+void(float enabled, optional string image, optional vector hotspot, optional float scale) setcursormode = #343;
+void(string command) registercommand = #352;
+float(optional float effective) getcursormode = #0;
+void(string eventname, string types, ...) sendevent = #359;
+float(string text) tokenize = #441;
+string(float index) argv = #442;
+float(optional float timer) gettime = #519;
 float(string text) strlen = #114;
 string(string text, float start, float length) substring = #116;
 float(string text, float index) str2chr = #222;

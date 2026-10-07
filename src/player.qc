@@ -396,6 +396,13 @@ void() PlayerPreThink =
     if (cvar("bv_bottest")) BV_BotTestInput();
     if (cvar("bv_receivetest")) BV_ReceiveTestInput();
     if (cvar("bv_netview")) BV_NetVisualInput();
+    // A packet sent before cursor capture must not start or release a shot.
+    if (self.bv_menu_active)
+    {
+        self.button0 = self.button2 = self.button3 = 0;
+        self.button4 = self.button5 = self.button7 = self.button8 = 0;
+        self.impulse = 0;
+    }
     BV_UpdateFooting(self);
     self.gravity = BV_Clamp(autocvar_bv_gravity, 100, 800) /
                    BV_Clamp(cvar("sv_gravity"), 1, 2000);
@@ -559,10 +566,37 @@ void() PlayerPostThink =
     if (cvar("bv_handview")) BV_HandVisualObserve();
 };
 
+// Cancel preparation before the client releases held controls. Releasing a
+// charged shot on entry would otherwise commit an accidental court contact.
+void(float enabled) CSEv_BeachMenu_f =
+{
+    if (!self.bv_isplayer || self.bv_isbot) return;
+    self.bv_menu_active = enabled != 0;
+    if (!enabled) return;
+    self.bv_preparing = 0;
+    self.bv_armed_until = 0;
+    self.bv_aim_locked = FALSE;
+    self.bv_serve_contact = FALSE;
+    self.bv_receive_committed = FALSE;
+    self.bv_charge = 0;
+    self.bv_timing = 0;
+    self.bv_previous_primary = self.bv_previous_secondary = 0;
+};
+
+// Menu preferences are explicit values, so several changes in one frame
+// cannot overwrite one another in Quake's single impulse slot.
+void(float option, float value) CSEv_BeachOption_ff =
+{
+    if (!self.bv_isplayer || self.bv_isbot) return;
+    if (option == 0) self.bv_assisted = value != 0;
+    if (option == 1) self.bv_overlays = value != 0;
+};
+
 void() PutClientInServer =
 {
     self.classname = "player";
     self.bv_isplayer = TRUE;
+    self.bv_menu_active = FALSE;
     self.health = 100;
     self.max_health = 100;
     self.takedamage = 0;
@@ -581,6 +615,7 @@ void() PutClientInServer =
     self.bv_contact_side = -1;
     self.bv_last_contact = -1;
     self.bv_footing = 1;
+    self.bv_assisted = FALSE;
     self.bv_overlays = TRUE;
     self.bv_message = "R SERVE | T FEED | 1-4 DRILLS | H HELP";
     setmodel(self, "progs/bv_athlete.md3");

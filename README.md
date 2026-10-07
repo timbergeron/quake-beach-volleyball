@@ -12,8 +12,9 @@ your hands.
 
 ![First-person doubles with a blue teammate, red opponents, and the rounded match HUD](docs/screenshots/doubles.png)
 
-*Native QSS-M captures of the latest source build: rounded HUD, clearer court,
-and updated hands. The v0.7.0 download predates these changes.*
+*Native QSS-M captures: rounded HUD, clearer court, and updated hands. The
+latest source also adds the game menu below. The v0.7.0 download predates these
+changes.*
 
 ## Start playing
 
@@ -28,12 +29,26 @@ and updated hands. The v0.7.0 download predates these changes.*
    quakespasm -game beachvolley -fsaa 4 +exec beach.cfg +map beach
    ```
 
-**Your first serve:** press **1**, then **R**. Aim across the net, hold **LMB** to
-toss, and release near the top. Watch the contact feedback and try again.
-Press **H** for help, or **5** when you are ready for doubles.
+**Your first serve:** press **R**, aim across the net, hold **LMB** to toss,
+and release near the top. Watch the contact feedback and try again. **H** shows
+the full controls on court.
 
 The download includes compiled game code and mod assets. Quake game data is
 required separately. [Release contents and notes →](docs/releases/v0.7.0.md)
+
+**In the latest source build**, the game menu opens when you arrive:
+
+- **Learn → Try a serve** takes you from a three-step guide straight to practice.
+- **Play** starts doubles with three bots. Choose **7, 11, or 21 points** before
+  starting; **Resume** becomes the first action once you're on court.
+- **Practice** gives each stroke its own drill: serve, receive, set, and attack.
+- **Settings** explains each option, with instant switches and draggable sliders.
+  **Video & controls** opens the engine options.
+
+Use the mouse, or **Tab / arrows** and **Enter**; **Q / E** switches tabs.
+**Escape** or **F1** brings the menu back. The court stays live while browsing.
+Changing sessions asks before clearing a doubles score, with **Cancel** selected
+first. [Menu and navigation →](docs/gameplay.md#game-menu)
 
 ## One good rally
 
@@ -51,6 +66,7 @@ net and jump to attack.
 | **Shift + mouse** | Adjust your aim while preparing |
 | Wheel / **F**, **V** | Change arc / shorter or deeper placement; cushion a receive |
 | **1–4** / **5** | Serve, receive, set, attack drills / local doubles |
+| **Escape** / **F1** | Game menu: play, practice, settings, and learning |
 | **H** / hold **Tab** | Toggle / show help |
 
 You choose the direction before preparing, so you can look up and track the
@@ -58,12 +74,24 @@ ball. **C** toggles assisted contact within physical hand reach. **J** toggles
 training overlays. [Full controls, serve timing, and shot shaping →](docs/gameplay.md#controls)
 
 Doubles is one local player plus three bots: receive, set, attack, cover. Games
-are first to seven, win by two; the winning team serves next. Three-touch limits
+default to seven points, win by two; the latest menu also offers 11 or 21.
+The winning team serves next. Three-touch limits
 and double-contact faults are in place. Full beach rules, service rotation,
 side changes, and network doubles are still in development.
 [How doubles works →](docs/gameplay.md#doubles-rallies)
 
 ## See the game
+
+**An easy place to begin.** Play doubles, choose a focused drill, adjust the
+game, or learn your first serve in three steps. Resume keeps your current match
+one action away; settings explain what they change. Rounded panels and clear
+focus work with a mouse or keyboard, including smaller windows and large HUD scales.
+
+![The native CSQC game menu with Play, Practice, Settings, and Learn tabs](docs/screenshots/menu.png)
+
+| Resume your match | Clear settings · 640 × 480 |
+| --- | --- |
+| ![The Resume match action with the live score and separate new-session choices](docs/screenshots/menu-resume.png) | ![Compact gameplay settings with explanations and switches](docs/screenshots/menu-settings.png) |
 
 **A clear court. A clear next action.** The current HUD keeps score and court
 position in the corners, with one prominent cue for what to do next. Practice
@@ -116,9 +144,10 @@ poses**. [Athlete notes](docs/player.md) · [Hand notes](docs/hands.md) ·
 
 </details>
 
-All screenshots above were captured from the current game and engine, with 4×
-anti-aliasing. Live scenes and fixed poses are identified in the
-[capture manifest](docs/screenshots/review.json), alongside image and build hashes.
+All screenshots above were captured in QSS-M with 4× anti-aliasing. Live scenes,
+fixed poses, and build hashes are recorded in the
+[gameplay capture manifest](docs/screenshots/review.json) and
+[menu capture manifest](docs/screenshots/menu-review.json).
 
 ## Build the latest
 
@@ -146,7 +175,7 @@ runtime and configs in the mod checkout and reads your Quake PAKs through links.
 
 | For players | For makers |
 | --- | --- |
-| [Controls and shot timing](docs/gameplay.md#controls) | [Build and test](docs/development.md) |
+| [Game menu](docs/gameplay.md#game-menu) · [Controls and shot timing](docs/gameplay.md#controls) | [Build and test](docs/development.md) |
 | [Doubles rallies](docs/gameplay.md#doubles-rallies) | [Athlete animation](docs/player.md) · [First-person hands](docs/hands.md) |
 | [Physics and tuning](docs/gameplay.md#physics-and-tuning) | [Texture painting kit](docs/texture-authoring.md) · [Model budgets](docs/model-detail.md) |
 

@@ -98,7 +98,8 @@ void(entity player) BV_StartMatch =
     bv_home_score = 0;
     bv_away_score = 0;
     bv_match_goal = BV_Clamp(floor(autocvar_bv_match_points), 3, 21);
-    player.bv_assisted = FALSE;
+    // Keep the player's contact preference when starting a new session.
+    // New players start with manual contact in PutClientInServer.
     player.bv_mode = 0;
     player.bv_marker.modelindex = 0;
     bv_partner = BV_SpawnBot('-78 58 24', -1);

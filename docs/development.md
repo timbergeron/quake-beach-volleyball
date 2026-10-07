@@ -218,6 +218,45 @@ changes and preserves regular runtime files.
 The default is 4× anti-aliasing for fine net cords. Use `--samples 0` to disable
 it, or `--samples 2` / `--samples 8` to select another level.
 
+## CSQC menu
+
+`src/menu.qc` owns the arrival menu, pages, keyboard focus, button hit regions,
+slider capture, spatial arrow navigation, and cursor lifetime. It shares the
+rounded drawing and font metrics in `src/hud.qc`. Canvas scaling and pointer coordinates use the same
+transform, including small windows and large HUD scales. No engine change is
+needed beyond the existing CSQC hooks; native rounded corners use the same
+optional extension as the HUD.
+
+`beach_menu` toggles the menu. `bv_menu_auto` controls the arrival screen.
+Player options travel through `CSEv_BeachOption_ff`; session selection uses the
+normal impulses. `CSEv_BeachMenu_f` cancels preparation and blocks court actions
+while browsing; the court simulation keeps running. F12 remains available, and
+held inputs are cleared on entry. QSS-M's own menus remain available through
+**Video & controls**. Resume is the default after entering play. Confirmation
+dialogs expose only Cancel and their named action, with Cancel focused first.
+Option switches show the pending value immediately, then reconcile against
+server stats; rapid reversals keep their intended order. Q/E changes pages,
+Tab follows reading order, and arrows follow widget geometry or adjust values.
+
+The structure takes inspiration from [menusys](https://github.com/victorbstan/menusys):
+a root owns focus and pointer capture, and common widgets share input handling.
+The implementation, styling, and game-specific pages are authored here.
+
+Run the native menu fixtures after compiling both QC modules:
+
+```sh
+python3 test_menu.py --bin /path/to/quakespasm --basedir /path/to/quake
+```
+
+The fixture drives the actual CSQC input entry point and checks server-side
+session changes and player options. It tests navigation, drag cancellation,
+slider limits, confirmation/back behavior, cursor restoration, input capture,
+and widget bounds at 1280×720, 640×480, a large HUD scale, and 1600×900. Logs,
+eight page captures per case, and executable hashes go to `artifacts/menu`. Use `--case`
+to select `desktop`, `compact`, `large-hud`, or `wide`. The fixtures also check
+visible match-length choices, spatial focus, rapid toggle reversal, modal
+input containment, direct first-serve practice, and the default Resume action.
+
 ## Verify
 
 Build first, then choose the asset checks or native game fixtures below.

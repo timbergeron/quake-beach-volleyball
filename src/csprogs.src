@@ -3,3 +3,5 @@ defs.qc
 shared.qc
 hud_metrics.qc
 hud.qc
+menu.qc
+menutest.qc

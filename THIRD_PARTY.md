@@ -88,3 +88,9 @@ Float-versus-speed serve design is informed by Reiser et al. (2020),
 [study of float serves in beach and indoor volleyball](https://www.frontiersin.org/journals/sports-and-active-living/articles/10.3389/fspor.2020.559277/full).
 The bounded wake approximation and platform-rebound receive code are original
 implementations. No paper text, data, or third-party simulation code is bundled.
+
+The CSQC menu structure takes inspiration from
+[menusys](https://github.com/victorbstan/menusys): root-owned focus, cursor
+capture, shared widget input, and Escape/back navigation. The menu code,
+visual styling, and game-specific pages in this repository are authored here;
+menusys source is not bundled.

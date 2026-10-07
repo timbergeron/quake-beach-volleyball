@@ -68,7 +68,7 @@ def package_game():
     shutil.copyfile(HERE / "beach.cfg", GAME / "beach.cfg")
     shutil.copyfile(HERE / "server.cfg", GAME / "server.cfg")
     (GAME / "autoexec.cfg").write_text("exec beach.cfg\n")
-    documents = ("README.md", "LICENSE", "THIRD_PARTY.md", "resources/ui/LICENSE.txt", "docs/court.png", "docs/ball.png", "docs/net.png", "docs/player.md", "docs/player.png", "docs/hands.md", "docs/hands.png", "docs/model-detail.md", "docs/texture-authoring.md", "resources/hands/LICENSE.CC0.txt", "resources/anatomy/LICENSE.CC0.txt")
+    documents = ("README.md", "LICENSE", "THIRD_PARTY.md", "resources/ui/LICENSE.txt", "docs/gameplay.md", "docs/development.md", "docs/court.png", "docs/ball.png", "docs/net.png", "docs/player.md", "docs/player.png", "docs/hands.md", "docs/hands.png", "docs/model-detail.md", "docs/texture-authoring.md", "resources/hands/LICENSE.CC0.txt", "resources/anatomy/LICENSE.CC0.txt")
     documents += tuple(path.relative_to(HERE).as_posix()
                        for path in sorted((HERE / "docs/releases").glob("*.md")))
     documents += tuple(path.relative_to(HERE).as_posix()

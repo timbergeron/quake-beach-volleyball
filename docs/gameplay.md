@@ -2,8 +2,40 @@
 
 [Back to the README](../README.md) · [Build and verification](development.md)
 
-Start with **1** for serving, **R** to ready a ball, then hold and release
-**LMB** near the top of the toss. Press **H** whenever you need the controls.
+Choose **Practice → Serve** in the arrival menu, then hold and release **LMB**
+near the top of the toss. Press **Escape** or **F1** to return to the menu.
+**H** shows all court controls.
+
+## Game menu
+
+The menu opens after the court loads. **Escape** or **F1** opens it again;
+**Escape** and right-click go back a page, then return to the court. Mouse
+buttons activate on release, so dragging off a button cancels it. Arrows move
+to the next item in that direction; **Tab** / **Shift + Tab** follows reading
+order. **Enter** selects, and **Q / E** changes tabs. Left/right adjusts a
+focused setting or selects an adjacent match length. Sliders also accept a
+click or drag. Left turns a switch off; right turns it on.
+
+- **Play:** local doubles and visible 7, 11, or 21-point choices for the next
+  match. After entering the court, **Resume** becomes the default action and
+  your live doubles score appears above it. Starting a new match is separate.
+- **Practice:** serve, receive, set, or attack without a match score.
+- **Settings:** **Gameplay** groups contact assistance, training guides, and
+  contact camera motion. **Sound & look** groups volume, mouse speed, and field
+  of view. Each option explains its effect; changes appear immediately. Court
+  options apply to your current player, and another session keeps them. New
+  players start with manual contact.
+- **Learn:** a three-step first serve guide, with **Try a serve** taking you
+  directly into serve practice. **All controls** returns to court with the
+  full control overlay open.
+
+Opening the menu cancels a prepared shot. The court stays live while browsing.
+Changing sessions during doubles asks before resetting the score; quitting
+also asks. Confirmations name the destination, show your current session, and
+default to **Cancel**. **Video & controls** opens QSS-M's video, audio, and
+binding menus. **F12** always reaches the console.
+To skip the arrival menu on future launches, enter `seta bv_menu_auto 0` in
+that console. Use `seta bv_menu_auto 1` to restore it.
 
 ## Controls
 
@@ -28,6 +60,7 @@ Start with **1** for serving, **R** to ready a ball, then hold and release
 | C | Toggle assisted contact while holding a shot |
 | J | Toggle landing preview and training minimap |
 | H / Tab | Toggle help / hold for help |
+| Escape / F1 | Open the game menu |
 | F12 | Console |
 
 Aim before holding a shot button. Preparation stores your direction, allowing
@@ -40,7 +73,7 @@ direction selects the inward cut. Spin controls the subsequent curve separately.
 Release when the ball reaches your hands. With C assistance enabled, you can
 keep holding: contact happens automatically only in the centre of physical hand
 reach after preparation, with the same obstruction and recovery checks. This
-is optional in both doubles and practice; doubles starts with manual contact.
+is optional in both doubles and practice; new players start with manual contact.
 Manual release retains the wider hand window and allows the best receive timing.
 Assisted receives have a timing grade capped at 60%. Assistance never moves the
 ball or your feet.
