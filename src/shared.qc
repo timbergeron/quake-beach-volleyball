@@ -96,6 +96,7 @@ const float BV_STAT_HINT = 86;
 const float BV_STAT_POINT_REASON = 87;
 const float BV_STAT_SERVE_STYLE = 88;
 const float BV_STAT_RECEIVING = 89;
+const float BV_STAT_GOAL = 90;
 const float BV_POINT_DOUBLE = 8;
 const float BV_POINT_FOUR = 9;
 

@@ -46,7 +46,8 @@ def capture_case(binary, basedir, output, name, width, height, scale, timeout):
                         bv_handview=0, bv_menutest=1, host_timescale=0, host_framerate=0.1,
                         host_maxfps=100, scr_sbarscale=scale, con_notifytime=0,
                         con_notifylines=0, scr_fade=0, scr_conspeed=100000,
-                        bv_contact_kick=1, bv_menu_auto=1, gamma=1, contrast=1)
+                        bv_contact_kick=1, bv_menu_auto=1, bv_menu_visits=0, bv_matches_started=0,
+                        bv_hud_style=0, bv_court_map=0, bv_coaching=0, bv_shot_details=0, gamma=1, contrast=1)
         (target / "fixture.cfg").write_text("exec beach.cfg\n" + "".join(
             f"set {key} {value}\n" for key, value in settings.items()) + "map beach\n")
         command = [str(binary), "-basedir", str(runtime), "-game", "beachvolley", "-nohome",
@@ -81,13 +82,10 @@ def capture_case(binary, basedir, output, name, width, height, scale, timeout):
         text = log.read_text(errors="replace")
         completion = re.search(r"BEACH MENU DONE pass=(\d+) fail=(\d+)", text)
         failures = re.findall(r"BEACH MENU FAIL .+|Host_Error[^\n]*|Sys_Error[^\n]*|Program error[^\n]*|unimplemented builtin[^\n]*|qcrequest[^\n]*not supported", text)
-        if process.returncode or not completion or int(completion[2]) or failures:
-            raise RuntimeError(f"{name}: menu fixture failed; see {log}\n" + "\n".join(failures))
-        if int(completion[1]) < 35:
-            raise RuntimeError(f"{name}: too few assertions: {completion[1]}")
         images = sorted((target / "screenshots").glob("*.tga"))
-        labels = ("home", "practice", "settings", "learn", "resume", "confirm", "look", "first-serve",
-                  "hud-settings", "map-on", "hud-details", "hud-clean")
+        labels = ("home", "practice", "settings", "learn", "new-match", "resume", "confirm", "look", "first-serve",
+                  "hud-settings", "map-on", "hud-details", "hud-clean",
+                  "hud-classic", "hud-competitive", "hud-competitive-court")
         if len(images) != len(labels):
             raise RuntimeError(f"{name}: expected {len(labels)} captures, got {len(images)}")
         records = []
@@ -97,6 +95,10 @@ def capture_case(binary, basedir, output, name, width, height, scale, timeout):
             png = output / f"{name}-{label}.png"
             png.write_bytes(png_from_tga(source))
             records.append(dict(file=png.name, sha256=digest(png), width=width, height=height))
+        if process.returncode or not completion or int(completion[2]) or failures:
+            raise RuntimeError(f"{name}: menu fixture failed; see {log}\n" + "\n".join(failures))
+        if int(completion[1]) < 95:
+            raise RuntimeError(f"{name}: too few assertions: {completion[1]}")
         return dict(name=name, assertions=int(completion[1]), settings=settings, captures=records)
 
 

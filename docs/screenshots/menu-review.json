@@ -1,42 +1,45 @@
 {
   "schema": "beachvolley.menu-captures.v1",
   "captured_on": "2026-10-07",
-  "source_base_commit": "d019bb8500365fc911b15d51ad603ed98a97419a",
+  "source_base_commit": "a5b5221ffd81301f76071aec8ed0f24ec7f5b8f2",
   "render_source_matches_commit": false,
-  "source_note": "Native captures of the supplied arcade logo in the menu. Source files newer than the base commit are identified by hashes. This engine uses the square-panel fallback; current QSS-M supports rounded panels. The v0.7.0 release predates these changes.",
-  "renderer": "QSS-M native OpenGL with SDL offscreen and Mesa software rendering",
+  "source_note": "Native dark-glass menu following newmenu.png, with a match-aware hero, quiet navigation, original icons, bold typography, and working HUD gallery. Source changes beyond the base commit are identified by hashes. The v0.7.0 release predates these changes.",
+  "renderer": "QSS-M native OpenGL with SDL offscreen and Mesa software rendering; native rounded panels",
   "image_processing": "Lossless TGA to PNG conversion; no retouching or compositing of captures.",
-  "engine_sha256": "fdcaea200f1dbb2a05ffca8edeccab41988ea6d2d218dd72243ef272bb1b8d3d",
-  "progs_sha256": "d60c5e0c9a00e8984bc867f0d4dd7dea0e29d0911dcaf8eb2e9f43631c260eb7",
-  "csprogs_sha256": "0132c578a919910f14efa982b17e1bdba79559ea483e3a9a040595767ab51caf",
-  "map_sha256": "4022adbb1ffd58fbd079f68bad94ab96bd95e607566fcee8b9e26533f3a38ca1",
+  "engine_sha256": "3122ad9cb3a57d64b498cb5647c0a9d4aee06b3ad90b463a574eb09264a14263",
+  "progs_sha256": "37044d059ed418116628eb9e473f74fc82e08989742888d097260b2424c63e85",
+  "csprogs_sha256": "0413958573e7c24feff3c4a4512a12d2c809ad92c7d2d0deece1d425a8f3d3b3",
+  "map_sha256": "7f12c9520e07a4fa3c8ae352b470ddeb016b9b82d9d7c6d3d49d21c6cf2c6972",
   "font_sha256": "562829d8a4cf1b9f9f639bf4b9e5798860bf7e4e11795444f3aeaff7fa941e1a",
+  "bold_font_sha256": "1ecfc42196b00cf7f9c27142f09ab84543150463a2ee713406710abc7a8a2733",
   "logo_sha256": "0b7def4836d34cbcd41be35fdbc77f64cd6d49d9d16e868213484ec4de1cb19f",
   "source_logo_sha256": "60952c28691ce7aa5eb0a53c6a1dcbdfeed3cd496fcaa5d6322479c31f181b2b",
+  "design_reference_sha256": "e8fc4b7a51af2d7e42f3d361b9d122509eed6bf97fedf444fefa62a2a48d0109",
   "source_files_sha256": {
     "src/animation_frames.qc": "8119a4f4005b92786caaf7280ec1ac212154c80cdc91fa0e41dfca07cb38671f",
     "src/animations.qc": "40262fc1ace13cc1f8aba1e459e0e54ae6485e35054eee3e03bc32f2d2842a31",
     "src/animationtest.qc": "add391b746e1e27d9ad1570df67a2a1002e5b791ecee36241c4d10fe627a9867",
-    "src/ball.qc": "8e45a774c9a95c89175eeccefd0f17c0aa6043e9af694f2360a2354acb0ac277",
+    "src/ball.qc": "5bfb516d6322433372acf19954b4a26182be65a93b521bbb325e31af547a8cd3",
     "src/block.qc": "6fb5a4b865b7f3dc2c02a60f0299264bea887f19143275f934ce8ee12944ff6d",
     "src/blocktest.qc": "bb2c83569404938c1be75066fdb4fd6570acdd1770e507b5cc96433ce5b5fbf5",
     "src/bots.qc": "89e63acf672528d9993fdb3d3c3de139a78000a585cc7edefac1e1a73036ae52",
     "src/bottest.qc": "63937698d89250badf11381f261dc11f53de5ab2ffb691564fdbcbd1d53743fb",
-    "src/defs.qc": "42c53b8531c4872c3592900bb4385398a71f27f3d902fa8111bd2b5199e30e4c",
+    "src/defs.qc": "fee49f50db0e33d19a8c9aad8ba54789821a68954f77c224a7eec4bc8c077a2f",
     "src/feel.qc": "f7bdaf339dd5fb6555d613b6414c980a8f828ee27aa419b7e8b4be8244cc33e0",
     "src/feeltest.qc": "3fc93c5b9ea6b5ac9782b89f41ca655b414df1d4a237b6106a32f3490d6f6343",
     "src/handview.qc": "1b5b853c8e4bd356416b4d4a61e1825155f1910d9ae1531c34ff9cb4dfe8ad50",
-    "src/hud.qc": "7aac3a671db64177df155d2e194489dfef1cfe46e9060aad80cc31cc11a44a5d",
+    "src/hud.qc": "8616c52aa86c93d850f45ec965a428b94649e0ae3fd8e8c546bb6195eff85660",
     "src/hud_metrics.qc": "242acfcc9c3cc0d86702231897660b73d142d62bf76c44d09d7af78ce37ff7f1",
+    "src/hud_metrics_bold.qc": "c82b6dcc56509ecbe5b98e9ab4c1daaad52bbf4125ed4ceecd91c6e45dc91183",
     "src/match.qc": "2a0bdcdb8fbb7541c68cda827813c23cc216d4e12bb08230e05e3081706a396b",
     "src/matchrules.qc": "fb862544f6e2896e86aed2f824aa46fe6222d5add2ae759b2b0489c274972ee1",
     "src/matchtest.qc": "b7a1cfe9bb5c5701a14eb65e1237888134adc4132f542d7f714b7216fa30c2db",
-    "src/menu.qc": "9067f9e9ae33039c350109860deb89cf286e7bf671469e4dccb936f61a0367bf",
-    "src/menutest.qc": "3533caf01fe7c4d33252e70e9b5640fcb25764be432f2b453db4842d582ac6c1",
+    "src/menu.qc": "1d76c398b7059b7b9fcac194adbcafa2c5ab4dfdff145fec8c4db8bdff9b1621",
+    "src/menutest.qc": "39e0feb05a0c06f811bd8b0fac576d9b01427bd090bd7c9d4fb351ad504d2bfc",
     "src/net.qc": "554b07696601659f85c703ac8ee879ed7a7188c2bd744f859cdaf6cfe1306db6",
     "src/nettest.qc": "17ba5ed470489af6c9810eaadfbda969666cc8e92faee5cb607f6d2718473b0e",
     "src/physics.qc": "4ce6a8e84a02140f76f85dab84505127764d00a8ee861c6b9c746d6185e41e80",
-    "src/player.qc": "4efcd0b73dc608dedd5ad33061318494ae4375baa410005cd875627485c9e12a",
+    "src/player.qc": "7f511b5a80fd63603997475843d3382e3befdfd8698b215474f0a8f93ec29282",
     "src/playtest.qc": "b2ada00f875ca59df03991947e9a7e9e28741e548a95ea50eb15577b2063f16a",
     "src/receive.qc": "e80c8b5bc460631bb1b4aea23b18d2ff872a930ead0922f89b24aeae591dafd7",
     "src/receivetest.qc": "37a279f65a6acc85b066b2514671f7e6ec17c76211ac9ca120ff7f51af46b8b5",
@@ -44,48 +47,49 @@
     "src/selftest.qc": "22c71989505b5fcaf01ae12d09b0911d2891af75f340b6c7b97d558e182b4f74",
     "src/serve.qc": "ddeb9481a046cb44babc461f586af46349830fab351505be82cf94b4af2a40c4",
     "src/servetest.qc": "9c4f5782686415ea81fe3d97679beb522eb15150b5a5e7446023f8b66be33c79",
-    "src/shared.qc": "a26af1023efab2f7842b405755ea99f387073001d50256913c0cb70627d9772b",
-    "src/world.qc": "57ed2e60c6b21cd8f2b394fa152a83f68e14e5a2334db0dd57bb4443f1f964cf",
-    "src/csprogs.src": "3d68b25f423eeeb71070fc62363e8a5c45be8c5b506c5d08281699c1e55946d9",
+    "src/shared.qc": "a051861d401cbca81e960986f1679287c008c5fa7c49eefcacbd69b81cc30712",
+    "src/world.qc": "2c74b794b9a69ca4f4b9309833736d262cee46a8c86bd260da57732b8c086c27",
+    "src/csprogs.src": "7fcea395050a68b7fb9afe9f526c2689d9a128d703727c93970cecc90509ef76",
     "src/progs.src": "ffeb51b27e423b07e708bd360f17aad80eded9723f0adbd08311526088ea1066",
     "beach.cfg": "521497138f0819e28b5b45a661329b21420ca94bf78660cc4ad4183dbacc1a97",
     "server.cfg": "70af8dc1889b0f452f554e612ff2cc8fadaf00e9a3b7dee45003972533d78ece",
-    "test_menu.py": "fb863ef6f79a8a19419f4c0f16b4a13a267b4e28c5f2697d759c0eb5fb5dbcc2",
-    "hud_assets.py": "8c4e0ef49418f759d1e868d6897fb5b9ffaec71d5cbf6f8feaae6b22e306178a",
+    "test_menu.py": "8ad141af4907b022e5e9917d20922b74ccf7261643664a3c3d9e9e5d935e6bde",
+    "hud_assets.py": "599b6ee5d095501491e9efcd98ee6144b1c96cae1118988f352335d70918e076",
     "build.py": "69a475870c3312bd337e0dd91f6da718fc5fc5a75262c2654a03caa97ceca45f"
+  },
+  "menu_art_sha256": {
+    "resources/ui/bv_menu_card.tga": "dc7e304d31c7edd586894fc7234f8f25d33a448f33550216992734770261311d",
+    "resources/ui/bv_menu_court.tga": "3e40748e9f129c38f981fc7776036c9ff9a60a5df62f4f8ef83e26170f78fd54",
+    "resources/ui/bv_menu_icons.tga": "11bd6e2fa0ed44f1dd39267c85919671f4805653b94748b0d3324f057d27e04a"
   },
   "validation": {
     "complete": true,
     "profiles": [
       {
         "name": "desktop",
-        "assertions": 87
+        "assertions": 106
       },
       {
         "name": "compact",
-        "assertions": 87
-      },
-      {
-        "name": "compact",
-        "assertions": 87
+        "assertions": 106
       },
       {
         "name": "large-hud",
-        "assertions": 87
+        "assertions": 106
       },
       {
         "name": "wide",
-        "assertions": 87
+        "assertions": 106
       }
     ]
   },
   "captures": [
     {
       "image": "menu.png",
-      "kind": "native CSQC arrival menu with arcade logo",
+      "kind": "native CSQC arrival menu with a single match card",
       "width": 1280,
       "height": 720,
-      "sha256": "060c3e43f90c5f01708afaae959ba8bee363c169ffc5dafc6a37df612de78d38",
+      "sha256": "d42e39df2c4da41514f913c09c8f58f96c30c0105ec95b1b327ffd1780128baf",
       "fsaa": 4,
       "settings": {
         "developer": 1,
@@ -109,16 +113,22 @@
         "scr_conspeed": 100000,
         "bv_contact_kick": 1,
         "bv_menu_auto": 1,
+        "bv_menu_visits": 0,
+        "bv_matches_started": 0,
+        "bv_hud_style": 0,
+        "bv_court_map": 0,
+        "bv_coaching": 0,
+        "bv_shot_details": 0,
         "gamma": 1,
         "contrast": 1
       }
     },
     {
       "image": "menu-resume.png",
-      "kind": "native CSQC menu during doubles with arcade logo",
+      "kind": "native CSQC live match menu with score and current rules",
       "width": 1280,
       "height": 720,
-      "sha256": "ad66bce9b123d24f338e27c833a966a1db38fc776dbf38cdeefe8e80cb49b017",
+      "sha256": "eec2e61f12f645cf38cb37ec6d2fe9bb45badf65e4d63fbbdee1a7d50f6995d2",
       "fsaa": 4,
       "settings": {
         "developer": 1,
@@ -142,16 +152,22 @@
         "scr_conspeed": 100000,
         "bv_contact_kick": 1,
         "bv_menu_auto": 1,
+        "bv_menu_visits": 0,
+        "bv_matches_started": 0,
+        "bv_hud_style": 0,
+        "bv_court_map": 0,
+        "bv_coaching": 0,
+        "bv_shot_details": 0,
         "gamma": 1,
         "contrast": 1
       }
     },
     {
       "image": "menu-settings.png",
-      "kind": "optional HUD settings with arcade logo at 640x480; all extras off",
-      "width": 640,
-      "height": 480,
-      "sha256": "d5074cf89aa94f70eccd591f62770140fd6f584ee4f388dfd09e3061b0a251cc",
+      "kind": "native CSQC HUD switches and live-renderer preview gallery",
+      "width": 1280,
+      "height": 720,
+      "sha256": "8071f85d66b756c5a922b63dae3c1a933bb5cac1b83ae077c0853c4796151e97",
       "fsaa": 4,
       "settings": {
         "developer": 1,
@@ -175,6 +191,12 @@
         "scr_conspeed": 100000,
         "bv_contact_kick": 1,
         "bv_menu_auto": 1,
+        "bv_menu_visits": 0,
+        "bv_matches_started": 0,
+        "bv_hud_style": 0,
+        "bv_court_map": 0,
+        "bv_coaching": 0,
+        "bv_shot_details": 0,
         "gamma": 1,
         "contrast": 1
       }

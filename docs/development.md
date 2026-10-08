@@ -229,7 +229,10 @@ transform, including small windows and large HUD scales. No engine change is
 needed beyond the existing CSQC hooks; native rounded corners use the same
 optional extension as the HUD.
 
-The menu header uses the supplied transparent arcade logo. Its prepared RGBA
+The menu follows `newmenu.png`: a 760-pixel floating glass panel, text-only
+Play / Practice / Learn / Settings navigation, a single match card, and a quiet
+footer. The canvas is independent of the engine HUD scale. The menu header uses
+the supplied transparent arcade logo at a reduced size. Its prepared RGBA
 copy, `resources/ui/bv_logo.tga`, is staged into `gfx/bv_logo.tga` by
 `hud_assets.py`; normal builds need no image conversion dependency. The original
 `Quake Beach Volleyball Arcade Logo.png` also appears in the README and ships
@@ -237,17 +240,33 @@ with the documentation. The header preserves the logo's aspect ratio and shares
 the menu's canvas scaling and fade.
 To refresh the prepared copy after replacing the PNG, run
 `python3 hud_assets.py --logo` with Pillow installed.
+`python3 hud_assets.py --menu` bakes the original line-icon atlas and prepares
+the native court capture used by the HUD gallery and subtle card background.
+`--font` rebuilds both regular and bold DejaVu atlases. These optional rebuilds
+use libcairo; normal builds just stage the prepared TGA files.
 
 `beach_menu` toggles the menu. `bv_menu_auto` controls the arrival screen.
 Player options travel through `CSEv_BeachOption_ff`; session selection uses the
 normal impulses. `CSEv_BeachMenu_f` cancels preparation and blocks court actions
 while browsing; the court simulation keeps running. F12 remains available, and
 held inputs are cleared on entry. QSS-M's own menus remain available through
-**Video & controls**. Resume is the default after entering play. Confirmation
+**Settings → Audio & Video → Advanced video & input**. Resume is the default
+after entering play. The active match goal travels in `BV_STAT_GOAL`, so changing
+the next match's length cannot change the resume card's rules. Completed matches
+offer Play again. Confirmation
 dialogs expose only Cancel and their named action, with Cancel focused first.
 Option switches show the pending value immediately, then reconcile against
 server stats; rapid reversals keep their intended order. Q/E changes pages,
 Tab follows reading order, and arrows follow widget geometry or adjust values.
+Controller D-pad/A/B events normalize to the same input paths before key-up
+tracking. Left-stick axes use a dead zone and real-time directional repeats.
+On opening, a cursor-warp baseline preserves keyboard focus.
+`bv_matches_started` and `bv_menu_visits` archive progression for the contextual
+Learn link and initial input hints. `bv_hud_style` archives the gallery choice;
+the gallery and live court share `BV_HudMatchScore`. HUD extras remain independent.
+Server menu entry saves the player's view and hides the hands; a small idle
+drift uses that saved view and restores it on exit. Ocean ambience and water
+movement remain part of the live map.
 
 The structure takes inspiration from [menusys](https://github.com/victorbstan/menusys):
 a root owns focus and pointer capture, and common widgets share input handling.
@@ -263,12 +282,14 @@ The fixture drives the actual CSQC input entry point and checks server-side
 session changes and player options. It tests navigation, drag cancellation,
 slider limits, confirmation/back behavior, cursor restoration, input capture,
 and widget bounds at 1280×720, 640×480, a large HUD scale, and 1600×900. Logs,
-twelve native captures per case, and executable hashes go to `artifacts/menu`. Use `--case`
+sixteen native captures per case, and executable hashes go to `artifacts/menu`. Use `--case`
 to select `desktop`, `compact`, `large-hud`, or `wide`. The fixtures also check
 visible match-length choices, spatial focus, rapid toggle reversal, modal
 input containment, direct first-serve practice, and the default Resume action.
 They also check the clean HUD defaults, independent map/landing-guide toggles,
-and restoration of the clean court after disabling optional information.
+and restoration of the clean court after disabling optional information. They
+also check new-match setup, active match rules, gallery selection and persistence,
+and controller navigation, back, and resume.
 
 `src/hud.qc` draws a compact scoreboard and one context-sensitive cue. The
 charge/timing bar exists only during preparation; ordinary rallies have no

@@ -67,8 +67,8 @@ void() BV_MenuTestFrame =
     stage = bv_menu_test_stage;
     // Keep the page unchanged until the engine has read back the frame.
     // A queued screenshot followed by a page change captures the next page.
-    if ((stage == 1 || stage == 2 || stage == 4 || stage == 6 || stage == 9 || stage == 10 ||
-         stage == 24 || stage == 25 || stage == 32 || stage == 33 || stage == 34 || stage == 36) &&
+    if ((stage == 1 || stage == 2 || stage == 4 || stage == 6 || stage == 8 || stage == 10 || stage == 12 ||
+         stage == 26 || stage == 27 || stage == 34 || stage == 35 || stage == 36 || stage == 38 || stage == 42 || stage == 43 || stage == 45) &&
         bv_menu_test_captured_stage != stage)
     {
         bv_menu_test_captured_stage = stage;
@@ -93,6 +93,9 @@ void() BV_MenuTestFrame =
         BV_MenuTestBounds();
         BV_MenuAssert(!bv_menu_in_session && bv_menu_focus == 4,
             "arrival-focuses-a-clear-first-action");
+        CSQC_InputEvent(IE_MOUSEABS, K_PAD_A, 0, 0);
+        BV_MenuAssert(fabs(bv_menu_mouse_x - K_PAD_A / bv_menu_scale) < 0.001,
+            "mouse-coordinates-cannot-alias-controller-key-codes");
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_POINTS, 11));
         BV_MenuAssert(cvar("bv_match_points") == 11, "visible-match-length-choice-applies");
         BV_MenuTestKey(K_RIGHTARROW);
@@ -142,11 +145,11 @@ void() BV_MenuTestFrame =
         BV_MenuTestKey(K_F1);
         BV_MenuAssert(bv_menu_in_session && bv_menu_focus == 4,
             "reopened-menu-prioritizes-resume");
-        BV_MenuTestKey(101); BV_MenuTestKey(101);
+        BV_MenuTestKey(101); BV_MenuTestKey(101); BV_MenuTestKey(101);
     }
     if (stage == 4)
     {
-        BV_MenuAssert(bv_menu_open && bv_menu_page == 2, "f1-opens-and-tabs-select-settings");
+        BV_MenuAssert(bv_menu_open && bv_menu_page == 3, "f1-opens-and-tabs-select-settings");
         BV_MenuTestBounds();
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 0));
         BV_MenuAssert(BV_MenuSettingValue(0), "toggle-feedback-is-immediate");
@@ -199,31 +202,47 @@ void() BV_MenuTestFrame =
         BV_MenuAssert(!bv_menu_settings_page, "arrows-switch-settings-group-left");
         BV_MenuTestKey(K_RIGHTARROW);
         BV_MenuAssert(bv_menu_settings_page == 1, "arrows-switch-settings-group-right");
-        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PAGE, 3));
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PAGE, 2));
     }
     if (stage == 6)
     {
-        BV_MenuAssert(bv_menu_page == 3, "learn-page-opens");
+        BV_MenuAssert(bv_menu_page == 2, "learn-page-opens");
         BV_MenuTestBounds();
         BV_MenuTestKey(K_ESCAPE);
         BV_MenuAssert(bv_menu_open && bv_menu_page == 0, "escape-returns-to-home");
     }
-    if (stage == 7) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 34));
+    if (stage == 7) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_NEW_SETUP, 0));
     if (stage == 8)
+    {
+        BV_MenuAssert(bv_menu_page == 6, "new-match-opens-its-length-choice");
+        BV_MenuTestBounds();
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_POINTS, 11));
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_START_NEW, 0));
+    }
+    if (stage == 9)
     {
         BV_MenuAssert(!bv_menu_open && getstatf(BV_STAT_MATCH), "doubles-command-starts-real-match");
         BV_MenuAssert(getstatf(BV_STAT_ASSISTED) && !getstatf(BV_STAT_OVERLAYS),
             "new-match-preserves-player-options");
         BV_MenuTestKey(K_ESCAPE);
     }
-    if (stage == 9)
+    if (stage == 10)
     {
         BV_MenuAssert(bv_menu_action[bv_menu_focus] == BV_MENU_CLOSE,
             "live-match-default-is-resume");
         BV_MenuTestBounds();
-        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 34));
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_NEW_SETUP, 0));
     }
-    if (stage == 10)
+    if (stage == 11)
+    {
+        BV_MenuAssert(bv_menu_page == 6 && getstatf(BV_STAT_GOAL) == 11,
+            "resume-keeps-active-match-rules");
+        BV_MenuTestBounds();
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_POINTS, 21));
+        BV_MenuAssert(getstatf(BV_STAT_GOAL) == 11, "next-match-length-does-not-rewrite-active-rules");
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_START_NEW, 0));
+    }
+    if (stage == 12)
     {
         BV_MenuAssert(bv_menu_page == 4 && getstatf(BV_STAT_MATCH), "restart-needs-session-confirmation");
         BV_MenuTestBounds();
@@ -237,34 +256,34 @@ void() BV_MenuTestFrame =
         BV_MenuAssert(bv_menu_page == 0 && getstatf(BV_STAT_MATCH), "cancel-keeps-current-match");
         BV_MenuTestKey(101);
     }
-    if (stage == 11) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 31));
-    if (stage == 12) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_BACK, 0));
-    if (stage == 13)
+    if (stage == 13) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 31));
+    if (stage == 14) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_BACK, 0));
+    if (stage == 15)
     {
         BV_MenuAssert(bv_menu_page == 1 && getstatf(BV_STAT_MATCH), "cancel-returns-to-originating-page");
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 31));
     }
-    if (stage == 14) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_ACCEPT, 0));
-    if (stage == 15)
+    if (stage == 16) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_ACCEPT, 0));
+    if (stage == 17)
     {
         BV_MenuAssert(!bv_menu_open && !getstatf(BV_STAT_MATCH) && getstatf(BV_STAT_MODE) == 1,
             "confirmed-receive-replaces-match");
         BV_MenuTestKey(K_ESCAPE); BV_MenuTestKey(101);
     }
-    if (stage == 16) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 32));
-    if (stage == 17)
+    if (stage == 18) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 32));
+    if (stage == 19)
     {
         BV_MenuAssert(!bv_menu_open && getstatf(BV_STAT_MODE) == 2, "setting-command-reaches-server");
         BV_MenuTestKey(K_ESCAPE); BV_MenuTestKey(101);
     }
-    if (stage == 18) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 33));
-    if (stage == 19)
+    if (stage == 20) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 33));
+    if (stage == 21)
     {
         BV_MenuAssert(!bv_menu_open && getstatf(BV_STAT_MODE) == 3, "attack-command-reaches-server");
         BV_MenuTestKey(K_ESCAPE);
     }
-    if (stage == 20) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_QUIT, 0));
-    if (stage == 21)
+    if (stage == 22) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_QUIT, 0));
+    if (stage == 23)
     {
         BV_MenuAssert(bv_menu_page == 5, "quit-needs-confirmation");
         BV_MenuTestKey(K_ESCAPE); BV_MenuTestKey(K_ESCAPE);
@@ -277,55 +296,55 @@ void() BV_MenuTestFrame =
         sendevent("BeachOption", "ff", 0, FALSE);
         localcmd("+attack\n");
     }
-    if (stage == 22)
+    if (stage == 24)
     {
         BV_MenuAssert(getstatf(BV_STAT_AIM_LOCKED) && getstatf(BV_STAT_CHARGE) > 0,
             "court-can-prepare-held-shot");
         BV_MenuTestKey(K_ESCAPE);
     }
-    if (stage == 23)
+    if (stage == 25)
     {
         BV_MenuAssert(!getstatf(BV_STAT_AIM_LOCKED) && getstatf(BV_STAT_CHARGE) == 0,
             "opening-menu-cancels-held-shot");
-        BV_MenuTestKey(101); BV_MenuTestKey(101);
+        BV_MenuTestKey(101); BV_MenuTestKey(101); BV_MenuTestKey(101);
     }
-    if (stage == 24)
+    if (stage == 26)
     {
-        BV_MenuAssert(bv_menu_page == 2 && bv_menu_settings_page == 1,
+        BV_MenuAssert(bv_menu_page == 3 && bv_menu_settings_page == 1,
             "settings-remembers-selected-group");
         BV_MenuTestBounds();
-        BV_MenuTestKey(101);
+        BV_MenuTestKey(113);
     }
-    if (stage == 25)
+    if (stage == 27)
     {
-        BV_MenuAssert(bv_menu_page == 3 && BV_MenuTestFind(BV_MENU_PLAY, 30) >= 0,
+        BV_MenuAssert(bv_menu_page == 2 && BV_MenuTestFind(BV_MENU_PLAY, 30) >= 0,
             "first-serve-guide-offers-direct-practice");
         BV_MenuAssert(BV_MenuTestFind(BV_MENU_HELP, 0) >= 0, "first-serve-guide-offers-full-controls");
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_PLAY, 30));
     }
-    if (stage == 26)
+    if (stage == 28)
     {
         BV_MenuAssert(!bv_menu_open && getstatf(BV_STAT_MODE) == 0 && getstatf(BV_STAT_STATE) == BV_HELD,
             "guided-first-serve-starts-real-practice");
         BV_MenuTestKey(K_ESCAPE);
     }
-    if (stage == 27) BV_MenuTestKey(K_ENTER);
-    if (stage == 28)
+    if (stage == 29) BV_MenuTestKey(K_ENTER);
+    if (stage == 30)
     {
         BV_MenuAssert(!bv_menu_open && !getcursormode() && getstatf(BV_STAT_STATE) == BV_HELD,
             "default-enter-resumes-without-restarting");
         BV_MenuTestKey(K_F1);
-        BV_MenuTestKey(113);
+        BV_MenuTestKey(113); BV_MenuTestKey(113);
     }
-    if (stage == 29) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_HELP, 0));
-    if (stage == 30)
+    if (stage == 31) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_HELP, 0));
+    if (stage == 32)
     {
         BV_MenuAssert(!bv_menu_open && cvar("bv_help"), "full-controls-opens-court-help");
         BV_MenuTestKey(K_F1);
-        BV_MenuTestKey(101); BV_MenuTestKey(101);
+        BV_MenuTestKey(101); BV_MenuTestKey(101); BV_MenuTestKey(101);
     }
-    if (stage == 31) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_CATEGORY, 2));
-    if (stage == 32)
+    if (stage == 33) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_CATEGORY, 2));
+    if (stage == 34)
     {
         BV_MenuAssert(bv_menu_settings_page == 2, "hud-options-have-a-dedicated-settings-group");
         BV_MenuTestBounds();
@@ -338,36 +357,94 @@ void() BV_MenuTestFrame =
         BV_MenuAssert(!autocvar_bv_court_map, "left-arrow-disables-court-map");
         BV_MenuTestKey(K_RIGHTARROW); BV_MenuTestKey(K_RIGHTARROW);
         BV_MenuAssert(autocvar_bv_court_map == 1, "right-arrow-enables-map-without-slider-values");
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_HUD, 2));
+        BV_MenuAssert(autocvar_bv_hud_style == 2, "gallery-changes-live-hud-style-immediately");
+        BV_MenuTestKey(K_LEFTARROW);
+        BV_MenuAssert(autocvar_bv_hud_style == 1, "gallery-arrow-selects-classic-style");
+        BV_MenuTestKey(K_LEFTARROW);
+        BV_MenuAssert(autocvar_bv_hud_style == 0, "gallery-arrow-selects-minimal-style");
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_HUD, 2));
         BV_MenuTestKey(K_F1);
     }
-    if (stage == 33)
+    if (stage == 35)
     {
         BV_MenuAssert(!bv_menu_open && autocvar_bv_court_map, "chosen-court-map-remains-on-during-play");
         BV_MenuSettingSet(7, TRUE); BV_MenuSettingSet(8, TRUE);
         localcmd("+attack\n");
     }
-    if (stage == 34)
+    if (stage == 36)
     {
         BV_MenuAssert(getstatf(BV_STAT_AIM_LOCKED) && autocvar_bv_coaching && autocvar_bv_shot_details,
             "optional-training-information-works-during-real-preparation");
-        BV_MenuTestKey(K_F1); BV_MenuTestKey(101); BV_MenuTestKey(101);
+        BV_MenuTestKey(K_F1); BV_MenuTestKey(101); BV_MenuTestKey(101); BV_MenuTestKey(101);
     }
-    if (stage == 35)
+    if (stage == 37)
     {
         BV_MenuAssert(bv_menu_settings_page == 2 && BV_MenuSettingValue(6) &&
             BV_MenuSettingValue(7) && BV_MenuSettingValue(8), "hud-preferences-survive-menu-reopening");
+        BV_MenuAssert(autocvar_bv_hud_style == 2, "selected-hud-style-survives-reopening");
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 6));
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 7));
         BV_MenuTestClick(BV_MenuTestFind(BV_MENU_SETTING, 8));
         BV_MenuTestKey(K_F1);
     }
-    if (stage == 36)
+    if (stage == 38)
     {
         BV_MenuAssert(!bv_menu_open && !autocvar_bv_court_map && !autocvar_bv_coaching &&
             !autocvar_bv_shot_details && !getstatf(BV_STAT_AIM_LOCKED),
             "disabling-extras-restores-clean-hud-and-court-input");
     }
-    if (stage == 37)
+    if (stage == 39) BV_MenuLaunch(34);
+    if (stage == 40)
+    {
+        BV_MenuAssert(getstatf(BV_STAT_MATCH) && getstatf(BV_STAT_GOAL) == 21,
+            "new-match-uses-selected-length");
+        BV_MenuTestKey(K_PAD_B);
+        BV_MenuTestKey(101); BV_MenuTestKey(101); BV_MenuTestKey(101);
+    }
+    if (stage == 41) BV_MenuTestClick(BV_MenuTestFind(BV_MENU_HUD, 1));
+    if (stage == 42)
+    {
+        BV_MenuAssert(autocvar_bv_hud_style == 1, "classic-hud-selects-on-real-match");
+        BV_MenuTestClick(BV_MenuTestFind(BV_MENU_HUD, 2));
+    }
+    if (stage == 43) BV_MenuTestKey(K_PAD_B);
+    if (stage == 44)
+    {
+        BV_MenuAssert(bv_menu_page == 0 && bv_menu_action[bv_menu_focus] == BV_MENU_CLOSE,
+            "controller-back-focuses-resume");
+        BV_MenuTestKey(K_PAD_A);
+        BV_MenuAssert(!bv_menu_open, "controller-a-resumes-match");
+    }
+    if (stage == 45)
+    {
+        BV_MenuTestKey(K_PAD_B);
+    }
+    if (stage == 46)
+    {
+        BV_MenuTestKey(K_PAD_UP);
+        BV_MenuAssert(bv_menu_focus < 4, "controller-dpad-follows-navigation");
+        BV_MenuTestKey(K_PAD_DOWN);
+        BV_MenuTestKey(K_PAD_A);
+        BV_MenuAssert(!bv_menu_open && getstatf(BV_STAT_MATCH), "controller-resume-preserves-match");
+    }
+    if (stage == 47)
+    {
+        BV_MenuTestKey(K_PAD_B);
+    }
+    if (stage == 48)
+    {
+        BV_MenuAssert(CSQC_InputEvent(IE_JOYAXIS, 1, -0.9, 0), "menu-consumes-controller-stick");
+    }
+    if (stage == 49)
+    {
+        BV_MenuAssert(bv_menu_focus < 4, "controller-stick-navigates-to-tabs");
+        CSQC_InputEvent(IE_JOYAXIS, 1, 0, 0);
+        BV_MenuTestKey(K_PAD_DOWN);
+        BV_MenuTestKey(K_PAD_A);
+        BV_MenuAssert(!bv_menu_open && getstatf(BV_STAT_MATCH), "stick-navigation-keeps-resume-predictable");
+    }
+    if (stage == 50)
     {
         dprint("BEACH MENU DONE pass=", ftos(bv_menu_test_pass), " fail=", ftos(bv_menu_test_fail), "\n");
         localcmd("quit\n");

@@ -13,29 +13,38 @@ The menu opens after the court loads. **Escape** or **F1** opens it again;
 buttons activate on release, so dragging off a button cancels it. Arrows move
 to the next item in that direction; **Tab** / **Shift + Tab** follows reading
 order. **Enter** selects, and **Q / E** changes tabs. Left/right adjusts a
-focused setting or selects an adjacent match length. Sliders also accept a
+focused setting or selects an adjacent match length or HUD style. Sliders also accept a
 click or drag. Left turns a switch off; right turns it on.
 
-- **Play:** local doubles and visible 7, 11, or 21-point choices for the next
-  match. After entering the court, **Resume** becomes the default action and
-  your live doubles score appears above it. Starting a new match is separate.
-- **Practice:** serve, receive, set, or attack without a match score.
+- **Play:** a single Beach doubles card summarizes your match before you start.
+  Choose 7, 11, or 21 points; games are win by two. After entering the court,
+  **Resume** becomes the default action with the live score and current rules.
+  **New match** opens its own length choice; changing that choice keeps the
+  active match's rules. A completed match offers **Play again**.
+- **Practice:** serving, passing, setting, attacking, or unstructured free play.
 - **Settings:** **Gameplay** groups contact assistance, the landing guide, and
-  contact camera motion. **Sound & look** groups volume, mouse speed, and field
+  contact camera motion. **Audio & Video** groups volume, mouse speed, and field
   of view. Each option explains its effect; changes appear immediately. Court
   options apply to your current player, and another session keeps them. New
   players start with manual contact and the landing guide off. **HUD** has
   separate switches for the court map, coaching tips, and shot details. All
-  three start off; your HUD choices are saved for future launches.
+  three start off. The **Minimal**, **Classic**, and **Competitive** gallery
+  shows the actual scoreboard styles and applies your choice immediately.
+  Your HUD choices are saved for future launches.
 - **Learn:** a three-step first serve guide, with **Try a serve** taking you
   directly into serve practice. **All controls** returns to court with the
   full control overlay open.
 
-Opening the menu cancels a prepared shot or block. The court stays live while browsing.
+Controller **stick / D-pad / A / B** follows the same navigate, select, and back model.
+Opening the menu cancels a prepared shot or block. The court stays live with a
+gentle camera drift while browsing; your original view returns on exit.
 Changing sessions during doubles asks before resetting the score; quitting
 also asks. Confirmations name the destination, show your current session, and
-default to **Cancel**. **Video & controls** opens QSS-M's video, audio, and
-binding menus. **F12** always reaches the console.
+default to **Cancel**. The quiet **Controls** footer opens the on-court guide;
+**Settings → Audio & Video → Advanced video & input** opens QSS-M's video,
+audio, and binding menus. **F12** always reaches the console.
+The first-serve invitation disappears after starting three matches, and the
+navigation hints disappear after five court visits.
 To skip the arrival menu on future launches, enter `seta bv_menu_auto 0` in
 that console. Use `seta bv_menu_auto 1` to restore it.
 

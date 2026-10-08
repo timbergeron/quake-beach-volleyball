@@ -5,11 +5,13 @@ float bv_play_reach_reported, bv_play_preview_reported;
 float bv_play_timing_reported, bv_play_quality_reported;
 float bv_match_hud_reported, bv_match_point_reported;
 float bv_ui_font, bv_ui_rounded;
+float bv_ui_bold;
 var float bv_ui_scale = 1;
 // Extra training information is opt-in and independent of the landing guide.
 var float autocvar_bv_court_map = 0;
 var float autocvar_bv_coaching = 0;
 var float autocvar_bv_shot_details = 0;
+var float autocvar_bv_hud_style = 0;
 float bv_net_hud_reported, bv_receive_hud_reported;
 float(vector viewport) BV_MenuDraw;
 void() BV_MenuInit;
@@ -23,13 +25,19 @@ const vector BV_UI_GOLD = '1 0.79 0.43';
 const vector BV_UI_WARN = '1 0.61 0.45';
 const vector BV_UI_OPPONENT = '1 0.35 0.35';
 
+float(float character) BV_TypeAdvance =
+{
+    if (bv_ui_bold) return BV_GlyphBoldAdvance(character);
+    return BV_GlyphAdvance(character);
+};
+
 float(string text, float height) BV_TextWidth =
 {
     local float i, width;
     width = 0;
     if (!bv_ui_font) return strlen(text) * height * 0.6;
     for (i = 0; i < strlen(text); i = i + 1)
-        width = width + BV_GlyphAdvance(str2chr(text, i)) * height;
+        width = width + BV_TypeAdvance(str2chr(text, i)) * height;
     return width;
 };
 
@@ -39,6 +47,7 @@ void(float x, float y, string text, float height, vector color, float alpha, flo
 {
     local vector position, size, source;
     local float i, character, length;
+    local string atlas;
     if (width <= 0 || alpha <= 0) return;
     length = strlen(text);
     if (BV_TextWidth(text, height) > width)
@@ -59,6 +68,8 @@ void(float x, float y, string text, float height, vector color, float alpha, flo
         drawstring(position, text, size, color, alpha, 0);
         return;
     }
+    atlas = "gfx/bv_ui.tga";
+    if (bv_ui_bold) atlas = "gfx/bv_ui_bold.tga";
     for (i = 0; i < strlen(text); i = i + 1)
     {
         character = str2chr(text, i);
@@ -67,8 +78,8 @@ void(float x, float y, string text, float height, vector color, float alpha, flo
         source_x = (character - floor(character / 16) * 16) / 16;
         source_y = floor(character / 16) / 16;
         if (character != 32)
-            drawsubpic(position, size, "gfx/bv_ui.tga", source, '0.0625 0.0625 0', color, alpha, 0);
-        position_x = position_x + BV_GlyphAdvance(character) * height * bv_ui_scale;
+            drawsubpic(position, size, atlas, source, '0.0625 0.0625 0', color, alpha, 0);
+        position_x = position_x + BV_TypeAdvance(character) * height * bv_ui_scale;
     }
 };
 
@@ -291,22 +302,54 @@ void(float x, float y, float width, float height, float alpha) BV_HudSurface =
     BV_RoundBox(x, y, width, height, 7, '0.025 0.045 0.06', 0.82 * alpha);
 };
 
+// Shared by live play and the menu gallery so previews cannot drift apart.
+void(float x, float y, float style, float home, float away, float team, float alpha) BV_HudMatchScore =
+{
+    if (style == 1)
+    {
+        BV_RoundBox(x, y, 150, 46, 6, '0.025 0.045 0.06', 0.9 * alpha);
+        BV_RoundBox(x + 5, y + 5, 66, 36, 4, '0.12 0.29 0.46', alpha);
+        BV_RoundBox(x + 79, y + 5, 66, 36, 4, '0.48 0.16 0.19', alpha);
+        BV_Type(x + 12, y + 10, "BLUE", 8, BV_UI_TEXT, alpha, 30);
+        BV_Type(x + 86, y + 10, "RED", 8, BV_UI_TEXT, alpha, 30);
+        BV_Type(x + 43, y + 13, ftos(home), 24, BV_UI_TEXT, alpha, 30);
+        BV_Type(x + 117, y + 13, ftos(away), 24, BV_UI_TEXT, alpha, 30);
+        if (team < 0) BV_RoundBox(x + 12, y + 28, 4, 4, 2, BV_UI_GOLD, alpha);
+        else BV_RoundBox(x + 86, y + 28, 4, 4, 2, BV_UI_GOLD, alpha);
+        return;
+    }
+    if (style == 2)
+    {
+        BV_RoundBox(x, y, 166, 38, 4, '0.025 0.035 0.045', 0.94 * alpha);
+        BV_Box(x + 5, y + 7, 3, 24, '0.36 0.66 1', alpha);
+        BV_Box(x + 158, y + 7, 3, 24, BV_UI_OPPONENT, alpha);
+        BV_Type(x + 16, y + 6, "BLUE", 8, BV_UI_MUTED, alpha, 28);
+        BV_Type(x + 122, y + 6, "RED", 8, BV_UI_MUTED, alpha, 28);
+        BV_Type(x + 51, y + 6, ftos(home), 28, BV_UI_TEXT, alpha, 34);
+        BV_Type(x + 99, y + 6, ftos(away), 28, BV_UI_TEXT, alpha, 34);
+        BV_Type(x + 83, y + 14, "-", 12, BV_UI_MUTED, alpha, 10);
+        if (team < 0) BV_RoundBox(x + 16, y + 22, 4, 4, 2, BV_UI_GOLD, alpha);
+        else BV_RoundBox(x + 138, y + 22, 4, 4, 2, BV_UI_GOLD, alpha);
+        return;
+    }
+    BV_HudSurface(x, y, 148, 30, alpha);
+    BV_Type(x + 12, y + 10, "YOU", 9, '0.49 0.76 1', alpha, 24);
+    BV_Type(x + 40, y + 5, ftos(home), 19, BV_UI_TEXT, alpha, 30);
+    BV_Type(x + 72, y + 10, "-", 10, BV_UI_MUTED, alpha, 8);
+    BV_Type(x + 84, y + 5, ftos(away), 19, BV_UI_TEXT, alpha, 30);
+    BV_Type(x + 116, y + 10, "RED", 9, BV_UI_OPPONENT, alpha, 24);
+    if (team < 0) BV_RoundBox(x + 12, y + 24, 3, 3, 1.5, BV_UI_ACCENT, alpha);
+    else BV_RoundBox(x + 116, y + 24, 3, 3, 1.5, BV_UI_OPPONENT, alpha);
+};
+
 void(vector viewport) BV_HudScore =
 {
-    local float width, team;
+    local float width;
     local string label;
     if (getstatf(BV_STAT_MATCH))
     {
-        BV_HudSurface(12, 12, 148, 30, 1);
-        BV_Type(24, 22, "YOU", 9, '0.49 0.76 1', 1, 24);
-        BV_Type(52, 17, ftos(getstatf(BV_STAT_HOME_SCORE)), 19, BV_UI_TEXT, 1, 30);
-        BV_Type(84, 22, "-", 10, BV_UI_MUTED, 1, 8);
-        BV_Type(96, 17, ftos(getstatf(BV_STAT_AWAY_SCORE)), 19, BV_UI_TEXT, 1, 30);
-        BV_Type(128, 22, "RED", 9, BV_UI_OPPONENT, 1, 24);
-        team = getstatf(BV_STAT_SERVE_TEAM);
-        // The small team-coloured dot marks the side serving next.
-        if (team < 0) BV_RoundBox(24, 36, 3, 3, 1.5, BV_UI_ACCENT, 1);
-        else BV_RoundBox(128, 36, 3, 3, 1.5, BV_UI_OPPONENT, 1);
+        BV_HudMatchScore(12, 12, autocvar_bv_hud_style, getstatf(BV_STAT_HOME_SCORE),
+            getstatf(BV_STAT_AWAY_SCORE), getstatf(BV_STAT_SERVE_TEAM), 1);
         return;
     }
     label = BV_ModeLabel(getstatf(BV_STAT_MODE));
@@ -639,6 +682,7 @@ void(float api_level, string engine_name, float engine_version) CSQC_Init =
             bv_ui_font = loadfont("beach-ui", "gfx/bv_ui.tga", "32", 2);
     }
     if (bv_ui_font) precache_pic("gfx/bv_ui.tga", 512);
+    if (bv_ui_font) precache_pic("gfx/bv_ui_bold.tga", 512);
     if (drawfont) dprint("BEACH HUD FONT custom\n");
     if (bv_ui_rounded) dprint("BEACH HUD ROUNDED native\n");
     dprint("BEACH CSQC INIT\n");

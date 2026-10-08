@@ -43,13 +43,16 @@ required separately. [Release contents and notes →](docs/releases/v0.7.0.md)
 **In the latest source build**, the game menu opens when you arrive:
 
 - **Learn → Try a serve** takes you from a three-step guide straight to practice.
-- **Play** starts doubles with three bots. Choose **7, 11, or 21 points** before
-  starting; **Resume** becomes the first action once you're on court.
-- **Practice** gives each stroke its own drill: serve, receive, set, and attack.
-- **Settings** explains each option, with instant switches and draggable sliders.
-  **Video & controls** opens the engine options.
+- **Play** offers one match card: you and three bots, first to **7, 11, or 21**,
+  win by two. Return to a live match and **Resume** becomes the primary action,
+  with its current score and rules. **New match** has its own length choice.
+- **Practice** offers serving, passing, setting, attacking, and free play.
+- **Settings** has clear switches, draggable sliders, and a visual gallery of
+  **Minimal**, **Classic**, and **Competitive** HUDs. Advanced video and input
+  options live under **Audio & Video**.
 
-Use the mouse, or **Tab / arrows** and **Enter**; **Q / E** switches tabs.
+Use the mouse, **Tab / arrows** and **Enter**, or a controller's **stick / D-pad / A**;
+**Q / E** switches tabs. **B** goes back on a controller.
 **Escape** or **F1** brings the menu back. The court stays live while browsing.
 Changing sessions asks before clearing a doubles score, with **Cancel** selected
 first. [Menu and navigation →](docs/gameplay.md#game-menu)
@@ -93,16 +96,16 @@ the hands or send a roll over an early jump.
 
 ## See the game
 
-**An easy place to begin.** Play doubles, choose a focused drill, adjust the
-game, or learn your first serve in three steps. Resume keeps your current match
-one action away; settings explain what they change. Rounded panels and clear
-focus work with a mouse or keyboard, including smaller windows and large HUD scales.
+**An easy place to begin.** One match card, quiet navigation, and the beach
+visible through dark glass. Resume keeps your live score one action away;
+practice and a three-step serve guide each have their own space. The menu works
+with a mouse, keyboard, or controller, including smaller windows and large HUD scales.
 
-![The native CSQC game menu with the arcade logo and Play, Practice, Settings, and Learn tabs](docs/screenshots/menu.png)
+![The native glass menu with one Beach doubles card and Play, Practice, Learn, and Settings navigation](docs/screenshots/menu.png)
 
-| Resume your match | Choose your HUD · 640 × 480 |
+| Resume your match | Choose your HUD |
 | --- | --- |
-| ![The Resume match action with the live score and separate new-session choices](docs/screenshots/menu-resume.png) | ![Optional court map, coaching tips, and shot details, all off by default](docs/screenshots/menu-settings.png) |
+| ![The Resume match card with the live score and quiet New match and Practice actions](docs/screenshots/menu-resume.png) | ![HUD switches and the Minimal, Classic, and Competitive preview gallery](docs/screenshots/menu-settings.png) |
 
 **More court. Less HUD.** A compact score, a small aiming dot, and a brief cue
 when you need it. The power or timing bar appears only while preparing a shot.

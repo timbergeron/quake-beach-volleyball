@@ -2,6 +2,7 @@
 defs.qc
 shared.qc
 hud_metrics.qc
+hud_metrics_bold.qc
 hud.qc
 menu.qc
 menutest.qc

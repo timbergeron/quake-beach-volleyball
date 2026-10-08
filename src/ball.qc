@@ -2,6 +2,8 @@
 // Copyright (C) 2026 timbergeron
 .float bv_isplayer;
 .float bv_menu_active;
+.vector bv_menu_view_angles;
+.float bv_menu_view_started;
 .float bv_arc, bv_sidespin, bv_topspin, bv_charge, bv_kind;
 .float bv_preparing, bv_prepare_started, bv_armed_until, bv_last_contact;
 .float bv_action, bv_serve_contact, bv_previous_primary, bv_previous_secondary;

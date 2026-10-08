@@ -401,6 +401,11 @@ void() PlayerPreThink =
     // A packet sent before cursor capture must not start or release a shot.
     if (self.bv_menu_active)
     {
+        // An idle camera belongs to the menu; the saved aim returns on exit.
+        self.v_angle = self.bv_menu_view_angles;
+        self.v_angle_y = self.v_angle_y + sin((time - self.bv_menu_view_started) * 0.15) * 1.4;
+        self.v_angle_x = self.v_angle_x + sin((time - self.bv_menu_view_started) * 0.11) * 0.35;
+        self.fixangle = TRUE;
         self.button0 = self.button2 = self.button3 = 0;
         self.button4 = self.button5 = self.button7 = self.button8 = 0;
         self.impulse = 0;
@@ -433,8 +438,8 @@ void() PlayerPreThink =
         else self.bv_serve_style = BV_TOPSPIN_SERVE;
     }
     if (pulse == 34) BV_StartMatch(self);
-    if (pulse == 30 || (pulse >= 31 && pulse <= 33)) BV_StopMatch();
-    if (pulse == 30 || (pulse == 20 && !bv_match)) BV_ReadyServe(self);
+    if (pulse == 30 || pulse == 35 || (pulse >= 31 && pulse <= 33)) BV_StopMatch();
+    if (pulse == 30 || pulse == 35 || (pulse == 20 && !bv_match)) BV_ReadyServe(self);
     if (pulse >= 31 && pulse <= 33)
     {
         self.bv_mode = pulse - 30;
@@ -580,6 +585,18 @@ void() PlayerPostThink =
 void(float enabled) CSEv_BeachMenu_f =
 {
     if (!self.bv_isplayer || self.bv_isbot) return;
+    if (enabled && !self.bv_menu_active)
+    {
+        self.bv_menu_view_angles = self.v_angle;
+        self.bv_menu_view_started = time;
+        self.weaponmodel = "";
+    }
+    if (!enabled && self.bv_menu_active)
+    {
+        self.v_angle = self.bv_menu_view_angles;
+        self.fixangle = TRUE;
+        self.weaponmodel = "progs/bv_hands.md3";
+    }
     self.bv_menu_active = enabled != 0;
     if (!enabled) return;
     BV_ResetBlock(self);

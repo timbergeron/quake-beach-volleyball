@@ -78,6 +78,7 @@ void() worldspawn =
     globalstat(BV_STAT_TOUCHES, 2, "bv_touches");
     globalstat(BV_STAT_TOUCH_TEAM, 2, "bv_touch_team");
     globalstat(BV_STAT_PHASE, 2, "bv_match_phase");
+    globalstat(BV_STAT_GOAL, 2, "bv_match_goal");
     globalstat(BV_STAT_SERVE_TEAM, 2, "bv_serving_team");
     clientstat(BV_STAT_ASSISTED, 2, bv_assisted);
     clientstat(BV_STAT_OVERLAYS, 2, bv_overlays);

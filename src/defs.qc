@@ -188,11 +188,15 @@ string(string first, string second, ...) strcat = #115;
 #ifdef CSQC
 // FTE CSQC event/key codes, also used by QSS-M's Key_NativeToQC.
 const float IE_KEYDOWN = 0, IE_KEYUP = 1, IE_MOUSEABS = 3;
+const float IE_JOYAXIS = 6;
 const float K_TAB = 9, K_ENTER = 13, K_ESCAPE = 27, K_SPACE = 32;
 const float K_UPARROW = 128, K_DOWNARROW = 129, K_LEFTARROW = 130, K_RIGHTARROW = 131;
 const float K_SHIFT = 134, K_F1 = 135, K_F12 = 146, K_KP_ENTER = 172;
 const float K_MOUSE1 = 512, K_MOUSE2 = 513;
+const float K_PAD_UP = 816, K_PAD_DOWN = 817, K_PAD_LEFT = 818, K_PAD_RIGHT = 819;
+const float K_PAD_A = 826, K_PAD_B = 827;
 float drawfont;
+vector(float property) getproperty = #309;
 void(float enabled, optional string image, optional vector hotspot, optional float scale) setcursormode = #343;
 void(string command) registercommand = #352;
 float(optional float effective) getcursormode = #0;
